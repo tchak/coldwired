@@ -75,6 +75,10 @@
       }
     ]
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "release-it": {
     "npm": {
       "skipChecks": true

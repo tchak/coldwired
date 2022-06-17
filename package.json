@@ -1,0 +1,74 @@
+{
+  "name": "remix-router-turbo",
+  "description": "",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/remix-router-turbo.cjs.js",
+  "module": "./dist/remix-router-turbo.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/remix-router-turbo.es.js",
+      "require": "./dist/remix-router-turbo.cjs.js"
+    }
+  },
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite app",
+    "build": "tsc && vite build",
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "run-s lint:*",
+    "lint:types": "tsc",
+    "lint:js": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.0.1",
+    "@remix-run/router": "0.2.0-pre.2",
+    "morphdom": "^2.6.1",
+    "nanoid": "^4.0.0"
+  },
+  "devDependencies": {
+    "@remix-run/eslint-config": "^1.6.0",
+    "@remix-run/node": "^1.6.0",
+    "@testing-library/dom": "^8.13.0",
+    "c8": "^7.11.3",
+    "del-cli": "^4.0.1",
+    "eslint": "^8.17.0",
+    "eslint-config-prettier": "^8.5.0",
+    "happy-dom": "^5.3.1",
+    "just-debounce-it": "^3.0.1",
+    "msw": "^0.42.1",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.7.1",
+    "tiny-invariant": "^1.2.0",
+    "typescript": "^4.5.4",
+    "vite": "^2.9.9",
+    "vitest": "^0.15.1"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 100
+  },
+  "eslintConfig": {
+    "extends": [
+      "@remix-run/eslint-config",
+      "prettier"
+    ],
+    "rules": {
+      "@typescript-eslint/no-redeclare": "off"
+    },
+    "overrides": [
+      {
+        "files": [
+          "vite.config.js",
+          "vitest.config.ts"
+        ],
+        "env": {
+          "node": true
+        }
+      }
+    ]
+  }
+}

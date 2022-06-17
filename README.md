@@ -1,4 +1,4 @@
-# Remix Router Turbo
+# Remix Router Turbo [![Build Status](https://github.com/tchak/remix-router-turbo/workflows/CI/badge.svg)](https://github.com/tchak/remix-router-turbo/actions)
 
 # Why?
 

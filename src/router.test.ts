@@ -21,14 +21,21 @@ export const handlers = [
       ctx.body(html('<h1>About</h1><a href="/">Home</a>', 'About'))
     );
   }),
-  rest.get('/form', (_, res, ctx) => {
+  rest.get('/yolo', (_, res, ctx) => {
+    return res(
+      ctx.status(404),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(html('<h1>Not Found</h1>', 'Not Found'))
+    );
+  }),
+  rest.get('/forms', (_, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
       ctx.body(
         html(
           `<h1>Form</h1>
-          <form method="post" action="/form">
+          <form method="post" action="/forms">
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>`,
@@ -44,7 +51,7 @@ export const handlers = [
       ctx.body(
         html(
           `<h1>Submit on change form</h1>
-          <form method="post" action="/form" data-controller="submit-on-change">
+          <form method="post" action="/forms" data-controller="submit-on-change">
             <input name="firstName" value="Paul">
             <input type="checkbox" name="accept" value="true">
           </form>`,
@@ -53,10 +60,10 @@ export const handlers = [
       )
     );
   }),
-  rest.post('/form', (_, res, ctx) => {
+  rest.post('/forms', (_, res, ctx) => {
     return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
   }),
-  rest.get('/fetcher', (_, res, ctx) => {
+  rest.get('/forms/fetcher', (_, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
@@ -64,11 +71,11 @@ export const handlers = [
         html(
           `<h1>Fetcher</h1>
           <div id="item">Item</div>
-          <form data-controller="fetcher" id="fetcher1" method="post" action="/fetcher">
+          <form data-controller="fetcher" id="fetcher1" method="post" action="/forms/fetcher">
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>
-          <form data-controller="fetcher" method="post" action="/turbo-stream-fetcher">
+          <form data-controller="fetcher" method="post" action="/turbo-stream">
             <input type="submit" value="Delete">
           </form>`,
           'Fetcher'
@@ -76,10 +83,10 @@ export const handlers = [
       )
     );
   }),
-  rest.post('/fetcher', (_, res, ctx) => {
+  rest.post('/forms/fetcher', (_, res, ctx) => {
     return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
   }),
-  rest.post('/turbo-stream-fetcher', (_, res, ctx) => {
+  rest.post('/turbo-stream', (_, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.TurboStream),
@@ -106,12 +113,12 @@ export const handlers = [
 const server = setupServer(...handlers);
 
 const routes: () => RouteObject[] = () => [
-  { path: '/', id: '0', handle: { _loader: true } },
-  { path: '/about', id: '1', handle: { _loader: true } },
-  { path: '/forms/submit-on-change', id: '2', handle: { _loader: true } },
-  { path: '/form', id: '3', handle: { _loader: true, _action: true } },
-  { path: '/fetcher', id: '4', handle: { _loader: true, _action: true } },
-  { path: '/turbo-stream-fetcher', id: '5', handle: { _action: true } },
+  { path: '/', handle: { _loader: true } },
+  { path: '/about', handle: { _loader: true } },
+  { path: '/forms/submit-on-change', handle: { _loader: true } },
+  { path: '/forms', handle: { _loader: true, _action: true } },
+  { path: '/forms/fetcher', handle: { _loader: true, _action: true } },
+  { path: '/turbo-stream', handle: { _action: true } },
 ];
 
 const html = (body: string, title = 'Title') =>
@@ -157,10 +164,18 @@ describe('remix router turbo', () => {
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
   });
 
-  test('submit', async () => {
-    router.navigate('/form');
+  test('not found', async () => {
+    router.navigate('/yolo');
+    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
     await waitForEvent('turbo:navigation');
-    expect(router.state.location.pathname).toEqual('/form');
+    expect(router.state.location.pathname).toEqual('/yolo');
+    expect(document.body.innerHTML).toEqual('<h1>Not Found</h1>');
+  });
+
+  test('submit', async () => {
+    router.navigate('/forms');
+    await waitForEvent('turbo:navigation');
+    expect(router.state.location.pathname).toEqual('/forms');
 
     click(getByText(document.body, 'Submit'));
     expect(document.documentElement.dataset.turboNavigationState).toEqual('submitting');
@@ -192,9 +207,9 @@ describe('remix router turbo', () => {
   });
 
   test('fetcher', async () => {
-    router.navigate('/fetcher');
+    router.navigate('/forms/fetcher');
     await waitForEvent('turbo:navigation');
-    expect(router.state.location.pathname).toEqual('/fetcher');
+    expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
     click(getByText(document.body, 'Submit'));
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('submitting');
@@ -208,9 +223,9 @@ describe('remix router turbo', () => {
   });
 
   test('fetcher turbo-stream', async () => {
-    router.navigate('/fetcher');
+    router.navigate('/forms/fetcher');
     await waitForEvent('turbo:navigation');
-    expect(router.state.location.pathname).toEqual('/fetcher');
+    expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
     const body = document.body.innerHTML;
     expect(body).toMatch('Item');

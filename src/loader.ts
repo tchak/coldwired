@@ -5,6 +5,7 @@ import type {
   ShouldRevalidateFunction,
 } from '@remix-run/router';
 import { json, redirect } from '@remix-run/router';
+import { nanoid } from 'nanoid';
 
 type RouteData =
   | { format: 'html'; content: string }
@@ -45,6 +46,7 @@ export function setupDataFunctions(routes: RouteObject[], fetchOptions?: Request
       route.action = dataFunction;
     }
     route.shouldRevalidate = shouldRevalidate;
+    route.id ??= nanoid();
   }
   routes.push({
     id: 'not_found',

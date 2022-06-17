@@ -13,6 +13,7 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - bypass remix routing if `data-turbo="false"` is set on links and forms
  - provide [stimulus](https://stimulus.hotwired.dev) controller to register fetchers (`data-controller="fetcher"`)
  - provide [stimulus](https://stimulus.hotwired.dev) controller to submit forms on changes (`data-controller="submit-on-change"`)
+ - provide [stimulus](https://stimulus.hotwired.dev) controller to revalidate pages (`data-controller="revalidate"`)
  - in fetcher responses accepts [turbo-stream](https://turbo.hotwired.dev/handbook/streams) format and bypass revalidation in those cases
 
 ## Install

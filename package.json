@@ -22,6 +22,8 @@
     "lint": "run-s lint:*",
     "lint:types": "tsc",
     "lint:js": "eslint . --ext .ts,.tsx",
+    "clean": "del dist coverage node_modules/.vite",
+    "prepare": "yarn build",
     "release": "release-it"
   },
   "dependencies": {

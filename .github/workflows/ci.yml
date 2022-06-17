@@ -1,12 +1,17 @@
 name: CI
 on: [push]
 jobs:
-  run:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [ 16, 18 ]
+    name: Node ${{ matrix.node }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
       with:
-        version: 16.x
+        node-version: ${{ matrix.node }}
 
     - name: Install
       run: yarn install

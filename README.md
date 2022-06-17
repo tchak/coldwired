@@ -15,8 +15,40 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - provide [stimulus](https://stimulus.hotwired.dev) controller to submit forms on changes (`data-controller="submit-on-change"`)
  - in fetcher responses accepts [turbo-stream](https://turbo.hotwired.dev/handbook/streams) format and bypass revalidation in those cases
 
-# Install
+## Install
+
+With `yarn`
 
 ```bash
-yarn install remix-router-turbo
+yarn add remix-router-turbo
+```
+
+With `npm`
+
+```bash
+npm install remix-router-turbo
+```
+
+## Usage
+
+In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You should add `_loader: true` to `GET` only routes and `_action: true` to any route that you expect to handle any other HTTP methods. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-remix: true`. In order for redirects to work properly you should respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
+
+```ts
+import { createBrowserTurboRouter, RouteObject } from 'remix-router-turbo';
+
+const routes: RouteObject[] = [
+  {
+    path: '/',
+    id: 'root',
+    handle: { _loader: true }
+  },
+  {
+    path: '/login',
+    id: 'login',
+    handle: { _loader: true, _action: true }
+  }
+];
+
+const router = createBrowserTurboRouter({ routes, debug: true });
+
 ```

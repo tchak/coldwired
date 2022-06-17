@@ -3,23 +3,52 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import { createMemoryTurboRouter } from '.';
+import { createMemoryTurboRouter, ContentType } from '.';
 import type { RouteObject, Router } from '.';
 
 export const handlers = [
   rest.get('/', (_, res, ctx) => {
-    return res(ctx.status(200), ctx.text(html('<h1>Hello world!</h1>')));
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(html('<h1>Hello world!</h1>'))
+    );
   }),
   rest.get('/about', (_, res, ctx) => {
-    return res(ctx.status(200), ctx.text(html('<h1>About</h1><a href="/">Home</a>', 'About')));
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(html('<h1>About</h1><a href="/">Home</a>', 'About'))
+    );
   }),
   rest.get('/form', (_, res, ctx) => {
     return res(
       ctx.status(200),
-      ctx.text(
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(
         html(
-          '<h1>Form</h1><form method="post" action="/form"><input name="firstName" value="Paul"><input type="submit" value="Submit"></form>',
+          `<h1>Form</h1>
+          <form method="post" action="/form">
+            <input name="firstName" value="Paul">
+            <input type="submit" value="Submit">
+          </form>`,
           'Form'
+        )
+      )
+    );
+  }),
+  rest.get('/forms/submit-on-change', (_, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(
+        html(
+          `<h1>Submit on change form</h1>
+          <form method="post" action="/form" data-controller="submit-on-change">
+            <input name="firstName" value="Paul">
+            <input type="checkbox" name="accept" value="true">
+          </form>`,
+          'Submit on change form'
         )
       )
     );
@@ -30,10 +59,19 @@ export const handlers = [
   rest.get('/fetcher', (_, res, ctx) => {
     return res(
       ctx.status(200),
-      ctx.text(
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(
         html(
-          '<h1>Form</h1><form data-controller="fetcher" id="fetcher1" method="post" action="/fetcher"><input name="firstName" value="Paul"><input type="submit" value="Submit"></form>',
-          'Form'
+          `<h1>Fetcher</h1>
+          <div id="item">Item</div>
+          <form data-controller="fetcher" id="fetcher1" method="post" action="/fetcher">
+            <input name="firstName" value="Paul">
+            <input type="submit" value="Submit">
+          </form>
+          <form data-controller="fetcher" method="post" action="/turbo-stream-fetcher">
+            <input type="submit" value="Delete">
+          </form>`,
+          'Fetcher'
         )
       )
     );
@@ -41,19 +79,48 @@ export const handlers = [
   rest.post('/fetcher', (_, res, ctx) => {
     return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
   }),
+  rest.post('/turbo-stream-fetcher', (_, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.TurboStream),
+      ctx.body(`<turbo-stream target="item" action="remove"></turbo-stream>
+      <turbo-stream target="fetcher1" action="after">
+        <template>
+          <p>A message after</p>
+        </template>
+      </turbo-stream>
+      <turbo-stream target="fetcher1" action="before">
+        <template>
+          <p>A message before</p>
+        </template>
+      </turbo-stream>
+      <turbo-stream targets="h1" action="update">
+        <template>
+          Fetcher!
+        </template>
+      </turbo-stream>`)
+    );
+  }),
 ];
 
 const server = setupServer(...handlers);
 
 const routes: () => RouteObject[] = () => [
-  { path: '/', id: 'root', handle: { _loader: true } },
-  { path: '/about', id: 'about', handle: { _loader: true } },
-  { path: '/form', id: 'form', handle: { _loader: true, _action: true } },
-  { path: '/fetcher', id: 'fetcher', handle: { _loader: true, _action: true } },
+  { path: '/', id: '0', handle: { _loader: true } },
+  { path: '/about', id: '1', handle: { _loader: true } },
+  { path: '/forms/submit-on-change', id: '2', handle: { _loader: true } },
+  { path: '/form', id: '3', handle: { _loader: true, _action: true } },
+  { path: '/fetcher', id: '4', handle: { _loader: true, _action: true } },
+  { path: '/turbo-stream-fetcher', id: '5', handle: { _action: true } },
 ];
 
 const html = (body: string, title = 'Title') =>
-  `<html><head><title>${title}</title></head><body>${body}</body></html>`;
+  `<html>
+    <head>
+      <title>${title}</title>
+    </head>
+    <body>${body}</body>
+  </html>`;
 
 describe('remix router turbo', () => {
   let router: Router;
@@ -64,7 +131,7 @@ describe('remix router turbo', () => {
 
   beforeEach(() => {
     router?.dispose();
-    router = createMemoryTurboRouter({ routes: routes() });
+    router = createMemoryTurboRouter({ routes: routes(), debug: false });
   });
 
   afterEach(() => server.resetHandlers());
@@ -106,6 +173,24 @@ describe('remix router turbo', () => {
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
   });
 
+  test('submit-on-change', async () => {
+    router.navigate('/forms/submit-on-change');
+    await waitForEvent('turbo:navigation');
+    expect(router.state.location.pathname).toEqual('/forms/submit-on-change');
+
+    const checkbox = document.querySelector<HTMLInputElement>('input[name="accept"]');
+    change(checkbox!);
+    expect(document.documentElement.dataset.turboNavigationState).toEqual('submitting');
+    await waitForEvent('turbo:navigation');
+    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
+    expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
+    expect(router.state.navigation.formData?.get('accept')).toEqual('true');
+
+    await waitForEvent('turbo:navigation');
+    expect(router.state.location.pathname).toEqual('/about');
+    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+  });
+
   test('fetcher', async () => {
     router.navigate('/fetcher');
     await waitForEvent('turbo:navigation');
@@ -115,11 +200,34 @@ describe('remix router turbo', () => {
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('submitting');
     await waitForEvent('turbo:fetcher');
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('loading');
-    expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
+    expect(router.state.fetchers.get('fetcher1')?.formData?.get('firstName')).toEqual('Paul');
 
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/about');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+  });
+
+  test('fetcher turbo-stream', async () => {
+    router.navigate('/fetcher');
+    await waitForEvent('turbo:navigation');
+    expect(router.state.location.pathname).toEqual('/fetcher');
+
+    const body = document.body.innerHTML;
+    expect(body).toMatch('Item');
+    expect(body).toMatch('<h1>Fetcher</h1>');
+    expect(body).not.toMatch('<p>A message after</a>');
+    expect(body).not.toMatch('<p>A message before</a>');
+
+    click(getByText(document.body, 'Delete'));
+    await waitForEvent('turbo:fetcher');
+    await waitForEvent('turbo:fetcher');
+    await waitForNextAnimationFrame();
+
+    const newBody = document.body.innerHTML;
+    expect(newBody).not.toMatch('Item');
+    expect(newBody).toMatch('Fetcher!');
+    expect(newBody).toMatch('<p>A message after</p>');
+    expect(newBody).toMatch('<p>A message before</p>');
   });
 });
 
@@ -133,6 +241,12 @@ function click(target: HTMLElement & { form?: HTMLFormElement }) {
   fireEvent(target, new MouseEvent('click', { bubbles: true }));
   document.documentElement.removeEventListener('click', onClickSubmitter);
 }
+
+function change(target: HTMLInputElement) {
+  fireEvent(target, new CustomEvent('change', { bubbles: true }));
+}
+
+const waitForNextAnimationFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 function onClickSubmitter(event: Event) {
   const target = event.target as { form?: HTMLFormElement };

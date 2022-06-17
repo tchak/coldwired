@@ -11,7 +11,7 @@ type RouteData =
   | { format: 'turbo-stream'; content: string }
   | { format: 'json'; content: unknown };
 
-enum ContentType {
+export enum ContentType {
   TurboStream = 'text/vnd.turbo-stream.html',
   HTML = 'text/html, application/xhtml+xml',
   JSON = 'application/json',

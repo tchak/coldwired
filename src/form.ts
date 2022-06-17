@@ -84,7 +84,7 @@ export function unregisterFetcher(router: Router, form: HTMLFormElement) {
 }
 
 function generateFetcherKey(element: HTMLElement) {
-  return element.id ?? nanoid();
+  return element.id || nanoid();
 }
 
 const forms = new Map<string, HTMLFormElement>();

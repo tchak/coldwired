@@ -7,6 +7,7 @@
   ],
   "main": "./dist/remix-router-turbo.cjs.js",
   "module": "./dist/remix-router-turbo.es.js",
+  "types": "./dist/types/src/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/remix-router-turbo.es.js",
@@ -16,11 +17,13 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "vite app",
-    "build": "tsc && vite build",
+    "build": "run-s clean build:*",
+    "build:vite": "vite build",
+    "build:tsc": "tsc --emitDeclarationOnly",
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "run-s lint:*",
-    "lint:types": "tsc",
+    "lint:types": "tsc --noEmit",
     "lint:js": "eslint . --ext .ts,.tsx",
     "clean": "del dist coverage node_modules/.vite",
     "prepare": "yarn build",

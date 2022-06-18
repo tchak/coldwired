@@ -5,11 +5,11 @@
 [build-badge]: https://github.com/tchak/remix-router-turbo/workflows/CI/badge.svg
 [build]: https://github.com/tchak/remix-router-turbo/actions
 
-# Why?
+## Why?
 
 At work we have a 6 years old reasonably big rails app. It powers quite a successful service while being run by a minimal team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced [hotwired/turbo](https://hotwired.dev) into our code base and it is quite a success. The team likes a lot the minimal JavaScript API surface. But turbo has problems. Those problems are very similar to the ones solved by @remix-run/router. The main one is coordinating multiple submitting forms on one page without full reloads.
 
-# How ?
+## How?
 
 This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/handbook/drive) with remix based router. It does several things:
  - intercepts `click` and `submit` events to navigate with client router

@@ -18,16 +18,17 @@ function registerListener(event: string, callback: (event: Event) => void) {
 }
 
 function onLinkClick(router: Router, event: MouseEvent) {
-  const target = event.target as HTMLAnchorElement;
+  const target = (event.composedPath && event.composedPath()[0]) || event.target;
+  const link = findLinkFromClickTarget(target);
 
-  if (target.tagName == 'A' && willFollowLink(event, target)) {
+  if (link && willFollowLink(event, link)) {
     event.preventDefault();
 
-    const confirmMessage = target.dataset.turboConfirm;
+    const confirmMessage = link.dataset.turboConfirm;
 
     if (!confirmMessage || confirm(confirmMessage)) {
-      submitLink(router, target, {
-        replace: target.dataset.turboReplace == 'true',
+      submitLink(router, link, {
+        replace: link.dataset.turboReplace == 'true',
       });
     }
   }
@@ -72,4 +73,19 @@ export function willSubmitForm(
     return isTurboEnabled(input) && isTurboEnabled(form);
   }
   return isTurboEnabled(form);
+}
+
+function findLinkFromClickTarget(target: EventTarget | null): HTMLAnchorElement | null {
+  if (target instanceof Element) {
+    return closest<HTMLAnchorElement>(target, 'a[href]:not([target^=_]):not([download])');
+  }
+  return null;
+}
+
+function closest<T extends Element>(element: Element, selector: string) {
+  const maybeClosest = element.closest<T>(selector);
+  if (!maybeClosest && element.matches(selector)) {
+    return element as T;
+  }
+  return maybeClosest;
 }

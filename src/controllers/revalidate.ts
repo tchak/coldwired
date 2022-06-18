@@ -2,9 +2,9 @@ import { Controller } from '@hotwired/stimulus';
 
 import { getRouter } from '../stimulus';
 
-const DEFAULT_MIN_TIMEOUT = 15_000; // 15 sec
+const DEFAULT_MIN_TIMEOUT = 5_000; // 5 sec
 const DEFAULT_MAX_TIMEOUT = 60_000; // 60 sec
-const DEFAULT_FACTOR = 2;
+const DEFAULT_FACTOR = 1.1;
 
 export class RevalidateController extends Controller {
   #attempt = 0;

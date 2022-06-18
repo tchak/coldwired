@@ -2,7 +2,7 @@ import type { Router, FormMethod } from '@remix-run/router';
 import invariant from 'tiny-invariant';
 import { nanoid } from 'nanoid';
 
-import { getFormSubmissionInfo } from './dom';
+import { getFormSubmissionInfo, expandURL, relativeURL, buildSelector } from './dom';
 
 type SubmitOptions = {
   /** */
@@ -56,28 +56,6 @@ export function followOrSubmitLink(
   } else {
     router.navigate(relativeURL(linkURL), { replace });
   }
-}
-
-type Locatable = URL | string;
-
-function expandURL(locatable: Locatable) {
-  return new URL(locatable.toString(), document.baseURI);
-}
-
-function relativeURL(url: URL) {
-  return `${url.pathname}${url.search}`;
-}
-
-function buildSelector(tags: string[], modifiers: string[], flag: string) {
-  const selectors: string[] = [];
-
-  for (const tag of tags) {
-    for (const modifier of modifiers) {
-      selectors.push(`${tag}[${modifier}]:${flag}`);
-    }
-  }
-
-  return selectors.join(', ');
 }
 
 // Form input elements disabled during form submission

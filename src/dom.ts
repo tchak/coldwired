@@ -61,63 +61,6 @@ export function shouldProcessLinkClick(event: LimitedMouseEvent, target?: string
   );
 }
 
-export type ParamKeyValuePair = [string, string];
-
-export type URLSearchParamsInit =
-  | string
-  | ParamKeyValuePair[]
-  | Record<string, string | string[]>
-  | URLSearchParams;
-
-/**
- * Creates a URLSearchParams object using the given initializer.
- *
- * This is identical to `new URLSearchParams(init)` except it also
- * supports arrays as values in the object form of the initializer
- * instead of just strings. This is convenient when you need multiple
- * values for a given key, but don't want to use an array initializer.
- *
- * For example, instead of:
- *
- *   let searchParams = new URLSearchParams([
- *     ['sort', 'name'],
- *     ['sort', 'price']
- *   ]);
- *
- * you can do:
- *
- *   let searchParams = createSearchParams({
- *     sort: ['name', 'price']
- *   });
- */
-export function createSearchParams(init: URLSearchParamsInit = ''): URLSearchParams {
-  return new URLSearchParams(
-    typeof init === 'string' || Array.isArray(init) || init instanceof URLSearchParams
-      ? init
-      : Object.keys(init).reduce((memo, key) => {
-          const value = init[key];
-          return memo.concat(Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]]);
-        }, [] as ParamKeyValuePair[])
-  );
-}
-
-export function getSearchParamsForLocation(
-  locationSearch: string,
-  defaultSearchParams: URLSearchParams
-) {
-  let searchParams = createSearchParams(locationSearch);
-
-  for (let key of defaultSearchParams.keys()) {
-    if (!searchParams.has(key)) {
-      defaultSearchParams.getAll(key).forEach((value) => {
-        searchParams.append(key, value);
-      });
-    }
-  }
-
-  return searchParams;
-}
-
 export interface SubmitOptions {
   /**
    * The HTTP method used to submit the form. Overrides `<form method>`.
@@ -180,7 +123,7 @@ export function getFormSubmissionInfo(
     }
   } else if (
     isButtonElement(target) ||
-    (isInputElement(target) && (target.type === 'submit' || target.type === 'image'))
+    (isInputElement(target) && (target.type == 'submit' || target.type == 'image'))
   ) {
     const form = target.form;
 
@@ -225,9 +168,7 @@ export function getFormSubmissionInfo(
       formData = new FormData();
 
       if (target instanceof URLSearchParams) {
-        for (const [name, value] of target) {
-          formData.append(name, value);
-        }
+        target.forEach((value, name) => formData.append(name, value));
       } else if (target != null) {
         for (const [name, value] of Object.entries(target)) {
           formData.append(name, value);
@@ -283,4 +224,26 @@ function formDataFromForm(form: HTMLFormElement) {
 
     return formData;
   }
+}
+
+export type Locatable = URL | string;
+
+export function expandURL(locatable: Locatable) {
+  return new URL(locatable.toString(), document.baseURI);
+}
+
+export function relativeURL(url: URL) {
+  return `${url.pathname}${url.search}`;
+}
+
+export function buildSelector(tags: string[], modifiers: string[], flag: string) {
+  const selectors: string[] = [];
+
+  for (const tag of tags) {
+    for (const modifier of modifiers) {
+      selectors.push(`${tag}[${modifier}]:${flag}`);
+    }
+  }
+
+  return selectors.join(', ');
 }

@@ -1,6 +1,6 @@
 import type { Router } from '@remix-run/router';
 
-import { submitForm, submitLink, getFetcherKey } from './form';
+import { submitForm, followOrSubmitLink, getFetcherKey } from './form';
 import { shouldProcessLinkClick } from './dom';
 
 export function registerEventListeners(router: Router) {
@@ -27,7 +27,7 @@ function onLinkClick(router: Router, event: MouseEvent) {
     const confirmMessage = link.dataset.turboConfirm;
 
     if (!confirmMessage || confirm(confirmMessage)) {
-      submitLink(router, link, {
+      followOrSubmitLink(router, link, {
         replace: link.dataset.turboReplace == 'true',
       });
     }

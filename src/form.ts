@@ -31,18 +31,18 @@ export function submitForm(
   invariant(match, 'No route matches the current URL');
 
   if (fetcherKey) {
-    router.fetch(fetcherKey, match.route.id, url.pathname, options);
+    router.fetch(fetcherKey, match.route.id, relativeURL(url), options);
   } else {
-    router.navigate(url.pathname, options);
+    router.navigate(relativeURL(url), options);
   }
 }
 
-export function submitLink(
+export function followOrSubmitLink(
   router: Router,
   anchor: HTMLAnchorElement,
   { replace }: SubmitOptions = {}
 ) {
-  const anchorURL = new URL(anchor.getAttribute('href') ?? '', document.baseURI);
+  const anchorURL = expandURL(anchor.getAttribute('href') || '');
   const turboMethod = anchor.dataset.turboMethod?.toLowerCase();
 
   if (turboMethod && turboMethod !== 'get') {
@@ -52,10 +52,20 @@ export function submitLink(
       { method: turboMethod as FormMethod, action: anchorURL.pathname }
     );
 
-    router.navigate(url, { formMethod: method, formData, replace });
+    router.navigate(relativeURL(url), { formMethod: method, formData, replace });
   } else {
-    router.navigate(anchorURL.pathname, { replace });
+    router.navigate(relativeURL(anchorURL), { replace });
   }
+}
+
+type Locatable = URL | string;
+
+function expandURL(locatable: Locatable) {
+  return new URL(locatable.toString(), document.baseURI);
+}
+
+function relativeURL(url: URL) {
+  return `${url.pathname}${url.search}`;
 }
 
 export function getFetcherKey(form: HTMLFormElement) {

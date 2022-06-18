@@ -147,10 +147,11 @@ describe('remix router turbo', () => {
     expect(router.state.location.pathname).toEqual('/');
     expect(document.body.innerHTML).toEqual('');
 
-    router.navigate('/about');
+    router.navigate('/about?foo=bar');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/about');
+    expect(router.state.location.search).toEqual('?foo=bar');
     expect(document.body.innerHTML).toEqual('<h1>About</h1><a href="/">Home</a>');
     expect(document.querySelector('title')?.textContent).toEqual('About');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');

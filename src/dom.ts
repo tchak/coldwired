@@ -216,10 +216,8 @@ function formDataFromForm(form: HTMLFormElement) {
 
     for (const input of form.querySelectorAll<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >('input, textarea, select')) {
-      if (!input.disabled) {
-        formData.append(input.name, input.value);
-      }
+    >('input:enabled, textarea:enabled, select:enabled')) {
+      formData.append(input.name, input.value);
     }
 
     return formData;
@@ -236,12 +234,12 @@ export function relativeURL(url: URL) {
   return `${url.pathname}${url.search}`;
 }
 
-export function buildSelector(tags: string[], modifiers: string[], flag?: string) {
+export function buildSelector(tags: string[], modifiers: string[], flag: string) {
   const selectors: string[] = [];
 
   for (const tag of tags) {
     for (const modifier of modifiers) {
-      selectors.push(`${tag}[${modifier}]${flag ? `:${flag}` : ''}`);
+      selectors.push(`${tag}[${modifier}]:${flag}`);
     }
   }
 

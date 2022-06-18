@@ -152,7 +152,7 @@ describe('remix router turbo', () => {
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/about');
     expect(router.state.location.search).toEqual('?foo=bar');
-    expect(document.body.innerHTML).toEqual('<h1>About</h1><a href="/">Home</a>');
+    expect(document.body.innerHTML).toMatch('<h1>About</h1><a href="/">Home</a>');
     expect(document.querySelector('title')?.textContent).toEqual('About');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
 
@@ -160,7 +160,7 @@ describe('remix router turbo', () => {
     expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/');
-    expect(document.body.innerHTML).toEqual('<h1>Hello world!</h1>');
+    expect(document.body.innerHTML).toMatch('<h1>Hello world!</h1>');
     expect(document.querySelector('title')?.textContent).toEqual('Title');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
   });
@@ -170,7 +170,7 @@ describe('remix router turbo', () => {
     expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/yolo');
-    expect(document.body.innerHTML).toEqual('<h1>Not Found</h1>');
+    expect(document.body.innerHTML).toMatch('<h1>Not Found</h1>');
   });
 
   test('submit', async () => {
@@ -195,7 +195,7 @@ describe('remix router turbo', () => {
     expect(router.state.location.pathname).toEqual('/forms/submit-on-change');
 
     const checkbox = document.querySelector<HTMLInputElement>('input[name="accept"]');
-    change(checkbox!);
+    click(checkbox!);
     expect(document.documentElement.dataset.turboNavigationState).toEqual('submitting');
     await waitForEvent('turbo:navigation');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
@@ -256,24 +256,7 @@ const waitForEvent = (event: string) =>
   new Promise((resolve) => addEventListener(event, resolve, { once: true }));
 
 function click(target: HTMLElement & { form?: HTMLFormElement | null }) {
-  document.documentElement.addEventListener('click', onClickSubmitter, {
-    once: true,
-  });
   fireEvent(target, new MouseEvent('click', { bubbles: true }));
-  document.documentElement.removeEventListener('click', onClickSubmitter);
-}
-
-function change(target: HTMLInputElement) {
-  fireEvent(target, new CustomEvent('change', { bubbles: true }));
 }
 
 const waitForNextAnimationFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-
-function onClickSubmitter(event: Event) {
-  const target = event.target as { form?: HTMLFormElement };
-  if (target.form) {
-    const event = new CustomEvent('submit', { bubbles: true });
-    Object.assign(event, { submitter: target });
-    fireEvent(target.form, event);
-  }
-}

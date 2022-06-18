@@ -61,32 +61,32 @@ export function followOrSubmitLink(
 // Form input elements disabled during form submission
 const formDisableSelector = buildSelector(
   ['input', 'button', 'textarea'],
-  ['data-turbo-disable', 'data-turbo-disable-with']
+  ['data-turbo-disable', 'data-turbo-disable-with'],
+  'enabled'
 );
 
 // Form input elements re-enabled after form submission
 const formEnableSelector = buildSelector(
   ['input', 'button', 'textarea'],
-  ['data-turbo-disable', 'data-turbo-disable-with']
+  ['data-turbo-disable', 'data-turbo-disable-with'],
+  'disabled'
 );
 
 export function disableForm(form: HTMLFormElement) {
   for (const element of form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
     formDisableSelector
   )) {
-    if (!element.disabled) {
-      const disableWith = element.dataset.turboDisableWith;
-      if (disableWith) {
-        if (element.tagName == 'BUTTON') {
-          element.dataset.originalText = element.innerHTML;
-          element.innerHTML = disableWith;
-        } else {
-          element.dataset.originalText = element.value;
-          element.value = disableWith;
-        }
+    const disableWith = element.dataset.turboDisableWith;
+    if (disableWith) {
+      if (element.tagName == 'BUTTON') {
+        element.dataset.originalText = element.innerHTML;
+        element.innerHTML = disableWith;
+      } else {
+        element.dataset.originalText = element.value;
+        element.value = disableWith;
       }
-      element.disabled = true;
     }
+    element.disabled = true;
   }
 }
 
@@ -94,19 +94,17 @@ export function enableForm(form: HTMLFormElement) {
   for (const element of form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
     formEnableSelector
   )) {
-    if (element.disabled) {
-      const originalText = element.dataset.originalText;
-      if (originalText) {
-        element.removeAttribute('data-original-text');
+    const originalText = element.dataset.originalText;
+    if (originalText) {
+      element.removeAttribute('data-original-text');
 
-        if (element.tagName == 'BUTTON') {
-          element.innerHTML = originalText;
-        } else {
-          element.value = originalText;
-        }
+      if (element.tagName == 'BUTTON') {
+        element.innerHTML = originalText;
+      } else {
+        element.value = originalText;
       }
-      element.disabled = false;
     }
+    element.disabled = false;
   }
 }
 

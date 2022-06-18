@@ -77,15 +77,7 @@ export function willSubmitForm(
 
 function findLinkFromClickTarget(target: EventTarget | null): HTMLAnchorElement | null {
   if (target instanceof Element) {
-    return closest<HTMLAnchorElement>(target, 'a[href]:not([target^=_]):not([download])');
+    return target.closest<HTMLAnchorElement>('a[href]:not([target^=_]):not([download])');
   }
   return null;
-}
-
-function closest<T extends Element>(element: Element, selector: string) {
-  const maybeClosest = element.closest<T>(selector);
-  if (!maybeClosest && element.matches(selector)) {
-    return element as T;
-  }
-  return maybeClosest;
 }

@@ -116,7 +116,7 @@ export function getFormSubmissionInfo(
     action = options.action || target.getAttribute('action') || defaultAction;
     encType = options.encType || target.getAttribute('enctype') || defaultEncType;
 
-    formData = formDataFromForm(target);
+    formData = new FormData(target);
 
     if (submitter && submitter.name) {
       formData.append(submitter.name, submitter.value);
@@ -146,7 +146,7 @@ export function getFormSubmissionInfo(
       form.getAttribute('enctype') ||
       defaultEncType;
 
-    formData = formDataFromForm(form);
+    formData = new FormData(form);
 
     // Include name + value from a <button>
     if (target.name) {
@@ -206,22 +206,6 @@ export function dispatch<T>(
   }
 
   return event;
-}
-
-function formDataFromForm(form: HTMLFormElement) {
-  try {
-    return new FormData(form);
-  } catch {
-    const formData = new FormData();
-
-    for (const input of form.querySelectorAll<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >('input:enabled, textarea:enabled, select:enabled')) {
-      formData.append(input.name, input.value);
-    }
-
-    return formData;
-  }
 }
 
 export type Locatable = URL | string;

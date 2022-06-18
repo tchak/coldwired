@@ -15,6 +15,12 @@
     }
   },
   "version": "0.2.1",
+  "keywords": [
+    "remix",
+    "router",
+    "turbo",
+    "stimulus"
+  ],
   "scripts": {
     "dev": "vite app",
     "build": "run-s clean build:*",

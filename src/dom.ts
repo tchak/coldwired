@@ -24,10 +24,6 @@ export function isSelectElement(object: any): object is HTMLInputElement {
   return isHtmlElement(object) && object.tagName.toLowerCase() == 'select';
 }
 
-export function isCheckboxOrRadioInputElement(object: any): object is HTMLInputElement {
-  return isInputElement(object) && ['checkbox', 'radio'].includes(object.type);
-}
-
 export function isInputOrTextAreaElement(
   object: any
 ): object is HTMLInputElement | HTMLTextAreaElement {

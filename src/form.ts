@@ -139,3 +139,27 @@ function generateFetcherKey(element: HTMLElement) {
 
 const forms = new Map<string, HTMLFormElement>();
 const fetcherKeys = new WeakMap<HTMLFormElement, string>();
+
+export function syncFormElement(
+  fromEl: HTMLElement & { type?: string; value?: string; checked?: boolean },
+  toEl: HTMLElement & { type?: string; value?: string; checked?: boolean }
+) {
+  if (document.activeElement == fromEl && touchedFormElement.get(fromEl)) {
+    if (fromEl.type == 'checkbox' || fromEl.type == 'radio') {
+      toEl.checked = fromEl.checked;
+    }
+    toEl.value = fromEl.value;
+  }
+  touchedFormElement.delete(fromEl);
+}
+
+export function touchFormElement(element: HTMLElement) {
+  switch (element.tagName) {
+    case 'INPUT':
+    case 'TEXTAREA':
+    case 'SELECT':
+      touchedFormElement.set(element, true);
+  }
+}
+
+const touchedFormElement = new WeakMap<HTMLElement, boolean>();

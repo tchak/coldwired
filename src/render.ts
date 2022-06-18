@@ -1,12 +1,8 @@
 import type { NavigationStates, Navigation } from '@remix-run/router';
 import morphdom from 'morphdom';
 
-import {
-  dispatch,
-  isCheckboxOrRadioInputElement,
-  isHtmlElement,
-  isInputOrTextAreaElement,
-} from './dom';
+import { dispatch, isHtmlElement } from './dom';
+import { syncFormElement } from './form';
 
 export function renderPage(html: string, navigation: NavigationStates['Idle']) {
   try {
@@ -24,35 +20,25 @@ export function renderElement(from: HTMLElement, to: HTMLElement, childrenOnly =
   morphdom(from, to, {
     childrenOnly,
     onBeforeElUpdated(fromEl, toEl) {
-      if (document.activeElement == fromEl) {
-        if (isCheckboxOrRadioInputElement(fromEl) && isCheckboxOrRadioInputElement(toEl)) {
-          toEl.checked = fromEl.checked;
-        } else if (isInputOrTextAreaElement(fromEl) && isInputOrTextAreaElement(toEl)) {
-          toEl.value = fromEl.value;
-        }
-      }
-      const classNames = classList(fromEl).value;
-      if (classNames) {
-        toEl.classList.value = classNames;
-      }
+      syncFormElement(fromEl, toEl);
+      classList(fromEl).sync(toEl);
+
       return true;
     },
   });
 }
 
 class TokenList {
-  #element: Element;
-  #current: Set<string> = new Set();
+  #classList: DOMTokenList;
   #removed: Set<string> = new Set();
 
-  constructor(element: Element) {
-    this.#element = element;
-    this.#current = new Set(element.classList);
+  constructor(classList: DOMTokenList) {
+    this.#classList = classList;
   }
 
   toggle(...classNames: string[]) {
     for (const className of classNames) {
-      if (this.#current.has(className)) {
+      if (this.#classList.contains(className)) {
         this.remove(className);
       } else {
         this.add(className);
@@ -62,31 +48,32 @@ class TokenList {
 
   add(...classNames: string[]) {
     for (const className of classNames) {
-      this.#current.add(className);
+      this.#removed.delete(className);
     }
-    this.#element.classList.add(...classNames);
+    this.#classList.add(...classNames);
   }
 
   remove(...classNames: string[]) {
     for (const className of classNames) {
-      this.#current.delete(className);
       this.#removed.add(className);
     }
-    this.#element.classList.remove(...classNames);
-    if (this.#element.classList.length == 0) {
-      this.#element.removeAttribute('class');
-    }
+    this.#classList.remove(...classNames);
   }
 
   get value() {
-    return [...this.#current].join(' ');
+    return this.#classList.value;
+  }
+
+  sync(element: HTMLElement) {
+    element.classList.add(...this.#classList);
+    element.classList.remove(...this.#removed);
   }
 }
 
 const elementTokenList = new WeakMap<HTMLElement, TokenList>();
 
 export function classList(element: HTMLElement) {
-  const tokenList = elementTokenList.get(element) ?? new TokenList(element);
+  const tokenList = elementTokenList.get(element) ?? new TokenList(element.classList);
   elementTokenList.set(element, tokenList);
   return tokenList;
 }

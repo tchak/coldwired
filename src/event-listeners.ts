@@ -1,12 +1,13 @@
 import type { Router } from '@remix-run/router';
 
-import { submitForm, followOrSubmitLink, getFetcherKey } from './form';
+import { submitForm, followOrSubmitLink, getFetcherKey, touchFormElement } from './form';
 import { shouldProcessLinkClick } from './dom';
 
 export function registerEventListeners(router: Router) {
   const unsubscribe = [
     registerListener('click', (event) => onLinkClick(router, event as MouseEvent)),
     registerListener('submit', (event) => onSubmit(router, event as SubmitEvent)),
+    registerListener('input', (event) => onInput(event as InputEvent)),
   ];
 
   return () => unsubscribe.forEach((unsubscribe) => unsubscribe());
@@ -51,6 +52,12 @@ function onSubmit(router: Router, event: SubmitEvent) {
       });
     }
   }
+}
+
+function onInput(event: InputEvent) {
+  const target = (event.composedPath && event.composedPath()[0]) || event.target;
+
+  touchFormElement(target as HTMLElement);
 }
 
 function willFollowLink(event: MouseEvent, link: HTMLAnchorElement) {

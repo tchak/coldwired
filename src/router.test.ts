@@ -229,7 +229,7 @@ describe('remix router turbo', () => {
     await waitForEvent('turbo:navigation');
     expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
     classList(document.querySelector('h1')!).remove('active');
-    expect(document.body.innerHTML).toMatch('<h1>About</h1>');
+    expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
     expect(router.state.location.pathname).toEqual('/about');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
   });

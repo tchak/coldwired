@@ -73,7 +73,7 @@ export const handlers = [
           <div id="item">Item</div>
           <form data-controller="fetcher" id="fetcher1" method="post" action="/forms/fetcher">
             <input name="firstName" value="Paul">
-            <input type="submit" value="Submit">
+            <input type="submit" value="Submit" data-turbo-disable-with="Submitting">
           </form>
           <form data-controller="fetcher" method="post" action="/turbo-stream">
             <input type="submit" value="Delete">
@@ -212,11 +212,16 @@ describe('remix router turbo', () => {
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
-    click(getByText(document.body, 'Submit'));
+    const submit = getByText<HTMLInputElement>(document.body, 'Submit');
+    click(submit);
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('submitting');
+    expect(submit.disabled).toEqual(true);
+    expect(submit.value).toEqual('Submitting');
     await waitForEvent('turbo:fetcher');
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('loading');
     expect(router.state.fetchers.get('fetcher1')?.formData?.get('firstName')).toEqual('Paul');
+    expect(submit.disabled).toEqual(false);
+    expect(submit.value).toEqual('Submit');
 
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/about');
@@ -250,7 +255,7 @@ describe('remix router turbo', () => {
 const waitForEvent = (event: string) =>
   new Promise((resolve) => addEventListener(event, resolve, { once: true }));
 
-function click(target: HTMLElement & { form?: HTMLFormElement }) {
+function click(target: HTMLElement & { form?: HTMLFormElement | null }) {
   document.documentElement.addEventListener('click', onClickSubmitter, {
     once: true,
   });

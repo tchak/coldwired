@@ -236,12 +236,12 @@ export function relativeURL(url: URL) {
   return `${url.pathname}${url.search}`;
 }
 
-export function buildSelector(tags: string[], modifiers: string[], flag: string) {
+export function buildSelector(tags: string[], modifiers: string[], flag?: string) {
   const selectors: string[] = [];
 
   for (const tag of tags) {
     for (const modifier of modifiers) {
-      selectors.push(`${tag}[${modifier}]:${flag}`);
+      selectors.push(`${tag}[${modifier}]${flag ? `:${flag}` : ''}`);
     }
   }
 

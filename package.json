@@ -14,7 +14,7 @@
       "require": "./dist/remix-router-turbo.cjs.js"
     }
   },
-  "version": "0.3.0",
+  "version": "0.3.1",
   "keywords": [
     "remix",
     "router",

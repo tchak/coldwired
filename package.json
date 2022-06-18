@@ -1,6 +1,6 @@
 {
   "name": "remix-router-turbo",
-  "description": "",
+  "description": "@remix-run/router on rails",
   "license": "MIT",
   "files": [
     "dist"

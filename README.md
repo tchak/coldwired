@@ -1,4 +1,9 @@
-# Remix Router Turbo [![Build Status](https://github.com/tchak/remix-router-turbo/workflows/CI/badge.svg)](https://github.com/tchak/remix-router-turbo/actions)
+# Remix Router Turbo [![npm package][npm-badge]][npm] [![build][build-badge]][build]
+
+[npm-badge]: https://img.shields.io/npm/v/remix-router-turbo.svg
+[npm]: https://www.npmjs.org/package/remix-router-turbo
+[build-badge]: https://github.com/tchak/remix-router-turbo/workflows/CI/badge.svg
+[build]: https://github.com/tchak/remix-router-turbo/actions
 
 # Why?
 

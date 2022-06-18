@@ -31,9 +31,64 @@ export function renderElement(from: HTMLElement, to: HTMLElement, childrenOnly =
           toEl.value = fromEl.value;
         }
       }
+      const classNames = classList(fromEl).value;
+      if (classNames) {
+        toEl.classList.value = classNames;
+      }
       return true;
     },
   });
+}
+
+class TokenList {
+  #element: Element;
+  #current: Set<string> = new Set();
+  #removed: Set<string> = new Set();
+
+  constructor(element: Element) {
+    this.#element = element;
+    this.#current = new Set(element.classList);
+  }
+
+  toggle(...classNames: string[]) {
+    for (const className of classNames) {
+      if (this.#current.has(className)) {
+        this.remove(className);
+      } else {
+        this.add(className);
+      }
+    }
+  }
+
+  add(...classNames: string[]) {
+    for (const className of classNames) {
+      this.#current.add(className);
+    }
+    this.#element.classList.add(...classNames);
+  }
+
+  remove(...classNames: string[]) {
+    for (const className of classNames) {
+      this.#current.delete(className);
+      this.#removed.add(className);
+    }
+    this.#element.classList.remove(...classNames);
+    if (this.#element.classList.length == 0) {
+      this.#element.removeAttribute('class');
+    }
+  }
+
+  get value() {
+    return [...this.#current].join(' ');
+  }
+}
+
+const elementTokenList = new WeakMap<HTMLElement, TokenList>();
+
+export function classList(element: HTMLElement) {
+  const tokenList = elementTokenList.get(element) ?? new TokenList(element);
+  elementTokenList.set(element, tokenList);
+  return tokenList;
 }
 
 export function renderHeadElement(from: HTMLElement, to: HTMLElement) {

@@ -3,7 +3,7 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import { createMemoryTurboRouter, ContentType } from '.';
+import { createMemoryTurboRouter, ContentType, classList } from '.';
 import type { RouteObject, Router } from '.';
 
 export const handlers = [
@@ -137,6 +137,7 @@ describe('remix router turbo', () => {
   afterAll(() => server.close());
 
   beforeEach(() => {
+    document.body.innerHTML = '';
     router?.dispose();
     router = createMemoryTurboRouter({ routes: routes(), debug: false });
   });
@@ -212,6 +213,8 @@ describe('remix router turbo', () => {
     await waitForEvent('turbo:navigation');
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
+    classList(document.querySelector('h1')!).add('active');
+    expect(document.body.innerHTML).toMatch('<h1 class="active">Fetcher</h1>');
     const submit = getByText<HTMLInputElement>(document.body, 'Submit');
     click(submit);
     expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('submitting');
@@ -224,6 +227,9 @@ describe('remix router turbo', () => {
     expect(submit.value).toEqual('Submit');
 
     await waitForEvent('turbo:navigation');
+    expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
+    classList(document.querySelector('h1')!).remove('active');
+    expect(document.body.innerHTML).toMatch('<h1>About</h1>');
     expect(router.state.location.pathname).toEqual('/about');
     expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
   });

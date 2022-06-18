@@ -21,7 +21,7 @@ export function renderElement(from: HTMLElement, to: HTMLElement, childrenOnly =
     childrenOnly,
     onBeforeElUpdated(fromEl, toEl) {
       syncFormElement(fromEl, toEl);
-      classList(fromEl).sync(toEl);
+      syncClassList(fromEl, toEl);
 
       return true;
     },
@@ -71,6 +71,13 @@ class TokenList {
 }
 
 const elementTokenList = new WeakMap<HTMLElement, TokenList>();
+
+function syncClassList(fromEl: HTMLElement, toEl: HTMLElement) {
+  const classList = elementTokenList.get(fromEl);
+  if (classList) {
+    classList.sync(toEl);
+  }
+}
 
 export function classList(element: HTMLElement) {
   const tokenList = elementTokenList.get(element) ?? new TokenList(element.classList);

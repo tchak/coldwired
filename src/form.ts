@@ -144,13 +144,16 @@ export function syncFormElement(
   fromEl: HTMLElement & { type?: string; value?: string; checked?: boolean },
   toEl: HTMLElement & { type?: string; value?: string; checked?: boolean }
 ) {
-  if (document.activeElement == fromEl && touchedFormElement.get(fromEl)) {
-    if (fromEl.type == 'checkbox' || fromEl.type == 'radio') {
-      toEl.checked = fromEl.checked;
+  if (document.activeElement == fromEl) {
+    if (touchedFormElement.get(fromEl)) {
+      if (fromEl.type == 'checkbox' || fromEl.type == 'radio') {
+        toEl.checked = fromEl.checked;
+      }
+      toEl.value = fromEl.value;
     }
-    toEl.value = fromEl.value;
+  } else {
+    touchedFormElement.delete(fromEl);
   }
-  touchedFormElement.delete(fromEl);
 }
 
 export function touchFormElement(element: HTMLElement) {

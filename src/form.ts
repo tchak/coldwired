@@ -26,11 +26,11 @@ export function submitForm(
 ) {
   const { url, method, formData } = getFormSubmissionInfo(form, location.pathname, { submitter });
   const options = { formMethod: method, formData, replace };
-  const match = router.state.matches.at(-1);
-
-  invariant(match, 'No route matches the current URL');
 
   if (fetcherKey) {
+    const match = router.state.matches.at(-1);
+    invariant(match, 'No route matches the current URL');
+
     router.fetch(fetcherKey, match.route.id, relativeURL(url), options);
   } else {
     router.navigate(relativeURL(url), options);
@@ -39,22 +39,22 @@ export function submitForm(
 
 export function followOrSubmitLink(
   router: Router,
-  anchor: HTMLAnchorElement,
+  link: HTMLAnchorElement,
   { replace }: SubmitOptions = {}
 ) {
-  const anchorURL = expandURL(anchor.getAttribute('href') || '');
-  const turboMethod = anchor.dataset.turboMethod?.toLowerCase();
+  const linkURL = expandURL(link.getAttribute('href') || '');
+  const turboMethod = (link.dataset.turboMethod ?? link.dataset.method)?.toLowerCase();
 
   if (turboMethod && turboMethod !== 'get') {
     const { url, method, formData } = getFormSubmissionInfo(
-      anchorURL.searchParams,
+      linkURL.searchParams,
       location.pathname,
-      { method: turboMethod as FormMethod, action: anchorURL.pathname }
+      { method: turboMethod as FormMethod, action: linkURL.pathname }
     );
 
-    router.navigate(relativeURL(url), { formMethod: method, formData, replace });
+    router.navigate(url.pathname, { formMethod: method, formData, replace });
   } else {
-    router.navigate(relativeURL(anchorURL), { replace });
+    router.navigate(relativeURL(linkURL), { replace });
   }
 }
 
@@ -66,6 +66,68 @@ function expandURL(locatable: Locatable) {
 
 function relativeURL(url: URL) {
   return `${url.pathname}${url.search}`;
+}
+
+function buildSelector(tags: string[], modifiers: string[], flag: string) {
+  const selectors: string[] = [];
+
+  for (const tag of tags) {
+    for (const modifier of modifiers) {
+      selectors.push(`${tag}[${modifier}]:${flag}`);
+    }
+  }
+
+  return selectors.join(', ');
+}
+
+// Form input elements disabled during form submission
+const formDisableSelector = buildSelector(
+  ['input', 'button', 'textarea'],
+  ['data-disable', 'data-disable-with'],
+  'enabled'
+);
+
+// Form input elements re-enabled after form submission
+const formEnableSelector = buildSelector(
+  ['input', 'button', 'textarea'],
+  ['data-disable', 'data-disable-with'],
+  'disabled'
+);
+
+export function disableForm(form: HTMLFormElement) {
+  for (const element of form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    formDisableSelector
+  )) {
+    const disableWith = element.dataset.disableWith;
+    if (disableWith) {
+      if (element.tagName == 'BUTTON') {
+        element.dataset.originalText = element.innerHTML;
+        element.innerHTML = disableWith;
+      } else {
+        element.dataset.originalText = element.value;
+        element.value = disableWith;
+      }
+    }
+    element.disabled = true;
+  }
+}
+
+export function enableForm(form: HTMLFormElement) {
+  for (const element of form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    formEnableSelector
+  )) {
+    const originalText = element.dataset.originalText;
+    if (originalText) {
+      element.removeAttribute('data-original-text');
+
+      if (element.tagName == 'BUTTON') {
+        element.innerHTML = originalText;
+      } else {
+        element.value = originalText;
+      }
+    }
+    element.disabled = false;
+  }
 }
 
 export function getFetcherKey(form: HTMLFormElement) {

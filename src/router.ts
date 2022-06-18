@@ -18,7 +18,7 @@ import { renderPage } from './render';
 import { setupDataFunctions, getRouteData } from './loader';
 import { renderStream } from './turbo-stream';
 import { dispatch } from './dom';
-import { getFetcherForm } from './form';
+import { getFetcherForm, disableForm, enableForm } from './form';
 
 import { FetcherController } from './controllers/fetcher';
 import { RevalidateController } from './controllers/revalidate';
@@ -113,6 +113,12 @@ function onRouterStateChange(state: RouterState, context: Context, debug: boolea
     if (context.fetchers.get(fetcherKey)?.state != fetcher.state) {
       fetcherStateChange(fetcherKey, fetcher, form, debug);
       context.fetchers.set(fetcherKey, fetcher);
+    }
+
+    if (fetcher.state == 'submitting') {
+      disableForm(form);
+    } else {
+      enableForm(form);
     }
 
     if (fetcher.state == 'idle') {

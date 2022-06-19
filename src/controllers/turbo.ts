@@ -1,21 +1,41 @@
+import { Controller } from '@hotwired/stimulus';
 import type { Router } from '@remix-run/router';
 
-import { submitForm, followOrSubmitLink, getFetcherKey, touchFormElement } from './form';
-import { shouldProcessLinkClick } from './dom';
+import { submitForm, followOrSubmitLink, getFetcherKey, touchFormElement } from '../form';
+import { shouldProcessLinkClick } from '../dom';
+import { getRouter } from '../stimulus';
 
-export function registerEventListeners(router: Router) {
-  const unsubscribe = [
-    registerListener('click', (event) => onLinkClick(router, event as MouseEvent)),
-    registerListener('submit', (event) => onSubmit(router, event as SubmitEvent)),
-    registerListener('input', (event) => onInput(event as InputEvent)),
-  ];
+export class TurboController extends Controller {
+  #onClick?: (event: Event) => void;
+  #onSubmit?: (event: Event) => void;
+  #onInput?: (event: Event) => void;
 
-  return () => unsubscribe.forEach((unsubscribe) => unsubscribe());
-}
+  connect() {
+    const router = this.router;
+    this.#onClick = (event) => onLinkClick(router, event as MouseEvent);
+    this.#onSubmit = (event) => onSubmit(router, event as SubmitEvent);
+    this.#onInput = (event) => onInput(event as InputEvent);
 
-function registerListener(event: string, callback: (event: Event) => void) {
-  document.documentElement.addEventListener(event, callback);
-  return () => document.documentElement.removeEventListener(event, callback);
+    this.element.addEventListener('click', this.#onClick);
+    this.element.addEventListener('submit', this.#onSubmit);
+    this.element.addEventListener('input', this.#onInput);
+  }
+
+  disconnect() {
+    if (this.#onClick) {
+      this.element.removeEventListener('click', this.#onClick);
+    }
+    if (this.#onSubmit) {
+      this.element.removeEventListener('submit', this.#onSubmit);
+    }
+    if (this.#onInput) {
+      this.element.removeEventListener('input', this.#onInput);
+    }
+  }
+
+  private get router() {
+    return getRouter(this.application);
+  }
 }
 
 function onLinkClick(router: Router, event: MouseEvent) {

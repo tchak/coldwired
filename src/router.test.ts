@@ -126,7 +126,7 @@ const html = (body: string, title = 'Title') =>
     <head>
       <title>${title}</title>
     </head>
-    <body>${body}</body>
+    <body data-controller="turbo">${body}</body>
   </html>`;
 
 describe('remix router turbo', () => {

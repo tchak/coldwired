@@ -13,7 +13,6 @@ import invariant from 'tiny-invariant';
 import type { Application } from '@hotwired/stimulus';
 
 import { getStimulusApplication } from './stimulus';
-import { registerEventListeners } from './event-listeners';
 import { renderPage } from './render';
 import { setupDataFunctions, getRouteData } from './loader';
 import { renderStream } from './turbo-stream';
@@ -23,6 +22,7 @@ import { getFetcherForm, disableForm, enableForm } from './form';
 import { FetcherController } from './controllers/fetcher';
 import { RevalidateController } from './controllers/revalidate';
 import { SubmitOnChangeController } from './controllers/submit-on-change';
+import { TurboController } from './controllers/turbo';
 
 type Context = {
   state?: RouterState;
@@ -82,18 +82,16 @@ function createTurboRouter({
   application = getStimulusApplication(router, application);
   application.start();
 
-  const unsubscribe = registerEventListeners(router);
-
   const dispose = router.dispose;
   router.dispose = () => {
     dispose.call(router);
-    unsubscribe();
     application?.stop();
   };
 
   application.register('fetcher', FetcherController);
   application.register('revalidate', RevalidateController);
   application.register('submit-on-change', SubmitOnChangeController);
+  application.register('turbo', TurboController);
 
   return router;
 }

@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import justDebounce from 'just-debounce-it';
 
-import { willSubmitForm } from '../event-listeners';
+import { willSubmitForm } from './turbo';
 import { isInputOrTextAreaElement, isInputOrSelectElement } from '../dom';
 
 export class SubmitOnChangeController extends Controller {

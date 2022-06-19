@@ -23,6 +23,10 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - if `data-turbo-method` is user on `<a>` it will submit the link instead of navigating
  - if `data-turbo-confirm` is user on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
 
+## Demo
+
+[remix rails demo](https://github.com/tchak/rails-remix-demo)
+
 ## Install
 
 With `yarn`

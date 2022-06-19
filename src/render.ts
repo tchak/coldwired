@@ -85,7 +85,7 @@ export function classList(element: HTMLElement) {
   return tokenList;
 }
 
-export function renderHeadElement(from: HTMLElement, to: HTMLElement) {
+function renderHeadElement(from: HTMLElement, to?: HTMLElement) {
   if (!to) {
     return;
   }

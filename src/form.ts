@@ -140,19 +140,38 @@ function generateFetcherKey(element: HTMLElement) {
 const forms = new Map<string, HTMLFormElement>();
 const fetcherKeys = new WeakMap<HTMLFormElement, string>();
 
+function getRenderPriority(fromEl: HTMLElement, toEl: HTMLElement): 'client' | 'server' {
+  const priority = toEl.dataset.turboRenderPriority;
+  switch (priority) {
+    case 'client':
+    case 'server':
+      return priority;
+    default:
+      return document.activeElement == fromEl ? 'client' : 'server';
+  }
+}
+
+const FORM_ELEMENTS = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'];
+
 export function syncFormElement(
-  fromEl: HTMLElement & { type?: string; value?: string; checked?: boolean },
-  toEl: HTMLElement & { type?: string; value?: string; checked?: boolean }
+  fromEl: HTMLElement & { type?: string; value?: string; checked?: boolean; selected?: boolean },
+  toEl: HTMLElement
 ) {
-  if (document.activeElement == fromEl) {
-    if (touchedFormElement.get(fromEl)) {
-      if (fromEl.type == 'checkbox' || fromEl.type == 'radio') {
-        toEl.checked = fromEl.checked;
+  if (FORM_ELEMENTS.includes(fromEl.tagName)) {
+    const renderPriority = getRenderPriority(fromEl, toEl);
+    if (renderPriority == 'client') {
+      if (touchedFormElement.get(fromEl)) {
+        if (fromEl.type == 'checkbox' || fromEl.type == 'radio') {
+          Object.assign(toEl, { checked: fromEl.checked });
+        } else if (fromEl.tagName == 'OPTION') {
+          Object.assign(toEl, { selected: fromEl.selected });
+        } else {
+          Object.assign(toEl, { value: fromEl.value });
+        }
       }
-      toEl.value = fromEl.value;
+    } else {
+      touchedFormElement.delete(fromEl);
     }
-  } else {
-    touchedFormElement.delete(fromEl);
   }
 }
 

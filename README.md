@@ -7,7 +7,7 @@
 
 ## Why?
 
-At work we have a 6 years old reasonably big rails app. It powers quite a successful service while being run by a minimal team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced [hotwired/turbo](https://hotwired.dev) into our code base and it is quite a success. The team likes a lot the minimal JavaScript API surface. But turbo has problems. Those problems are very similar to the ones solved by @remix-run/router. The main one is coordinating multiple submitting forms on one page without full reloads.
+At work we have a 6 years old reasonably big rails app. It powers quite a successful service while being run by a small team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced [hotwired/turbo](https://hotwired.dev) into our code base and it is quite a success. The team likes a lot the minimal JavaScript API surface. But turbo has problems. Those problems are very similar to the ones solved by [@remix-run/router](https://www.npmjs.com/package/@remix-run/router). The main one is coordinating multiple submitting forms on one page without full reloads.
 
 ## How?
 
@@ -45,6 +45,8 @@ npm install remix-router-turbo
 
 In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-remix: true`. In order for redirects to work properly you must respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
 
+Most of the library is implemented as a collection of [stimulus](https://stimulus.hotwired.dev) controllers. The main one is `data-controller="turbo"`. You should put it on the `<body>` element and there should be only one on a single page.
+
 ```ts
 import { createBrowserTurboRouter, RouteObject } from 'remix-router-turbo';
 
@@ -63,4 +65,33 @@ const routes: RouteObject[] = [
 
 const router = createBrowserTurboRouter({ routes, debug: true });
 
+```
+
+```html
+<html>
+  <body data-controller="turbo">
+    <form>
+      (...)
+    </form>
+
+    <div data-turbo="false">
+      <form>
+        (...)
+      </form>
+    </div>
+
+    <ul>
+      <li id="item_1">
+        <form data-controller="fetcher">
+          (...)
+        </form>
+      </li>
+      <li id="item_2">
+        <form data-controller="fetcher">
+          (...)
+        </form>
+      </li>
+    </ul>
+  </body>
+</html>
 ```

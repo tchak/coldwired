@@ -18,6 +18,10 @@ export enum ContentType {
   JSON = 'application/json',
 }
 
+type RouteHandle = {
+  method?: string | string[];
+};
+
 export function getRouteData(state: RouterState): {
   loaderData?: RouteData;
   actionData?: RouteData;
@@ -35,14 +39,40 @@ export function getRouteData(state: RouterState): {
   return {};
 }
 
+function toLowerCase(str: string) {
+  return str.toLowerCase();
+}
+
+function isLoader(handle?: RouteHandle) {
+  if (handle?.method) {
+    if (Array.isArray(handle.method)) {
+      return handle.method.map(toLowerCase).includes('get');
+    }
+    return handle.method.toLowerCase() == 'get';
+  }
+  return false;
+}
+
+function isAction(handle: RouteHandle) {
+  if (handle?.method) {
+    if (Array.isArray(handle.method)) {
+      const method = new Set(handle.method.map(toLowerCase));
+      method.delete('get');
+      return method.size > 0;
+    }
+    return handle.method.toLowerCase() != 'get';
+  }
+  return false;
+}
+
 export function setupDataFunctions(routes: RouteObject[], fetchOptions?: RequestInit): void {
   const dataFunction = makeDataFunction(fetchOptions);
 
   for (const route of routes) {
-    if (route.handle?._loader) {
+    if (isLoader(route.handle)) {
       route.loader = dataFunction;
     }
-    if (route.handle?._action) {
+    if (isAction(route.handle)) {
       route.action = dataFunction;
     }
     route.shouldRevalidate = shouldRevalidate;

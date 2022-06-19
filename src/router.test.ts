@@ -113,12 +113,12 @@ export const handlers = [
 const server = setupServer(...handlers);
 
 const routes: () => RouteObject[] = () => [
-  { path: '/', handle: { _loader: true } },
-  { path: '/about', handle: { _loader: true } },
-  { path: '/forms/submit-on-change', handle: { _loader: true } },
-  { path: '/forms', handle: { _loader: true, _action: true } },
-  { path: '/forms/fetcher', handle: { _loader: true, _action: true } },
-  { path: '/turbo-stream', handle: { _action: true } },
+  { path: '/', handle: { method: 'get' } },
+  { path: '/about', handle: { method: ['get'] } },
+  { path: '/forms/submit-on-change', handle: { method: ['get'] } },
+  { path: '/forms', handle: { method: ['get', 'post'] } },
+  { path: '/forms/fetcher', handle: { method: ['get', 'post'] } },
+  { path: '/turbo-stream', handle: { method: 'post' } },
 ];
 
 const html = (body: string, title = 'Title') =>

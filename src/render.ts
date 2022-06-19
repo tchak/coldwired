@@ -7,7 +7,7 @@ import { syncFormElement } from './form';
 export function renderPage(html: string, navigation: NavigationStates['Idle']) {
   try {
     const doc = parseHTML(html);
-    beforeRender(navigation, doc.body);
+    beforeRender(navigation, doc.documentElement);
     renderHeadElement(document.head, doc.head);
     renderElement(document.body, doc.body);
     afterRender(navigation);
@@ -104,8 +104,8 @@ function parseHTML(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }
 
-function beforeRender(navigation: Navigation, element: HTMLElement) {
-  dispatch('turbo:before-render', { detail: { navigation, element } });
+function beforeRender(navigation: Navigation, documentElement: HTMLElement) {
+  dispatch('turbo:before-render', { detail: { navigation, documentElement } });
 }
 
 function afterRender(navigation: Navigation) {

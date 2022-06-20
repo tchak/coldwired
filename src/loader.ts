@@ -99,7 +99,7 @@ const dataFunctionHandler = (response: Response) => onFetchResponse(response);
 const makeDataFunction: (fetchOptions?: RequestInit) => DataFunction =
   (fetchOptions) =>
   ({ request, signal }) => {
-    request.headers.set('x-remix', 'true');
+    request.headers.set('x-requested-with', 'remix');
     request.headers.set('accept', [ContentType.TurboStream, ContentType.HTML].join(', '));
     return fetch(request, { ...fetchOptions, signal }).then(dataFunctionHandler);
   };

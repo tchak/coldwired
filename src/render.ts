@@ -1,18 +1,23 @@
-import type { NavigationStates, Navigation } from '@remix-run/router';
+import type { NavigationStates, Fetcher } from '@remix-run/router';
 import morphdom from 'morphdom';
 
 import { dispatch, isHtmlElement } from './dom';
 import { syncFormElement } from './form';
 
-export function renderPage(html: string, navigation: NavigationStates['Idle']) {
+type Detail = {
+  navigation?: NavigationStates['Idle'];
+  fetcher?: Fetcher;
+};
+
+export function renderPage(html: string, detail: Detail) {
   try {
     const doc = parseHTML(html);
-    beforeRender(navigation, doc.documentElement);
+    beforeRender(doc.documentElement, detail);
     renderHeadElement(document.head, doc.head);
     renderElement(document.body, doc.body);
-    afterRender(navigation);
+    afterRender(detail);
   } catch (error) {
-    renderError(navigation, error as Error);
+    renderError(error as Error, detail);
   }
 }
 
@@ -104,15 +109,15 @@ function parseHTML(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }
 
-function beforeRender(navigation: Navigation, documentElement: HTMLElement) {
-  dispatch('turbo:before-render', { detail: { navigation, documentElement } });
+function beforeRender(documentElement: HTMLElement, detail: Detail) {
+  dispatch('turbo:before-render', { detail: { ...detail, documentElement } });
 }
 
-function afterRender(navigation: Navigation) {
-  dispatch('turbo:render', { detail: { navigation } });
+function afterRender(detail: Detail) {
+  dispatch('turbo:render', { detail });
 }
 
-function renderError(navigation: Navigation, error: Error) {
-  console.error('[render error]', navigation.location, error.message);
-  dispatch('turbo:render-error', { detail: { navigation, error } });
+function renderError(error: Error, detail: Detail) {
+  console.error('[render error]', error.message);
+  dispatch('turbo:render-error', { detail: { ...detail, error } });
 }

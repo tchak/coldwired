@@ -131,7 +131,7 @@ function onRouterStateChange(state: RouterState, context: Context, debug: boolea
           });
           break;
         case 'html':
-          invariant(false, 'Fetcher can not return html');
+          renderPage(fetcher.data.content, { fetcher });
       }
     }
   }
@@ -142,7 +142,7 @@ function onRouterStateChange(state: RouterState, context: Context, debug: boolea
     switch (routeData?.format) {
       case 'html':
         if (routeData.content != context.snapshot) {
-          renderPage(routeData.content, state.navigation);
+          renderPage(routeData.content, { navigation: state.navigation });
           context.snapshot = routeData.content;
         }
         break;

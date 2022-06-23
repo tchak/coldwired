@@ -1,7 +1,7 @@
 import type { NavigationStates, Fetcher } from '@remix-run/router';
 import morphdom from 'morphdom';
 
-import { dispatch, isHtmlElement } from './dom';
+import { dispatch, isLinkElement } from './dom';
 import { syncFormElement } from './form';
 
 type Detail = {
@@ -97,7 +97,7 @@ function renderHeadElement(from: HTMLElement, to?: HTMLElement) {
   morphdom(from, to, {
     childrenOnly: true,
     onBeforeNodeDiscarded(node) {
-      if (isHtmlElement(node) && node.tagName == 'LINK') {
+      if (isLinkElement(node)) {
         return false;
       }
       return true;

@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import justDebounce from 'just-debounce-it';
 
 import { willSubmitForm } from './turbo';
-import { isInputOrTextAreaElement, isInputOrSelectElement } from '../dom';
+import { isFormInputElement, isTextInputElement } from '../dom';
 
 export class SubmitOnChangeController extends Controller {
   connect() {
@@ -17,19 +17,19 @@ export class SubmitOnChangeController extends Controller {
 }
 
 function onInput(event: Event) {
-  const input = event.target as { form?: HTMLFormElement };
-  const form = input.form;
+  const target = (event.composedPath && event.composedPath()[0]) || event.target;
+  const form = isFormInputElement(target) ? target.form : null;
 
-  if (form && isInputOrTextAreaElement(input) && willSubmitForm(form, input)) {
+  if (form && isTextInputElement(target) && willSubmitForm(form, target)) {
     debounce(form, () => form.requestSubmit());
   }
 }
 
 function onChange(event: Event) {
-  const input = event.target as { form?: HTMLFormElement };
-  const form = input.form;
+  const target = (event.composedPath && event.composedPath()[0]) || event.target;
+  const form = isFormInputElement(target) ? target.form : null;
 
-  if (form && isInputOrSelectElement(input) && willSubmitForm(form, input)) {
+  if (form && isFormInputElement(target) && willSubmitForm(form, target)) {
     form.requestSubmit();
   }
 }

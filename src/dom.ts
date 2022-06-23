@@ -1,46 +1,70 @@
 import type { FormEncType, FormMethod } from '@remix-run/router';
 import invariant from 'tiny-invariant';
 
-export const defaultMethod = 'get';
-const defaultEncType = 'application/x-www-form-urlencoded';
+type MaybeElement =
+  | Node
+  | EventTarget
+  | { [name: string]: string }
+  | URLSearchParams
+  | FormData
+  | null;
 
-export function isHtmlElement(object: any): object is HTMLElement {
-  return object != null && typeof object.tagName == 'string';
+export function isElement(node: MaybeElement): node is Element {
+  return !!node && 'nodeType' in node && node.nodeType == Node.ELEMENT_NODE;
 }
 
-export function isButtonElement(object: any): object is HTMLButtonElement {
-  return isHtmlElement(object) && object.tagName.toLowerCase() == 'button';
+export function isButtonElement(node: MaybeElement): node is HTMLButtonElement {
+  return isElement(node) && node.tagName == 'BUTTON';
 }
 
-export function isInputElement(object: any): object is HTMLInputElement {
-  return isHtmlElement(object) && object.tagName.toLowerCase() == 'input';
+export function isAnchorElement(node: MaybeElement): node is HTMLAnchorElement {
+  return isElement(node) && node.tagName == 'A';
 }
 
-export function isTextAreaElement(object: any): object is HTMLInputElement {
-  return isHtmlElement(object) && object.tagName.toLowerCase() == 'textarea';
+export function isLinkElement(node: MaybeElement): node is HTMLLinkElement {
+  return isElement(node) && node.tagName == 'LINK';
 }
 
-export function isSelectElement(object: any): object is HTMLInputElement {
-  return isHtmlElement(object) && object.tagName.toLowerCase() == 'select';
+export function isFormElement(node: MaybeElement): node is HTMLFormElement {
+  return isElement(node) && node.tagName == 'FORM';
 }
 
-export function isInputOrTextAreaElement(
-  object: any
-): object is HTMLInputElement | HTMLTextAreaElement {
+export function isInputElement(node: MaybeElement): node is HTMLInputElement {
+  return isElement(node) && node.tagName == 'INPUT';
+}
+
+export function isFormInputElement(
+  node: MaybeElement
+): node is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  return isElement(node) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName);
+}
+
+export function isTextAreaElement(node: MaybeElement): node is HTMLTextAreaElement {
+  return isElement(node) && node.tagName == 'TEXTAREA';
+}
+
+export function isSelectElement(node: MaybeElement): node is HTMLSelectElement {
+  return isElement(node) && node.tagName == 'SELECT';
+}
+
+export function isFormOptionElement(node: MaybeElement): node is HTMLOptionElement {
+  return isElement(node) && node.tagName == 'OPTION';
+}
+
+export function isTextInputElement(
+  node: MaybeElement
+): node is HTMLInputElement | HTMLTextAreaElement {
   return (
-    isTextAreaElement(object) ||
-    (isInputElement(object) && !['button', 'checkbox', 'radio'].includes(object.type))
+    isElement(node) &&
+    (node.tagName == 'TEXTAREA' ||
+      (isInputElement(node) && !['checkbox', 'radio'].includes(node.type)))
   );
 }
 
-export function isInputOrSelectElement(
-  object: any
-): object is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
-  return isInputElement(object) || isTextAreaElement(object) || isSelectElement(object);
-}
-
-export function isFormElement(object: any): object is HTMLFormElement {
-  return isHtmlElement(object) && object.tagName.toLowerCase() == 'form';
+export function isNonTextInputElement(
+  node: MaybeElement
+): node is HTMLInputElement | HTMLSelectElement {
+  return isFormInputElement(node) && !isTextInputElement(node);
 }
 
 type LimitedMouseEvent = Pick<MouseEvent, 'button' | 'metaKey' | 'altKey' | 'ctrlKey' | 'shiftKey'>;
@@ -82,6 +106,9 @@ export interface SubmitOptions {
    */
   submitter?: HTMLButtonElement | HTMLInputElement;
 }
+
+const defaultMethod = 'get';
+const defaultEncType = 'application/x-www-form-urlencoded';
 
 export function getFormSubmissionInfo(
   target:
@@ -148,7 +175,7 @@ export function getFormSubmissionInfo(
     if (target.name) {
       formData.set(target.name, target.value);
     }
-  } else if (isHtmlElement(target)) {
+  } else if (isElement(target)) {
     invariant(
       false,
       'Cannot submit element that is not <form>, <button>, or <input type="submit|image">'

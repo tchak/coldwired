@@ -3,7 +3,7 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import { createMemoryTurboRouter, ContentType, classList } from '.';
+import { createMemoryTurboRouter, ContentType, defaultSchema } from '.';
 import type { RouteObject, Router } from '.';
 
 export const handlers = [
@@ -126,8 +126,16 @@ const html = (body: string, title = 'Title') =>
     <head>
       <title>${title}</title>
     </head>
-    <body data-controller="turbo">${body}</body>
+    <body>${body}</body>
   </html>`;
+
+function currentNavigationState() {
+  return document.documentElement.getAttribute(defaultSchema.navigationStateAttribute);
+}
+
+function currentFetcherState(target: Element | null) {
+  return target?.getAttribute(defaultSchema.fetcherStateAttribute);
+}
 
 describe('remix router turbo', () => {
   let router: Router;
@@ -149,94 +157,101 @@ describe('remix router turbo', () => {
     expect(document.body.innerHTML).toEqual('');
 
     router.navigate('/about?foo=bar');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
-    await waitForEvent('turbo:navigation');
+    expect(currentNavigationState()).toEqual('loading');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/about');
     expect(router.state.location.search).toEqual('?foo=bar');
     expect(document.body.innerHTML).toMatch('<h1>About</h1><a href="/">Home</a>');
     expect(document.querySelector('title')?.textContent).toEqual('About');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+    expect(currentNavigationState()).toEqual('idle');
 
     click(getByText(document.body, 'Home'));
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
-    await waitForEvent('turbo:navigation');
+    expect(currentNavigationState()).toEqual('loading');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/');
     expect(document.body.innerHTML).toMatch('<h1>Hello world!</h1>');
     expect(document.querySelector('title')?.textContent).toEqual('Title');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+    expect(currentNavigationState()).toEqual('idle');
   });
 
   test('not found', async () => {
     router.navigate('/yolo');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
-    await waitForEvent('turbo:navigation');
+    expect(currentNavigationState()).toEqual('loading');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/yolo');
     expect(document.body.innerHTML).toMatch('<h1>Not Found</h1>');
   });
 
   test('submit', async () => {
     router.navigate('/forms');
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms');
 
     click(getByText(document.body, 'Submit'));
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('submitting');
-    await waitForEvent('turbo:navigation');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
+    expect(currentNavigationState()).toEqual('submitting');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(currentNavigationState()).toEqual('loading');
     expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
 
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/about');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+    expect(currentNavigationState()).toEqual('idle');
   });
 
   test('submit-on-change', async () => {
     router.navigate('/forms/submit-on-change');
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/submit-on-change');
 
     const checkbox = document.querySelector<HTMLInputElement>('input[name="accept"]');
     click(checkbox!);
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('submitting');
-    await waitForEvent('turbo:navigation');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('loading');
+    expect(currentNavigationState()).toEqual('submitting');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(currentNavigationState()).toEqual('loading');
     expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
     expect(router.state.navigation.formData?.get('accept')).toEqual('true');
 
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/about');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+    expect(currentNavigationState()).toEqual('idle');
   });
 
-  test('fetcher', async () => {
+  test.only('fetcher', async () => {
     router.navigate('/forms/fetcher');
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
-    classList(document.querySelector('h1')!).add('active');
-    expect(document.body.innerHTML).toMatch('<h1 class="active">Fetcher</h1>');
+    document.querySelector('h1')?.setAttribute(defaultSchema.permanentAttribute, 'client');
+    document.querySelector('h1')?.classList.add('active');
+    expect(document.body.innerHTML).toMatch(
+      '<h1 data-turbo-permanent="client" class="active">Fetcher</h1>'
+    );
     const submit = getByText<HTMLInputElement>(document.body, 'Submit');
     click(submit);
-    expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('submitting');
+    expect(currentFetcherState(document.querySelector('form'))).toEqual('submitting');
     expect(submit.disabled).toEqual(true);
     expect(submit.value).toEqual('Submitting');
-    await waitForEvent('turbo:fetcher');
-    expect(document.querySelector('form')?.dataset.turboFetcherState).toEqual('loading');
+    await waitForEvent(defaultSchema.fetcherStateChangeEvent);
+    expect(currentFetcherState(document.querySelector('form'))).toEqual('loading');
     expect(router.state.fetchers.get('fetcher1')?.formData?.get('firstName')).toEqual('Paul');
     expect(submit.disabled).toEqual(false);
     expect(submit.value).toEqual('Submit');
 
-    await waitForEvent('turbo:navigation');
-    expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
-    classList(document.querySelector('h1')!).remove('active');
-    expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(document.body.innerHTML).toMatch(
+      '<h1 data-turbo-permanent="client" class="active">About</h1>'
+    );
+    document.querySelector('h1')?.classList.remove('active');
+    expect(document.body.innerHTML).toMatch(
+      '<h1 data-turbo-permanent="client" class="">About</h1>'
+    );
     expect(router.state.location.pathname).toEqual('/about');
-    expect(document.documentElement.dataset.turboNavigationState).toEqual('idle');
+    expect(currentNavigationState()).toEqual('idle');
   });
 
   test('fetcher turbo-stream', async () => {
     router.navigate('/forms/fetcher');
-    await waitForEvent('turbo:navigation');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
     const body = document.body.innerHTML;
@@ -246,8 +261,8 @@ describe('remix router turbo', () => {
     expect(body).not.toMatch('<p>A message before</a>');
 
     click(getByText(document.body, 'Delete'));
-    await waitForEvent('turbo:fetcher');
-    await waitForEvent('turbo:fetcher');
+    await waitForEvent(defaultSchema.fetcherStateChangeEvent);
+    await waitForEvent(defaultSchema.fetcherStateChangeEvent);
     await waitForNextAnimationFrame();
 
     const newBody = document.body.innerHTML;

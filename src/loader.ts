@@ -1,22 +1,22 @@
 import type {
-  RouterState,
   LoaderFunction as DataFunction,
   RouteObject,
   ShouldRevalidateFunction,
+  RouterState,
 } from '@remix-run/router';
 import { json, redirect } from '@remix-run/router';
 import { nanoid } from 'nanoid';
-
-type RouteData =
-  | { format: 'html'; content: string }
-  | { format: 'turbo-stream'; content: string }
-  | { format: 'json'; content: unknown };
 
 export enum ContentType {
   TurboStream = 'text/vnd.turbo-stream.html',
   HTML = 'text/html, application/xhtml+xml',
   JSON = 'application/json',
 }
+
+type RouteData =
+  | { format: 'html'; content: string }
+  | { format: 'turbo-stream'; content: string }
+  | { format: 'json'; content: unknown };
 
 type RouteHandle = {
   method?: string | string[];

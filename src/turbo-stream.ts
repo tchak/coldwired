@@ -1,68 +1,70 @@
 import invariant from 'tiny-invariant';
 
-import { renderElement } from './render';
+type Morph = (fromElement: Element, toElement: Element, childrenOnly?: boolean) => void;
+type ActionContext = {
+  morph: Morph;
+  targetElements: Element[];
+};
+type ActionFunction = (context: ActionContext, templateContent: Element) => void;
 
-type ActionFunction = (targetElements: HTMLElement[], templateContent: HTMLElement) => void;
-
-export function renderStream(html: string) {
+export function renderStream(html: string, morph: Morph) {
   const template = document.createElement('template');
   template.innerHTML = html;
   document.importNode(template, true);
-  for (const stream of template.content.querySelectorAll<HTMLElement>('turbo-stream')) {
-    renderStreamElement(stream);
+  for (const stream of template.content.querySelectorAll('turbo-stream')) {
+    renderTurboStream(stream, morph);
   }
 }
 
 const StreamActions: {
   [action: string]: ActionFunction;
 } = {
-  after(targetElements, templateContent) {
-    targetElements.forEach((element) =>
+  after(context, templateContent) {
+    context.targetElements.forEach((element) =>
       element.parentElement?.insertBefore(templateContent, element.nextSibling)
     );
   },
 
-  append(targetElements, templateContent) {
-    removeDuplicateTargetChildren(targetElements, templateContent);
-    targetElements.forEach((element) => element.append(templateContent));
+  append(context, templateContent) {
+    removeDuplicateTargetChildren(context.targetElements, templateContent);
+    context.targetElements.forEach((element) => element.append(templateContent));
   },
 
-  before(targetElements, templateContent) {
-    targetElements.forEach((element) =>
+  before(context, templateContent) {
+    context.targetElements.forEach((element) =>
       element.parentElement?.insertBefore(templateContent, element)
     );
   },
 
-  prepend(targetElements, templateContent) {
-    removeDuplicateTargetChildren(targetElements, templateContent);
-    targetElements.forEach((element) => element.prepend(templateContent));
+  prepend(context, templateContent) {
+    removeDuplicateTargetChildren(context.targetElements, templateContent);
+    context.targetElements.forEach((element) => element.prepend(templateContent));
   },
 
-  remove(targetElements) {
-    targetElements.forEach((element) => element.remove());
+  remove(context) {
+    context.targetElements.forEach((element) => element.remove());
   },
 
-  replace(targetElements, templateContent) {
-    targetElements.forEach((element) => renderElement(element, templateContent));
+  replace(context, templateContent) {
+    context.targetElements.forEach((element) => context.morph(element, templateContent));
   },
 
-  update(targetElements, templateContent) {
-    targetElements.forEach((element) => renderElement(element, templateContent, true));
+  update(context, templateContent) {
+    context.targetElements.forEach((element) => context.morph(element, templateContent, true));
   },
 };
 
-function renderStreamElement(stream: HTMLElement): void {
+function renderTurboStream(stream: Element, morph: Morph): void {
   invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
 
   const action = stream.getAttribute('action') as keyof typeof StreamActions;
   const actionFunction = StreamActions[action];
   invariant(actionFunction, `[turbo-stream] action "${action}" is not supported`);
 
-  const templateContent =
-    actionFunction.length == 2 ? getTemplateContent(stream) : ({} as HTMLElement);
+  const templateContent = actionFunction.length == 2 ? getTemplateContent(stream) : ({} as Element);
   const performAction = () => {
     const targetElements = getTargetElements(stream);
-    requestAnimationFrame(() => actionFunction(targetElements, templateContent));
+    requestAnimationFrame(() => actionFunction({ morph, targetElements }, templateContent));
   };
   const delay = stream.getAttribute('delay');
 
@@ -73,16 +75,16 @@ function renderStreamElement(stream: HTMLElement): void {
   }
 }
 
-function getTemplateContent(stream: HTMLElement): HTMLElement {
+function getTemplateContent(stream: Element): Element {
   const templateElement = stream.firstElementChild;
   invariant(
     templateElement && templateElement instanceof HTMLTemplateElement,
     '[turbo-stream] first child element must be a <template> element'
   );
-  return templateElement.content.cloneNode(true) as HTMLElement;
+  return templateElement.content.cloneNode(true) as Element;
 }
 
-function getTargetElements(stream: HTMLElement): HTMLElement[] {
+function getTargetElements(stream: Element): Element[] {
   const target = stream.getAttribute('target');
   const targets = stream.getAttribute('targets');
 
@@ -95,7 +97,7 @@ function getTargetElements(stream: HTMLElement): HTMLElement[] {
   invariant(false, '[turbo-stream] "target" or "targets" attribute is missing');
 }
 
-function targetElementsById(target: string) {
+function targetElementsById(target: string): Element[] {
   const element = document.getElementById(target);
 
   if (element != null) {
@@ -105,8 +107,8 @@ function targetElementsById(target: string) {
   }
 }
 
-function targetElementsByQuery(targets: string) {
-  const elements = document.querySelectorAll<HTMLElement>(targets);
+function targetElementsByQuery(targets: string): Element[] {
+  const elements = document.querySelectorAll(targets);
 
   if (elements.length != 0) {
     return [...elements];
@@ -115,14 +117,11 @@ function targetElementsByQuery(targets: string) {
   }
 }
 
-function removeDuplicateTargetChildren(
-  targetElements: HTMLElement[],
-  templateContent: HTMLElement
-) {
+function removeDuplicateTargetChildren(targetElements: Element[], templateContent: Element) {
   duplicateChildren(targetElements, templateContent).forEach((c) => c.remove());
 }
 
-function duplicateChildren(targetElements: HTMLElement[], templateContent: HTMLElement) {
+function duplicateChildren(targetElements: Element[], templateContent: Element) {
   const existingChildren = targetElements.flatMap((e) => [...e.children]).filter((c) => !!c.id);
   const newChildrenIds = [...(templateContent?.children || [])]
     .filter((c) => !!c.id)

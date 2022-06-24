@@ -1,23 +1,28 @@
 import { Controller } from '@hotwired/stimulus';
 import invariant from 'tiny-invariant';
+import { nanoid } from 'nanoid';
 
 import { isFormElement } from '../dom';
-import { registerFetcher, unregisterFetcher } from '../form';
-import { getRouter } from '../stimulus';
 
 export class FetcherController extends Controller {
   connect() {
     invariant(isFormElement(this.element), '"fetcher" can only be registerd on form elements');
-    registerFetcher(this.element);
+
+    const fetcherKey = this.generateFetcherKey();
+    this.dispatch('connect-fetcher', {
+      prefix: 'remix-router-turbo',
+      detail: { fetcherKey },
+    });
+
+    this.disconnect = () => {
+      this.dispatch('disconnect-fetcher', {
+        prefix: 'remix-router-turbo',
+        detail: { fetcherKey },
+      });
+    };
   }
 
-  disconnect() {
-    if (isFormElement(this.element)) {
-      unregisterFetcher(this.router, this.element);
-    }
-  }
-
-  private get router() {
-    return getRouter(this.application);
+  private generateFetcherKey() {
+    return this.element.id || nanoid();
   }
 }

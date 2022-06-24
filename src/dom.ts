@@ -9,6 +9,8 @@ type MaybeElement =
   | FormData
   | null;
 
+export type HTMLSubmitterElement = HTMLInputElement | HTMLButtonElement;
+
 export function isElement(node: MaybeElement): node is Element {
   return !!node && 'nodeType' in node && node.nodeType == Node.ELEMENT_NODE;
 }
@@ -27,6 +29,10 @@ export function isLinkElement(node: MaybeElement): node is HTMLLinkElement {
 
 export function isFormElement(node: MaybeElement): node is HTMLFormElement {
   return isElement(node) && node.tagName == 'FORM';
+}
+
+export function isSubmitterElement(node: MaybeElement): node is HTMLSubmitterElement {
+  return isButtonElement(node) || isInputElement(node);
 }
 
 export function isInputElement(node: MaybeElement): node is HTMLInputElement {
@@ -67,6 +73,17 @@ export function isNonTextInputElement(
   return isFormInputElement(node) && !isTextInputElement(node);
 }
 
+export function isFocused(element: Element) {
+  return document.activeElement == element;
+}
+
+export function findLinkFromClickTarget(target: EventTarget | null): HTMLAnchorElement | null {
+  if (target instanceof Element) {
+    return target.closest<HTMLAnchorElement>('a[href]:not([target^=_]):not([download])');
+  }
+  return null;
+}
+
 type LimitedMouseEvent = Pick<MouseEvent, 'button' | 'metaKey' | 'altKey' | 'ctrlKey' | 'shiftKey'>;
 
 function isModifiedEvent(event: LimitedMouseEvent) {
@@ -81,7 +98,7 @@ export function shouldProcessLinkClick(event: LimitedMouseEvent, target?: string
   );
 }
 
-export interface SubmitOptions {
+type SubmitOptions = {
   /**
    * The HTTP method used to submit the form. Overrides `<form method>`.
    * Defaults to "GET".
@@ -104,8 +121,8 @@ export interface SubmitOptions {
 
   /**
    */
-  submitter?: HTMLButtonElement | HTMLInputElement;
-}
+  submitter?: HTMLSubmitterElement;
+};
 
 const defaultMethod = 'get';
 const defaultEncType = 'application/x-www-form-urlencoded';
@@ -206,49 +223,6 @@ export function getFormSubmissionInfo(
   return { url, method, encType, formData };
 }
 
-export type DispatchOptions<T> = {
-  target: EventTarget;
-  cancelable: boolean;
-  detail: T;
-};
-
-export function dispatch<T>(
-  eventName: string,
-  { target, cancelable, detail }: Partial<DispatchOptions<T>> = {}
-) {
-  const event = new CustomEvent(eventName, {
-    cancelable,
-    bubbles: true,
-    detail,
-  });
-
-  if (target && (target as Element).isConnected) {
-    target.dispatchEvent(event);
-  } else {
-    document.documentElement.dispatchEvent(event);
-  }
-
-  return event;
-}
-
-export type Locatable = URL | string;
-
-export function expandURL(locatable: Locatable) {
-  return new URL(locatable.toString(), document.baseURI);
-}
-
-export function relativeURL(url: URL) {
-  return `${url.pathname}${url.search}`;
-}
-
-export function buildSelector(tags: string[], modifiers: string[], flag: string) {
-  const selectors: string[] = [];
-
-  for (const tag of tags) {
-    for (const modifier of modifiers) {
-      selectors.push(`${tag}[${modifier}]:${flag}`);
-    }
-  }
-
-  return selectors.join(', ');
+export function parseHTML(html: string) {
+  return new DOMParser().parseFromString(html, 'text/html');
 }

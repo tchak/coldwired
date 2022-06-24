@@ -1,38 +1,20 @@
-import type {
-  Router,
-  RouteObject,
-  RouterState,
-  Navigation,
-  Fetcher,
-  RevalidationState,
-  RouteData,
-  RouterInit,
-} from '@remix-run/router';
+import type { Router, RouteObject, RouteData, RouterInit } from '@remix-run/router';
 import { createBrowserRouter, createMemoryRouter, matchRoutes } from '@remix-run/router';
-import invariant from 'tiny-invariant';
-import type { Application } from '@hotwired/stimulus';
+import { Application } from '@hotwired/stimulus';
 
-import { getStimulusApplication } from './stimulus';
-import { renderPage } from './render';
-import { setupDataFunctions, getRouteData } from './loader';
-import { renderStream } from './turbo-stream';
-import { dispatch } from './dom';
-import { getFetcherForm, disableForm, enableForm } from './form';
+import type { Schema } from './schema';
+import { defaultSchema } from './schema';
+import { setupDataFunctions } from './loader';
+import { Delegate } from './delegate';
 
 import { FetcherController } from './controllers/fetcher';
 import { RevalidateController } from './controllers/revalidate';
 import { SubmitOnChangeController } from './controllers/submit-on-change';
-import { TurboController } from './controllers/turbo';
-
-type Context = {
-  state?: RouterState;
-  fetchers: Map<string, Fetcher>;
-  snapshot?: string;
-};
 
 type TurboRouterInit = {
   routes: RouteObject[];
   application?: Application;
+  schema?: Partial<Schema>;
   fetchOptions?: RequestInit;
   debug?: boolean;
 };
@@ -51,13 +33,12 @@ function createTurboRouter({
   routerFactory,
   routes,
   application,
+  schema,
   fetchOptions,
   debug = false,
 }: TurboRouterInit & {
   routerFactory: (init: Omit<RouterInit, 'history'>) => Router;
 }): Router {
-  const context: Context = { fetchers: new Map() };
-
   setupDataFunctions(routes, fetchOptions);
 
   const matches = matchRoutes(routes, location);
@@ -72,116 +53,45 @@ function createTurboRouter({
     : {};
 
   const router = routerFactory({ routes, hydrationData: { loaderData } });
-
-  router.initialize();
-  router.subscribe((state) => {
-    onRouterStateChange(state, context, debug);
-    context.state = state;
+  application = application ? application : new Application();
+  const element = application.element;
+  const delegate = new Delegate({
+    schema: Object.assign({}, defaultSchema, schema),
+    router,
+    element,
+    debug,
   });
 
-  application = getStimulusApplication(router, application);
+  element.addEventListener('click', delegate);
+  element.addEventListener('submit', delegate);
+  element.addEventListener('input', delegate);
+  element.addEventListener('remix-router-turbo:connect-fetcher', delegate);
+  element.addEventListener('remix-router-turbo:disconnect-fetcher', delegate);
+  element.addEventListener('remix-router-turbo:revalidate', delegate);
+
+  application.load([
+    { identifier: 'fetcher', controllerConstructor: FetcherController },
+    { identifier: 'revalidate', controllerConstructor: RevalidateController },
+    { identifier: 'submit-on-change', controllerConstructor: SubmitOnChangeController },
+  ]);
+
+  router.subscribe((state) => delegate.onRouterStateChange(state));
+  router.initialize();
   application.start();
+  delegate.connect();
 
   const dispose = router.dispose;
   router.dispose = () => {
     dispose.call(router);
+    delegate.disconnect();
+    element.removeEventListener('click', delegate);
+    element.removeEventListener('submit', delegate);
+    element.removeEventListener('input', delegate);
+    element.removeEventListener('remix-router-turbo:connect-fetcher', delegate);
+    element.removeEventListener('remix-router-turbo:disconnect-fetcher', delegate);
+    element.removeEventListener('remix-router-turbo:revalidate', delegate);
     application?.stop();
   };
 
-  application.register('fetcher', FetcherController);
-  application.register('revalidate', RevalidateController);
-  application.register('submit-on-change', SubmitOnChangeController);
-  application.register('turbo', TurboController);
-
   return router;
-}
-
-function onRouterStateChange(state: RouterState, context: Context, debug: boolean) {
-  if (context.state?.navigation?.state != state.navigation.state) {
-    navigationStateChange(state.navigation, debug);
-  }
-
-  if (context.state?.revalidation != state.revalidation) {
-    revalidationStateChange(state.revalidation, debug);
-  }
-
-  for (const [fetcherKey, fetcher] of state.fetchers) {
-    const form = getFetcherForm(fetcherKey);
-
-    if (context.fetchers.get(fetcherKey)?.state != fetcher.state) {
-      fetcherStateChange(fetcherKey, fetcher, form, debug);
-      context.fetchers.set(fetcherKey, fetcher);
-    }
-
-    if (fetcher.state == 'submitting') {
-      disableForm(form);
-    } else {
-      enableForm(form);
-    }
-
-    if (fetcher.state == 'idle') {
-      switch (fetcher.data?.format) {
-        case 'turbo-stream':
-          renderStream(fetcher.data.content);
-          break;
-        case 'json':
-          dispatch('turbo:fetcher:json', {
-            target: form,
-            detail: { key: fetcherKey, data: fetcher.data.content },
-          });
-          break;
-        case 'html':
-          renderPage(fetcher.data.content, { fetcher });
-      }
-    }
-  }
-
-  if (state.initialized && state.navigation.state == 'idle') {
-    const { loaderData, actionData } = getRouteData(state);
-    const routeData = actionData ?? loaderData;
-    switch (routeData?.format) {
-      case 'html':
-        if (routeData.content != context.snapshot) {
-          renderPage(routeData.content, { navigation: state.navigation });
-          context.snapshot = routeData.content;
-        }
-        break;
-      case 'turbo-stream':
-        invariant(false, 'Navigation can not return turbo-stream');
-      case 'json':
-        invariant(false, 'Navigation can not return json');
-    }
-  }
-}
-
-function navigationStateChange(navigation: Navigation, debug: boolean) {
-  if (navigation.state != 'idle' && debug) {
-    console.log('[navigation state change]', navigation.state);
-  }
-  document.documentElement.setAttribute('data-turbo-navigation-state', navigation.state);
-  dispatch('turbo:navigation', { detail: { navigation } });
-}
-
-function revalidationStateChange(state: RevalidationState, debug: boolean) {
-  if (state != 'idle' && debug) {
-    console.log('[revalidation state change]', state);
-  }
-  document.documentElement.setAttribute('data-turbo-revalidation-state', state);
-  dispatch('turbo:revalidation', { detail: { revalidation: state } });
-}
-
-function fetcherStateChange(
-  fetcherKey: string,
-  fetcher: Fetcher,
-  form: HTMLFormElement,
-  debug: boolean
-) {
-  if (fetcher.state != 'idle' && debug) {
-    console.log('[fetcher state change]', fetcherKey, fetcher.state);
-  }
-  form.setAttribute('data-turbo-fetcher-state', fetcher.state);
-  dispatch('turbo:fetcher', {
-    target: form,
-    detail: { key: fetcherKey, fetcher },
-  });
 }

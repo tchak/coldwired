@@ -1,3 +1,6 @@
+import justDebounce from 'just-debounce-it';
+import justThrottle from 'just-throttle';
+
 export type Locatable = URL | string;
 
 export function expandURL(locatable: Locatable) {
@@ -35,4 +38,51 @@ export function dispatch<T>(
 
 export function difference<T>(a: Set<T>, b: Set<T>) {
   return new Set([...a].filter((x) => !b.has(x)));
+}
+
+type Func = ReturnType<typeof justThrottle>;
+const DEFAULT_INTERVAL = 500;
+
+export function debounce(target: Element, callback: () => void, intervalAttribute?: string) {
+  let fn = debounced.get(target);
+  if (!fn) {
+    const interval = getInterval(target, intervalAttribute);
+    if (interval != 0) {
+      fn = justDebounce(callback, interval);
+      debounced.set(target, fn);
+    }
+  }
+  (fn ?? callback)();
+}
+const debounced = new WeakMap<Element, Func>();
+
+export function cancelDebounce(target: Element) {
+  debounced.get(target)?.cancel();
+}
+
+export function throttle(target: Element, callback: () => void, intervalAttribute?: string) {
+  let fn = throttled.get(target);
+  if (!fn) {
+    const interval = getInterval(target, intervalAttribute);
+    if (interval != 0) {
+      fn = justThrottle(callback, interval);
+      throttled.set(target, fn);
+    }
+  }
+  (fn ?? callback)();
+}
+const throttled = new WeakMap<Element, Func>();
+
+export function cancelThrottle(target: Element) {
+  throttled.get(target)?.cancel();
+}
+
+function getInterval(target: Element, intervalAttribute?: string) {
+  return intervalAttribute
+    ? parseIntWithDefault(target.getAttribute(intervalAttribute), DEFAULT_INTERVAL)
+    : DEFAULT_INTERVAL;
+}
+
+function parseIntWithDefault(value: string | null, defaultValue: number) {
+  return value ? parseInt(value) : defaultValue;
 }

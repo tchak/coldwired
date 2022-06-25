@@ -2,6 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import invariant from 'tiny-invariant';
 import { nanoid } from 'nanoid';
 
+import { cancelDebounce } from '../utils';
 import { isFormElement } from '../dom';
 
 export class FetcherController extends Controller {
@@ -15,6 +16,7 @@ export class FetcherController extends Controller {
     });
 
     this.disconnect = () => {
+      cancelDebounce(this.element);
       this.dispatch('disconnect-fetcher', {
         prefix: 'remix-router-turbo',
         detail: { fetcherKey },

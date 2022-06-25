@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
+import { throttle } from '../utils';
+
 const DEFAULT_MIN_TIMEOUT = 5_000; // 5 seconds
 
 export class RevalidateController extends Controller {
@@ -13,18 +15,22 @@ export class RevalidateController extends Controller {
     this.stopRevalidating();
   }
 
-  startRevalidating() {
+  private startRevalidating() {
     clearInterval(this.#timer);
-    this.#timer = setInterval(() => {
+    this.#timer = setInterval(() => this.revalidate(), this.interval);
+  }
+
+  private stopRevalidating() {
+    clearInterval(this.#timer);
+  }
+
+  private revalidate() {
+    throttle(this.application.element, () => {
       this.dispatch('revalidate', {
         target: this.application.element,
         prefix: 'remix-router-turbo',
       });
-    }, this.interval);
-  }
-
-  stopRevalidating() {
-    clearInterval(this.#timer);
+    });
   }
 
   private get interval() {

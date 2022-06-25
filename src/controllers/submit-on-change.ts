@@ -1,6 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
-import justDebounce from 'just-debounce-it';
 
+import { debounce } from '../utils';
 import { isFormInputElement, isTextInputElement, isFocused } from '../dom';
 
 export class SubmitOnChangeController extends Controller implements EventListenerObject {
@@ -22,19 +22,25 @@ export class SubmitOnChangeController extends Controller implements EventListene
       switch (event.type) {
         case 'input':
           this.onInput(form, target);
+          break;
         case 'change':
           this.onChange(form, target);
+          break;
       }
     }
   }
 
   private onInput(form: HTMLFormElement, target: EventTarget) {
     if (isTextInputElement(target)) {
-      debounce(form, () => {
-        if (isFocused(target)) {
-          form.requestSubmit();
-        }
-      });
+      debounce(
+        form,
+        () => {
+          if (isFocused(target)) {
+            form.requestSubmit();
+          }
+        },
+        'data-debounce-interval'
+      );
     }
   }
 
@@ -43,25 +49,4 @@ export class SubmitOnChangeController extends Controller implements EventListene
       form.requestSubmit();
     }
   }
-}
-
-const DEFAULT_DEBOUNCE = 500;
-
-function debounce(target: HTMLElement, callback: () => void) {
-  let run = debounced.get(target);
-  if (!run) {
-    const wait = parseIntOr(target.dataset.debounceWait, DEFAULT_DEBOUNCE);
-    if (wait == 0) {
-      run = callback;
-    } else {
-      run = justDebounce(callback, wait);
-    }
-    debounced.set(target, run);
-  }
-  run();
-}
-const debounced = new WeakMap<HTMLElement, () => void>();
-
-function parseIntOr(value: string | undefined, defaultValue: number) {
-  return value ? parseInt(value) : defaultValue;
 }

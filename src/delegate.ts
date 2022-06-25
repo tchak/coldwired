@@ -23,7 +23,14 @@ import {
 import { dispatch, expandURL, relativeURL } from './utils';
 import { renderStream } from './turbo-stream';
 import { Transition } from './transition';
-import { getMetadata, getOrCreateMetadata } from './metadata';
+import {
+  getMetadata,
+  getOrCreateMetadata,
+  connectElement,
+  disconnectElement,
+  getElementByKey,
+  getElementKey,
+} from './metadata';
 import { ClassListObserver } from './class-list-observer';
 
 type RenderDetail = {
@@ -95,10 +102,7 @@ export class Delegate implements EventListenerObject {
     this.#transition.stateChange(state);
 
     for (const [fetcherKey, fetcher] of state.fetchers) {
-      const target = this.#element.querySelector(
-        `[${this.#schema.fetcherKeyAttribute}="${fetcherKey}"`
-      );
-
+      const target = getElementByKey(fetcherKey);
       invariant(target, `No fetcher frame found for "${fetcherKey}"`);
 
       if (fetcher.state == 'submitting') {
@@ -184,13 +188,13 @@ export class Delegate implements EventListenerObject {
 
   private connectFetcher(target: EventTarget, { fetcherKey }: { fetcherKey: string }) {
     if (isElement(target)) {
-      target.setAttribute(this.#schema.fetcherKeyAttribute, fetcherKey);
+      connectElement(target, fetcherKey);
     }
   }
 
   private disconnectFetcher(target: EventTarget, { fetcherKey }: { fetcherKey: string }) {
     if (isElement(target)) {
-      target.removeAttribute(this.#schema.fetcherKeyAttribute);
+      disconnectElement(fetcherKey);
       this.#router.deleteFetcher(fetcherKey);
     }
   }
@@ -215,7 +219,7 @@ export class Delegate implements EventListenerObject {
       form.getAttribute(this.#schema.replaceAttribute) == 'true';
     const href = relativeURL(url);
     const options = { formMethod: method, formData, replace };
-    const fetcherKey = form.getAttribute(this.#schema.fetcherKeyAttribute);
+    const fetcherKey = getElementKey(form);
 
     if (fetcherKey) {
       const match = this.#router.state.matches.at(-1);
@@ -400,15 +404,19 @@ export class Delegate implements EventListenerObject {
       this.formInputSelectors('enabled')
     )) {
       const disableWith = element.getAttribute(this.#schema.disableWithAttribute);
+      const metadata = getOrCreateMetadata(element);
+
       if (disableWith) {
         if (isButtonElement(element)) {
-          getOrCreateMetadata(element).originalContent = element.innerHTML;
+          metadata.originalContent = element.innerHTML;
           element.innerHTML = disableWith;
         } else {
-          getOrCreateMetadata(element).originalContent = element.value;
+          metadata.originalContent = element.value;
           element.value = disableWith;
         }
       }
+
+      metadata.originalFocused = isFocused(element);
       element.disabled = true;
     }
   }
@@ -427,11 +435,15 @@ export class Delegate implements EventListenerObject {
         delete metadata.originalContent;
       }
       element.disabled = false;
+      if (isFocused(document.body) && metadata?.originalFocused) {
+        element.focus();
+        delete metadata.originalFocused;
+      }
     }
   }
 
   private get nonFetcherForms() {
-    return this.#element.querySelectorAll(`form:not([${this.#schema.fetcherKeyAttribute}])`);
+    return this.#element.querySelectorAll(`form:not([data-controller~="fetcher"])`);
   }
 
   private formInputSelectors(pseudoClass: 'enabled' | 'disabled') {

@@ -11,12 +11,7 @@ module.exports = defineConfig({
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: [
-        '@hotwired/stimulus',
-        '@remix-run/router',
-        'morphdom',
-        'nanoid',
-      ],
+      external: ['@hotwired/stimulus', '@remix-run/router', 'morphdom', 'nanoid'],
     },
   },
 });

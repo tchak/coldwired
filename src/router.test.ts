@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { describe, it, beforeEach, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
@@ -152,7 +152,7 @@ describe('remix router turbo', () => {
 
   afterEach(() => server.resetHandlers());
 
-  test('navigate', async () => {
+  it('should handle link navigation', async () => {
     expect(router.state.location.pathname).toEqual('/');
     expect(document.body.innerHTML).toEqual('');
 
@@ -174,7 +174,7 @@ describe('remix router turbo', () => {
     expect(currentNavigationState()).toEqual('idle');
   });
 
-  test('not found', async () => {
+  it('should handle not found errors', async () => {
     router.navigate('/yolo');
     expect(currentNavigationState()).toEqual('loading');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
@@ -182,7 +182,7 @@ describe('remix router turbo', () => {
     expect(document.body.innerHTML).toMatch('<h1>Not Found</h1>');
   });
 
-  test('submit', async () => {
+  it('should handle form submits', async () => {
     router.navigate('/forms');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms');
@@ -198,7 +198,7 @@ describe('remix router turbo', () => {
     expect(currentNavigationState()).toEqual('idle');
   });
 
-  test('submit-on-change', async () => {
+  it('should submit forms with `submit-on-change` directive', async () => {
     router.navigate('/forms/submit-on-change');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/submit-on-change');
@@ -216,7 +216,7 @@ describe('remix router turbo', () => {
     expect(currentNavigationState()).toEqual('idle');
   });
 
-  test.only('fetcher', async () => {
+  it('should handle form submits with `fetcher` directive', async () => {
     router.navigate('/forms/fetcher');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
@@ -249,7 +249,7 @@ describe('remix router turbo', () => {
     expect(currentNavigationState()).toEqual('idle');
   });
 
-  test('fetcher turbo-stream', async () => {
+  it('should handle responses with `turbo-stream` actions', async () => {
     router.navigate('/forms/fetcher');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/fetcher');

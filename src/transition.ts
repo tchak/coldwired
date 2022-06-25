@@ -3,6 +3,7 @@ import invariant from 'tiny-invariant';
 
 import type { Schema } from './schema';
 import { dispatch } from './utils';
+import { getElementByKey } from './metadata';
 
 export class Transition {
   #element: Element;
@@ -27,8 +28,7 @@ export class Transition {
     }
 
     for (const [fetcherKey, fetcher] of state.fetchers) {
-      const target = document.querySelector(`[${this.#schema.fetcherKeyAttribute}="${fetcherKey}"`);
-
+      const target = getElementByKey(fetcherKey);
       invariant(target, `No fetcher frame found for "${fetcherKey}"`);
 
       if (this.#fetchers.get(fetcherKey)?.state != fetcher.state) {

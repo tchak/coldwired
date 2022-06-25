@@ -37,7 +37,8 @@ export class ClassListObserver {
       mutation.target.closest(`[${this.#schema.permanentAttribute}]`)
     ) {
       if (mutation.oldValue) {
-        this.classListChanged(mutation.target, new Set(mutation.oldValue.split(' ')));
+        const classList = new Set(mutation.oldValue.split(/\s/).filter(Boolean));
+        this.classListChanged(mutation.target, classList);
       } else {
         this.classListChanged(mutation.target, new Set([]));
       }

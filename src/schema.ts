@@ -3,7 +3,6 @@ export type Schema = {
   navigationStateAttribute: string;
   fetcherStateAttribute: string;
   revalidationStateAttribute: string;
-  fetcherKeyAttribute: string;
   confirmAttribute: string;
   methodAttribute: string;
   replaceAttribute: string;
@@ -23,7 +22,6 @@ export const defaultSchema: Schema = {
   navigationStateAttribute: 'data-turbo-navigation-state',
   fetcherStateAttribute: 'data-turbo-fetcher-state',
   revalidationStateAttribute: 'data-turbo-revalidation-state',
-  fetcherKeyAttribute: 'data-turbo-fetcher-key',
   confirmAttribute: 'data-turbo-confirm',
   methodAttribute: 'data-turbo-method',
   replaceAttribute: 'data-turbo-replace',

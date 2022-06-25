@@ -64,6 +64,10 @@
     "vite": "^2.9.9",
     "vitest": "^0.16.0"
   },
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@6.32.24",
   "prettier": {
     "singleQuote": true,
     "printWidth": 100

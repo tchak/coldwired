@@ -147,8 +147,10 @@ export class Delegate implements EventListenerObject {
           break;
         case 'turbo-stream':
           invariant(false, 'Navigation can not return turbo-stream');
+          break;
         case 'json':
           invariant(false, 'Navigation can not return json');
+          break;
       }
     }
   }

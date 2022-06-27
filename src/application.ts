@@ -1,79 +1,125 @@
-import type { Router, RouterState, Fetcher, NavigationStates, FormMethod } from '@remix-run/router';
+import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/router';
 import morphdom from 'morphdom';
 import invariant from 'tiny-invariant';
 
 import type { Schema } from './schema';
 import type { HTMLSubmitterElement } from './dom';
-import { getRouteData } from './loader';
+import { defaultSchema } from './schema';
+import type { RouteData } from './loader';
 import {
   getFormSubmissionInfo,
   shouldProcessLinkClick,
   findLinkFromClickTarget,
   parseHTML,
-  isElement,
   isSubmitterElement,
   isFormElement,
   isFormInputElement,
   isLinkElement,
   isFormOptionElement,
   isInputElement,
-  isButtonElement,
   isFocused,
+  domReady,
 } from './dom';
 import { dispatch, expandURL, relativeURL } from './utils';
 import { renderStream } from './turbo-stream';
 import { Transition } from './transition';
+import { getMetadata } from './metadata';
 import {
-  getMetadata,
-  getOrCreateMetadata,
-  connectElement,
-  disconnectElement,
-  getElementByKey,
-  getElementKey,
-} from './metadata';
-import { ClassListObserver } from './class-list-observer';
+  DirectiveController,
+  DirectiveFactory,
+  DirectiveConstructor,
+} from './directive-controller';
+
+import * as Directives from './directives';
 
 type RenderDetail = {
   navigation?: NavigationStates['Idle'];
   fetcher?: Fetcher;
 };
 
-export class Delegate implements EventListenerObject {
+export type ApplicationOptions = {
+  router: Router;
+  element?: Element;
+  schema?: Partial<Schema>;
+  debug?: boolean;
+};
+
+export class Application {
   #schema: Schema;
   #router: Router;
   #element: Element;
-  #snapshot?: string;
 
+  #eventListener: EventListenerObject;
   #transition: Transition;
-  #observer: ClassListObserver;
+  #controllers = new Set<DirectiveController>();
 
-  constructor({
-    schema,
-    router,
-    element,
-    debug,
-  }: {
-    schema: Schema;
-    router: Router;
-    element: Element;
-    debug: boolean;
-  }) {
-    this.#schema = schema;
+  constructor({ router, element, schema, debug }: ApplicationOptions) {
     this.#router = router;
-    this.#element = element;
-    this.#transition = new Transition(element, schema, debug);
-    this.#observer = new ClassListObserver(element, schema);
+    this.#element = element ?? document.documentElement;
+    this.#schema = Object.assign({}, defaultSchema, schema);
+    this.#transition = new Transition(
+      this.#element,
+      this.#schema,
+      {
+        navigationDone: this.navigationDone.bind(this),
+        fetcherDone: this.fetcherDone.bind(this),
+      },
+      debug
+    );
+    this.#eventListener = { handleEvent: this.handleEvent.bind(this) };
+
+    this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
+    this.register(this.#schema.permanentAttribute, Directives.Permanent, { pausable: true });
+    this.register(this.#schema.revalidateAttribute, Directives.Revalidate);
+    this.register(this.#schema.submitOnChangeAttribute, Directives.SubmitOnChange);
   }
 
-  connect() {
-    this.#observer.observe();
+  static async start(options: ApplicationOptions) {
+    const application = new Application(options);
+    await application.start();
+    return application;
   }
 
-  disconnect() {
-    this.#observer.disconnect();
+  async start() {
+    this.#router.subscribe(this.#transition.to.bind(this.#transition));
+    this.#router.initialize();
+
+    this.#element.addEventListener('click', this.#eventListener);
+    this.#element.addEventListener('submit', this.#eventListener);
+    this.#element.addEventListener('input', this.#eventListener);
+
+    await domReady();
+
+    for (const controller of this.#controllers) {
+      controller.start();
+    }
   }
 
-  handleEvent(event: Event): void {
+  stop() {
+    this.#router.dispose();
+
+    for (const controller of this.#controllers) {
+      controller.stop();
+    }
+
+    this.#element.removeEventListener('click', this.#eventListener);
+    this.#element.removeEventListener('submit', this.#eventListener);
+    this.#element.removeEventListener('input', this.#eventListener);
+  }
+
+  register(directive: string, Directive: DirectiveConstructor, options?: { pausable?: boolean }) {
+    const factory: DirectiveFactory = (element) =>
+      new Directive(element, this.#router, this.#schema);
+    const controller = new DirectiveController(
+      this.#element,
+      directive,
+      factory,
+      options?.pausable ?? false
+    );
+    this.#controllers.add(controller);
+  }
+
+  private handleEvent(event: Event): void {
     const target = (event.composedPath && event.composedPath()[0]) || event.target;
 
     switch (event.type) {
@@ -84,74 +130,35 @@ export class Delegate implements EventListenerObject {
         this.onSubmit(event as SubmitEvent, target);
         break;
       case 'input':
-        this.touchFormInputElement(target);
-        break;
-      case 'remix-router-turbo:connect-fetcher':
-        this.connectFetcher(target, (event as CustomEvent<{ fetcherKey: string }>).detail);
-        break;
-      case 'remix-router-turbo:disconnect-fetcher':
-        this.disconnectFetcher(target, (event as CustomEvent<{ fetcherKey: string }>).detail);
-        break;
-      case 'remix-router-turbo:revalidate':
-        this.onRevalidate();
+        this.onInput(target);
         break;
     }
   }
 
-  onRouterStateChange(state: RouterState) {
-    this.#transition.stateChange(state);
-
-    for (const [fetcherKey, fetcher] of state.fetchers) {
-      const target = getElementByKey(fetcherKey);
-      invariant(target, `No fetcher frame found for "${fetcherKey}"`);
-
-      if (fetcher.state == 'submitting') {
-        this.disableFormInputs(target);
-      } else {
-        this.enableFormInputs(target);
-      }
-
-      if (fetcher.state == 'idle') {
-        switch (fetcher.data?.format) {
-          case 'turbo-stream':
-            this.handleTurboStream(target, fetcher.data.content);
-            break;
-          case 'json':
-            this.handleJSON(target, { fetcherKey, data: fetcher.data.content });
-            break;
-          case 'html':
-            this.handleHTML(fetcher.data.content, { fetcher });
-        }
-      }
+  private fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element) {
+    switch (fetcher.data?.format) {
+      case 'turbo-stream':
+        this.handleTurboStream(form, fetcher.data.content);
+        break;
+      case 'json':
+        this.handleJSON(form, { fetcherKey, data: fetcher.data.content });
+        break;
+      case 'html':
+        this.handleHTML(fetcher.data.content, { fetcher });
     }
+  }
 
-    if (state.navigation.state == 'submitting') {
-      for (const form of this.nonFetcherForms) {
-        this.disableFormInputs(form);
-      }
-    } else {
-      for (const form of this.nonFetcherForms) {
-        this.enableFormInputs(form);
-      }
-    }
-
-    if (state.initialized && state.navigation.state == 'idle') {
-      const { loaderData, actionData } = getRouteData(state);
-      const routeData = actionData ?? loaderData;
-      switch (routeData?.format) {
-        case 'html':
-          if (routeData.content != this.#snapshot) {
-            this.handleHTML(routeData.content, { navigation: state.navigation });
-            this.#snapshot = routeData.content;
-          }
-          break;
-        case 'turbo-stream':
-          invariant(false, 'Navigation can not return turbo-stream');
-          break;
-        case 'json':
-          invariant(false, 'Navigation can not return json');
-          break;
-      }
+  private navigationDone(navigation: NavigationStates['Idle'], data?: RouteData) {
+    switch (data?.format) {
+      case 'html':
+        this.handleHTML(data.content, { navigation });
+        break;
+      case 'turbo-stream':
+        invariant(false, 'Navigation can not return turbo-stream');
+        break;
+      case 'json':
+        invariant(false, 'Navigation can not return json');
+        break;
     }
   }
 
@@ -184,20 +191,9 @@ export class Delegate implements EventListenerObject {
     }
   }
 
-  private onRevalidate() {
-    this.#router.revalidate();
-  }
-
-  private connectFetcher(target: EventTarget, { fetcherKey }: { fetcherKey: string }) {
-    if (isElement(target)) {
-      connectElement(target, fetcherKey);
-    }
-  }
-
-  private disconnectFetcher(target: EventTarget, { fetcherKey }: { fetcherKey: string }) {
-    if (isElement(target)) {
-      disconnectElement(fetcherKey);
-      this.#router.deleteFetcher(fetcherKey);
+  private onInput(element: EventTarget) {
+    if (isFormInputElement(element)) {
+      getMetadata(element, true).touched = true;
     }
   }
 
@@ -214,14 +210,14 @@ export class Delegate implements EventListenerObject {
     this.morphDocument(doc, detail);
   }
 
-  private submitForm(form: HTMLFormElement, submitter?: HTMLSubmitterElement) {
+  submitForm(form: HTMLFormElement, submitter?: HTMLSubmitterElement) {
     const { url, method, formData } = getFormSubmissionInfo(form, location.pathname, { submitter });
     const replace =
       submitter?.getAttribute(this.#schema.replaceAttribute) == 'true' ||
       form.getAttribute(this.#schema.replaceAttribute) == 'true';
     const href = relativeURL(url);
     const options = { formMethod: method, formData, replace };
-    const fetcherKey = getElementKey(form);
+    const fetcherKey = getMetadata(form)?.fetcherKey;
 
     if (fetcherKey) {
       const match = this.#router.state.matches.at(-1);
@@ -233,7 +229,7 @@ export class Delegate implements EventListenerObject {
     }
   }
 
-  private followOrSubmitLink(link: HTMLAnchorElement) {
+  followOrSubmitLink(link: HTMLAnchorElement) {
     const href = expandURL(link.getAttribute('href') || '');
     const turboMethod = link.getAttribute(this.#schema.methodAttribute)?.toLowerCase();
     const replace = link.getAttribute(this.#schema.replaceAttribute) == 'true';
@@ -298,7 +294,7 @@ export class Delegate implements EventListenerObject {
     const permanent = toPermanent ?? fromPermanent;
 
     if (!permanent) {
-      if (isInputElement(fromElement) && isFocused(fromElement)) {
+      if (isFormInputElement(fromElement) && isFocused(fromElement)) {
         return 'client';
       }
       return 'server';
@@ -307,23 +303,23 @@ export class Delegate implements EventListenerObject {
     return permanent == 'client' ? 'client' : 'server';
   }
 
-  private touchFormInputElement(element: EventTarget) {
-    if (isFormInputElement(element)) {
-      getOrCreateMetadata(element).touched = true;
-    }
-  }
-
   private onBeforeElementUpdated(fromElement: Element, toElement: Element) {
-    if (fromElement.isEqualNode(toElement)) {
-      return false;
-    }
-
     const permanent = this.getPermanentAttribute(
       this.#schema.permanentAttribute,
       fromElement,
       toElement
     );
     const metadata = getMetadata(fromElement);
+
+    if (permanent == 'server' && metadata) {
+      if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
+        metadata.touched = false;
+      }
+    }
+
+    if (fromElement.isEqualNode(toElement)) {
+      return false;
+    }
 
     if (permanent == 'client') {
       toElement.classList.add(...fromElement.classList);
@@ -344,23 +340,25 @@ export class Delegate implements EventListenerObject {
           }
         }
       }
-    } else if (metadata) {
-      if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
-        metadata.touched = false;
-      }
     }
 
     return true;
   }
 
   private morph(fromElement: Element, toElement: Element, childrenOnly = false) {
-    this.#observer.disconnect();
+    for (const controller of this.#controllers) {
+      controller.pause();
+    }
+
     morphdom(fromElement, toElement, {
       childrenOnly,
       onBeforeElUpdated: (fromElement, toElement) =>
         this.onBeforeElementUpdated(fromElement, toElement),
     });
-    this.#observer.observe();
+
+    for (const controller of this.#controllers) {
+      controller.resume();
+    }
   }
 
   private morphHead(toElement: HTMLHeadElement) {
@@ -399,64 +397,5 @@ export class Delegate implements EventListenerObject {
 
   private afterRender(detail: RenderDetail) {
     dispatch(this.#schema.renderEvent, { target: this.#element, detail });
-  }
-
-  private disableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-      this.formInputSelectors('enabled')
-    )) {
-      const disableWith = element.getAttribute(this.#schema.disableWithAttribute);
-      const metadata = getOrCreateMetadata(element);
-
-      if (disableWith) {
-        if (isButtonElement(element)) {
-          metadata.originalContent = element.innerHTML;
-          element.innerHTML = disableWith;
-        } else {
-          metadata.originalContent = element.value;
-          element.value = disableWith;
-        }
-      }
-
-      metadata.originalFocused = isFocused(element);
-      element.disabled = true;
-    }
-  }
-
-  private enableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-      this.formInputSelectors('disabled')
-    )) {
-      const metadata = getMetadata(element);
-      if (metadata?.originalContent) {
-        if (isButtonElement(element)) {
-          element.innerHTML = metadata.originalContent;
-        } else {
-          element.value = metadata.originalContent;
-        }
-        delete metadata.originalContent;
-      }
-      element.disabled = false;
-      if (isFocused(document.body) && metadata?.originalFocused) {
-        element.focus();
-        delete metadata.originalFocused;
-      }
-    }
-  }
-
-  private get nonFetcherForms() {
-    return this.#element.querySelectorAll(`form:not([data-controller~="fetcher"])`);
-  }
-
-  private formInputSelectors(pseudoClass: 'enabled' | 'disabled') {
-    const selectors: string[] = [];
-
-    for (const tag of ['input', 'button', 'textarea']) {
-      for (const attribute of [this.#schema.disableAttribute, this.#schema.disableWithAttribute]) {
-        selectors.push(`${tag}[${attribute}]:${pseudoClass}`);
-      }
-    }
-
-    return selectors.join(', ');
   }
 }

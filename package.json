@@ -36,7 +36,6 @@
     "release": "release-it"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.0.1",
     "@remix-run/router": "0.2.0-pre.3",
     "just-throttle": "^4.0.1",
     "morphdom": "^2.6.1",

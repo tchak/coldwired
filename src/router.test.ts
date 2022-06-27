@@ -5,7 +5,7 @@ import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
 import { createMemoryTurboRouter, ContentType, defaultSchema } from '.';
-import type { RouteObject, Router } from '.';
+import { Application, Router, RouteObject } from '.';
 
 export const handlers = [
   rest.get('/', (_, res, ctx) => {
@@ -52,7 +52,7 @@ export const handlers = [
       ctx.body(
         html(
           `<h1>Submit on change form</h1>
-          <form method="post" action="/forms" data-controller="submit-on-change">
+          <form method="post" action="/forms" data-turbo-submit-on-change>
             <input name="firstName" value="Paul">
             <input type="checkbox" name="accept" value="true">
           </form>`,
@@ -72,11 +72,11 @@ export const handlers = [
         html(
           `<h1>Fetcher</h1>
           <div id="item">Item</div>
-          <form data-controller="fetcher" id="fetcher1" method="post" action="/forms/fetcher">
+          <form data-turbo-fetcher id="fetcher1" method="post" action="/forms/fetcher">
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit" data-turbo-disable-with="Submitting">
           </form>
-          <form data-controller="fetcher" method="post" action="/turbo-stream">
+          <form data-turbo-fetcher method="post" action="/turbo-stream">
             <input type="submit" value="Delete">
           </form>`,
           'Fetcher'
@@ -139,16 +139,18 @@ function currentFetcherState(target: Element | null) {
 }
 
 describe('remix router turbo', () => {
+  let application: Application;
   let router: Router;
 
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
   afterAll(() => server.close());
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '';
-    router?.dispose();
-    router = createMemoryTurboRouter({ routes: routes(), debug: false });
+    application?.stop();
+    router = createMemoryTurboRouter({ routes: routes() });
+    application = await Application.start({ router });
   });
 
   afterEach(() => server.resetHandlers());

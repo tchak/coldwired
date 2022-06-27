@@ -43,12 +43,11 @@ export function difference<T>(a: Set<T>, b: Set<T>) {
 type Func = ReturnType<typeof justThrottle>;
 const DEFAULT_INTERVAL = 500;
 
-export function debounce(target: Element, callback: () => void, intervalAttribute?: string) {
+export function debounce(target: Element, callback: () => void, interval?: number) {
   let fn = debounced.get(target);
   if (!fn) {
-    const interval = getInterval(target, intervalAttribute);
     if (interval != 0) {
-      fn = justDebounce(callback, interval);
+      fn = justDebounce(callback, interval ?? DEFAULT_INTERVAL);
       debounced.set(target, fn);
     }
   }
@@ -60,12 +59,11 @@ export function cancelDebounce(target: Element) {
   debounced.get(target)?.cancel();
 }
 
-export function throttle(target: Element, callback: () => void, intervalAttribute?: string) {
+export function throttle(target: Element, callback: () => void, interval?: number) {
   let fn = throttled.get(target);
   if (!fn) {
-    const interval = getInterval(target, intervalAttribute);
     if (interval != 0) {
-      fn = justThrottle(callback, interval);
+      fn = justThrottle(callback, interval ?? DEFAULT_INTERVAL);
       throttled.set(target, fn);
     }
   }
@@ -77,12 +75,6 @@ export function cancelThrottle(target: Element) {
   throttled.get(target)?.cancel();
 }
 
-function getInterval(target: Element, intervalAttribute?: string) {
-  return intervalAttribute
-    ? parseIntWithDefault(target.getAttribute(intervalAttribute), DEFAULT_INTERVAL)
-    : DEFAULT_INTERVAL;
-}
-
-function parseIntWithDefault(value: string | null, defaultValue: number) {
+export function parseIntWithDefault(value: string | null, defaultValue = 0) {
   return value ? parseInt(value) : defaultValue;
 }

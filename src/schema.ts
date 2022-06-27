@@ -9,6 +9,11 @@ export type Schema = {
   permanentAttribute: string;
   disableAttribute: string;
   disableWithAttribute: string;
+  fetcherAttribute: string;
+  revalidateAttribute: string;
+  submitOnChangeAttribute: string;
+  debounceIntervalAttribute: string;
+  revalidateIntervalAttribute: string;
   beforeRenderEvent: string;
   renderEvent: string;
   navigationStateChangeEvent: string;
@@ -28,6 +33,11 @@ export const defaultSchema: Schema = {
   permanentAttribute: 'data-turbo-permanent',
   disableAttribute: 'data-turbo-disable',
   disableWithAttribute: 'data-turbo-disable-with',
+  fetcherAttribute: 'data-turbo-fetcher',
+  revalidateAttribute: 'data-turbo-revalidate',
+  submitOnChangeAttribute: 'data-turbo-submit-on-change',
+  debounceIntervalAttribute: 'data-turbo-debounce-interval',
+  revalidateIntervalAttribute: 'data-turbo-revalidate-interval',
   beforeRenderEvent: 'turbo:before-render',
   renderEvent: 'turbo:render',
   navigationStateChangeEvent: 'turbo:navigation-state-change',

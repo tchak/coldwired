@@ -1,9 +1,8 @@
-import { Controller } from '@hotwired/stimulus';
+import { Directive } from '../directive-controller';
+import { debounce, parseIntWithDefault } from '../utils';
+import { isFormInputElement, isTextInputElement } from '../dom';
 
-import { debounce } from '../utils';
-import { isFormInputElement, isTextInputElement, isFocused } from '../dom';
-
-export class SubmitOnChangeController extends Controller implements EventListenerObject {
+export class SubmitOnChange extends Directive implements EventListenerObject {
   connect() {
     this.element.addEventListener('input', this);
     this.element.addEventListener('change', this);
@@ -32,15 +31,7 @@ export class SubmitOnChangeController extends Controller implements EventListene
 
   private onInput(form: HTMLFormElement, target: EventTarget) {
     if (isTextInputElement(target)) {
-      debounce(
-        form,
-        () => {
-          if (isFocused(target)) {
-            form.requestSubmit();
-          }
-        },
-        'data-debounce-interval'
-      );
+      debounce(form, () => form.requestSubmit(), this.interval);
     }
   }
 
@@ -48,5 +39,10 @@ export class SubmitOnChangeController extends Controller implements EventListene
     if (isFormInputElement(target)) {
       form.requestSubmit();
     }
+  }
+
+  private get interval() {
+    const value = this.element.getAttribute(this.schema.debounceIntervalAttribute);
+    return parseIntWithDefault(value);
   }
 }

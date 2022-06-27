@@ -226,3 +226,13 @@ export function getFormSubmissionInfo(
 export function parseHTML(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }
+
+export function domReady() {
+  return new Promise<void>((resolve) => {
+    if (document.readyState == 'loading') {
+      document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
+    } else {
+      resolve();
+    }
+  });
+}

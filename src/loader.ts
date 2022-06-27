@@ -13,7 +13,7 @@ export enum ContentType {
   JSON = 'application/json',
 }
 
-type RouteData =
+export type RouteData =
   | { format: 'html'; content: string }
   | { format: 'turbo-stream'; content: string }
   | { format: 'json'; content: unknown };

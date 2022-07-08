@@ -15,13 +15,13 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - intercepts `click` and `submit` events to navigate with client router
  - use [morphdom](https://github.com/patrick-steele-idem/morphdom) to render pages
  - bypass remix routing if `data-turbo="false"` is set on links and forms
- - provide [stimulus](https://stimulus.hotwired.dev) controller to register fetchers (`data-controller="fetcher"`)
- - provide [stimulus](https://stimulus.hotwired.dev) controller to submit forms on changes (`data-controller="submit-on-change"`)
- - provide [stimulus](https://stimulus.hotwired.dev) controller to revalidate pages (`data-controller="revalidate"`)
+ - provide a directive to register fetchers (`data-turbo-fetcher`)
+ - provide a directive to submit forms on changes (`data-turbo-submit-on-change`)
+ - provide a directive to revalidate pages (`data-turbo-revalidate`)
  - in fetcher responses, accepts [turbo-stream](https://turbo.hotwired.dev/handbook/streams) format and bypass revalidation in those cases
  - if `data-turbo-disabled` is used on `<input>` or `<button>` it will atomatically disable them during submission
- - if `data-turbo-method` is user on `<a>` it will submit the link instead of navigating
- - if `data-turbo-confirm` is user on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
+ - if `data-turbo-method` is used on `<a>` it will submit the link instead of navigating
+ - if `data-turbo-confirm` is used on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
 
 ## Demo
 
@@ -45,7 +45,7 @@ npm install remix-router-turbo
 
 In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-requested-with: remix`. In order for redirects to work properly you must respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
 
-Most of the library is implemented as a collection of [stimulus](https://stimulus.hotwired.dev) controllers. The main one is `data-controller="turbo"`. You should put it on the `<body>` element and there should be only one on a single page.
+Most of the library is implemented as a collection of directives. They are similar to [stimulus](https://stimulus.hotwired.dev) controllers.
 
 ```ts
 import { createBrowserTurboRouter, RouteObject } from 'remix-router-turbo';
@@ -69,7 +69,7 @@ const router = createBrowserTurboRouter({ routes, debug: true });
 
 ```html
 <html>
-  <body data-controller="turbo">
+  <body>
     <form>
       (...)
     </form>
@@ -82,12 +82,12 @@ const router = createBrowserTurboRouter({ routes, debug: true });
 
     <ul>
       <li id="item_1">
-        <form data-controller="fetcher">
+        <form data-turbo-fetcher>
           (...)
         </form>
       </li>
       <li id="item_2">
-        <form data-controller="fetcher">
+        <form data-turbo-fetcher>
           (...)
         </form>
       </li>

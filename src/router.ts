@@ -1,7 +1,11 @@
-import type { Router, RouteObject, RouteData, RouterInit } from '@remix-run/router';
+import type { Router, RouteObject, RouterInit } from '@remix-run/router';
 import { createBrowserRouter, createMemoryRouter, matchRoutes } from '@remix-run/router';
 
 import { setupDataFunctions } from './loader';
+
+interface RouteData {
+  [routeId: string]: any;
+}
 
 type RouterOptions = {
   routes: RouteObject[];

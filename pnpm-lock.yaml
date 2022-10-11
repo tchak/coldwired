@@ -29,6 +29,7 @@ specifiers:
 
 dependencies:
   '@remix-run/router': 1.0.2
+  just-debounce-it: 3.1.1
   just-throttle: 4.1.1
   morphdom: 2.6.1
   nanoid: 4.0.0
@@ -44,7 +45,6 @@ devDependencies:
   eslint: 8.25.0
   eslint-config-prettier: 8.5.0_eslint@8.25.0
   jsdom: 20.0.1
-  just-debounce-it: 3.1.1
   msw: 0.47.4_typescript@4.8.4
   npm-run-all: 4.1.5
   prettier: 2.7.1
@@ -3021,7 +3021,7 @@ packages:
 
   /just-debounce-it/3.1.1:
     resolution: {integrity: sha512-oPsuRyWp99LJaQ4KXC3A42tQNqkRTcPy0A8BCkRZ5cPCgsx81upB2KUrmHZvDUNhnCDKe7MshfTuWFQB9iXwDg==}
-    dev: true
+    dev: false
 
   /just-throttle/4.1.1:
     resolution: {integrity: sha512-OK1iESPWjZZnKRYpMsaFb0TSAv74OtbB8CiCRA1tNub1/R0S47n7edXsQ64GtpfIuiGVwSjPNLwkePl4owlDug==}

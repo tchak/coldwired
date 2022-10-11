@@ -1,5 +1,11 @@
-import type { Router, RouteObject, RouterInit } from '@remix-run/router';
-import { createBrowserRouter, createMemoryRouter, matchRoutes } from '@remix-run/router';
+import type { Router, AgnosticRouteObject as RouteObject } from '@remix-run/router';
+import {
+  createRouter,
+  createBrowserHistory,
+  createMemoryHistory,
+  matchRoutes,
+  History,
+} from '@remix-run/router';
 
 import { setupDataFunctions } from './loader';
 
@@ -15,19 +21,19 @@ type RouterOptions = {
 export type { RouteObject };
 
 export function createBrowserTurboRouter(init: RouterOptions): Router {
-  return createTurboRouter({ ...init, routerFactory: createBrowserRouter });
+  return createTurboRouter({ ...init, history: createBrowserHistory() });
 }
 
 export function createMemoryTurboRouter(init: RouterOptions): Router {
-  return createTurboRouter({ ...init, routerFactory: createMemoryRouter });
+  return createTurboRouter({ ...init, history: createMemoryHistory() });
 }
 
 function createTurboRouter({
-  routerFactory,
+  history,
   routes,
   fetchOptions,
 }: RouterOptions & {
-  routerFactory: (init: Omit<RouterInit, 'history'>) => Router;
+  history: History;
 }): Router {
   setupDataFunctions(routes, fetchOptions);
 
@@ -41,7 +47,7 @@ function createTurboRouter({
         },
       }
     : {};
-  const router = routerFactory({ routes, hydrationData: { loaderData } });
+  const router = createRouter({ routes, hydrationData: { loaderData }, history });
 
   return router;
 }

@@ -1,6 +1,6 @@
 import type {
   LoaderFunction as DataFunction,
-  RouteObject,
+  AgnosticRouteObject,
   ShouldRevalidateFunction,
   RouterState,
 } from '@remix-run/router';
@@ -65,7 +65,10 @@ function isAction(handle: RouteHandle) {
   return false;
 }
 
-export function setupDataFunctions(routes: RouteObject[], fetchOptions?: RequestInit): void {
+export function setupDataFunctions(
+  routes: AgnosticRouteObject[],
+  fetchOptions?: RequestInit
+): void {
   const dataFunction = makeDataFunction(fetchOptions);
 
   for (const route of routes) {

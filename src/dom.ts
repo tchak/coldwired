@@ -63,7 +63,7 @@ export function isTextInputElement(
   return (
     isElement(node) &&
     (node.tagName == 'TEXTAREA' ||
-      (isInputElement(node) && !['checkbox', 'radio'].includes(node.type)))
+      (isInputElement(node) && !['checkbox', 'radio', 'range'].includes(node.type)))
   );
 }
 

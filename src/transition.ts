@@ -178,7 +178,7 @@ export class Transition {
   private formInputSelectors(pseudoClass: 'enabled' | 'disabled') {
     const selectors: string[] = [];
 
-    for (const tag of ['input', 'button', 'textarea']) {
+    for (const tag of ['input', 'button', 'textarea', 'select']) {
       for (const attribute of [this.#schema.disableAttribute, this.#schema.disableWithAttribute]) {
         selectors.push(`${tag}[${attribute}]:${pseudoClass}`);
       }

@@ -46,19 +46,11 @@ export class DirectiveController implements DirectiveObserverDelegate {
   #observer: DirectiveObserver;
 
   #started = false;
-  #pausable = false;
-  #paused = false;
 
   #registry = new Map<Element, Directive>();
 
-  constructor(
-    element: Element,
-    directive: string,
-    factory: (element: Element) => Directive,
-    pausable = false
-  ) {
+  constructor(element: Element, directive: string, factory: (element: Element) => Directive) {
     this.#factory = factory;
-    this.#pausable = pausable;
     this.#observer = new DirectiveObserver(element, directive, this);
   }
 
@@ -70,31 +62,11 @@ export class DirectiveController implements DirectiveObserverDelegate {
   stop() {
     if (this.#started) {
       this.#observer.disconnect();
-      if (!this.#paused) {
-        for (const directive of this.#registry.values()) {
-          directive.disconnect?.();
-        }
-      }
-      this.#registry.clear();
-      this.#started = false;
-    }
-  }
-
-  pause() {
-    if (this.#started && this.#pausable && !this.#paused) {
-      this.#paused = true;
       for (const directive of this.#registry.values()) {
         directive.disconnect?.();
       }
-    }
-  }
-
-  resume() {
-    if (this.#started && this.#pausable && this.#paused) {
-      for (const directive of this.#registry.values()) {
-        directive.connect?.();
-      }
-      this.#paused = false;
+      this.#registry.clear();
+      this.#started = false;
     }
   }
 

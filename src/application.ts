@@ -17,7 +17,6 @@ import {
   isLinkElement,
   isFormOptionElement,
   isInputElement,
-  isFocused,
   domReady,
 } from './dom';
 import { dispatch, expandURL, relativeURL } from './utils';
@@ -29,6 +28,8 @@ import {
   DirectiveFactory,
   DirectiveConstructor,
 } from './directive-controller';
+import { difference } from './utils';
+import { ClassListObserver } from './mutation-observers/class-list-observer';
 
 import * as Directives from './directives';
 
@@ -52,6 +53,7 @@ export class Application {
   #eventListener: EventListenerObject;
   #transition: Transition;
   #controllers = new Set<DirectiveController>();
+  #classListObserver: ClassListObserver;
 
   constructor({ router, element, schema, debug }: ApplicationOptions) {
     this.#router = router;
@@ -69,9 +71,12 @@ export class Application {
     this.#eventListener = { handleEvent: this.handleEvent.bind(this) };
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
-    this.register(this.#schema.permanentAttribute, Directives.Permanent, { pausable: true });
     this.register(this.#schema.revalidateAttribute, Directives.Revalidate);
     this.register(this.#schema.submitOnChangeAttribute, Directives.SubmitOnChange);
+
+    this.#classListObserver = new ClassListObserver(this.#element, {
+      classListChanged: this.classListChanged.bind(this),
+    });
   }
 
   static async start(options: ApplicationOptions) {
@@ -93,6 +98,7 @@ export class Application {
     for (const controller of this.#controllers) {
       controller.start();
     }
+    this.#classListObserver.observe();
   }
 
   stop() {
@@ -101,22 +107,35 @@ export class Application {
     for (const controller of this.#controllers) {
       controller.stop();
     }
+    this.#classListObserver.disconnect();
 
     this.#element.removeEventListener('click', this.#eventListener);
     this.#element.removeEventListener('submit', this.#eventListener);
     this.#element.removeEventListener('input', this.#eventListener);
   }
 
-  register(directive: string, Directive: DirectiveConstructor, options?: { pausable?: boolean }) {
+  register(directive: string, Directive: DirectiveConstructor) {
     const factory: DirectiveFactory = (element) =>
       new Directive(element, this.#router, this.#schema);
-    const controller = new DirectiveController(
-      this.#element,
-      directive,
-      factory,
-      options?.pausable ?? false
-    );
+    const controller = new DirectiveController(this.#element, directive, factory);
     this.#controllers.add(controller);
+  }
+
+  private classListChanged(element: Element, oldClassList: Set<string>) {
+    const metadata = getMetadata(element, true);
+    const classList = new Set(element.classList);
+
+    const added = difference(classList, oldClassList);
+    const removed = difference(oldClassList, classList);
+
+    for (const className of added) {
+      metadata.addedClassNames.add(className);
+      metadata.removedClassNames.delete(className);
+    }
+    for (const className of removed) {
+      metadata.removedClassNames.add(className);
+      metadata.addedClassNames.delete(className);
+    }
   }
 
   private handleEvent(event: Event): void {
@@ -274,44 +293,11 @@ export class Application {
     return !confirmMessage || confirm(confirmMessage);
   }
 
-  private getPermanentAttribute(
-    permanentAttribute: string,
-    fromElement: Element,
-    toElement: Element
-  ): 'client' | 'server' {
-    const toPermanent = toElement.getAttribute(permanentAttribute);
-    const fromPermanent = fromElement
-      .closest(`[${permanentAttribute}]`)
-      ?.getAttribute(permanentAttribute);
-
-    if (toPermanent == 'server') {
-      return 'server';
-    } else if (fromPermanent == 'client') {
-      toElement.setAttribute(permanentAttribute, 'client');
-      return 'client';
-    }
-
-    const permanent = toPermanent ?? fromPermanent;
-
-    if (!permanent) {
-      if (isFormInputElement(fromElement) && isFocused(fromElement)) {
-        return 'client';
-      }
-      return 'server';
-    }
-
-    return permanent == 'client' ? 'client' : 'server';
-  }
-
   private onBeforeElementUpdated(fromElement: Element, toElement: Element) {
-    const permanent = this.getPermanentAttribute(
-      this.#schema.permanentAttribute,
-      fromElement,
-      toElement
-    );
+    const force = !!toElement.closest(`[${this.#schema.forceAttribute}]`);
     const metadata = getMetadata(fromElement);
 
-    if (permanent == 'server' && metadata) {
+    if (force && metadata) {
       if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
         metadata.touched = false;
       }
@@ -321,23 +307,20 @@ export class Application {
       return false;
     }
 
-    if (permanent == 'client') {
-      toElement.classList.add(...fromElement.classList);
+    if (!force && metadata) {
+      toElement.classList.add(...metadata.addedClassNames);
+      toElement.classList.remove(...metadata.removedClassNames);
 
-      if (metadata) {
-        toElement.classList.remove(...metadata.removedClassNames);
-
-        if (metadata.touched) {
-          if (
-            isInputElement(fromElement) &&
-            (fromElement.type == 'checkbox' || fromElement.type == 'radio')
-          ) {
-            Object.assign(toElement, { checked: fromElement.checked });
-          } else if (isFormOptionElement(fromElement)) {
-            Object.assign(toElement, { selected: fromElement.selected });
-          } else if (isFormInputElement(fromElement)) {
-            Object.assign(toElement, { value: fromElement.value });
-          }
+      if (metadata.touched) {
+        if (
+          isInputElement(fromElement) &&
+          (fromElement.type == 'checkbox' || fromElement.type == 'radio')
+        ) {
+          Object.assign(toElement, { checked: fromElement.checked });
+        } else if (isFormOptionElement(fromElement)) {
+          Object.assign(toElement, { selected: fromElement.selected });
+        } else if (isFormInputElement(fromElement)) {
+          Object.assign(toElement, { value: fromElement.value });
         }
       }
     }
@@ -346,19 +329,14 @@ export class Application {
   }
 
   private morph(fromElement: Element, toElement: Element, childrenOnly = false) {
-    for (const controller of this.#controllers) {
-      controller.pause();
-    }
+    this.#classListObserver.disconnect();
 
     morphdom(fromElement, toElement, {
       childrenOnly,
-      onBeforeElUpdated: (fromElement, toElement) =>
-        this.onBeforeElementUpdated(fromElement, toElement),
+      onBeforeElUpdated: this.onBeforeElementUpdated.bind(this),
     });
 
-    for (const controller of this.#controllers) {
-      controller.resume();
-    }
+    this.#classListObserver.observe();
   }
 
   private morphHead(toElement: HTMLHeadElement) {

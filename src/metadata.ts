@@ -1,4 +1,5 @@
 type Metadata = {
+  addedClassNames: Set<string>;
   removedClassNames: Set<string>;
   touched: boolean;
   originalFocused?: boolean;
@@ -12,6 +13,7 @@ export function getMetadata(element: Element, create?: true) {
   let metadata = registry.get(element);
   if (!metadata && create) {
     metadata = {
+      addedClassNames: new Set(),
       removedClassNames: new Set(),
       touched: false,
     };

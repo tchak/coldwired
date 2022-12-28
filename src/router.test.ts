@@ -224,11 +224,8 @@ describe('remix router turbo', () => {
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/forms/fetcher');
 
-    document.querySelector('h1')?.setAttribute(defaultSchema.permanentAttribute, 'client');
     document.querySelector('h1')?.classList.add('active');
-    expect(document.body.innerHTML).toMatch(
-      '<h1 data-turbo-permanent="client" class="active">Fetcher</h1>'
-    );
+    expect(document.body.innerHTML).toMatch('<h1 class="active">Fetcher</h1>');
     const submit = getByText<HTMLInputElement>(document.body, 'Submit');
     click(submit);
     expect(currentFetcherState(document.querySelector('form'))).toEqual('submitting');
@@ -241,13 +238,9 @@ describe('remix router turbo', () => {
     expect(submit.value).toEqual('Submit');
 
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(document.body.innerHTML).toMatch(
-      '<h1 data-turbo-permanent="client" class="active">About</h1>'
-    );
+    expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
     document.querySelector('h1')?.classList.remove('active');
-    expect(document.body.innerHTML).toMatch(
-      '<h1 data-turbo-permanent="client" class="">About</h1>'
-    );
+    expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
     expect(router.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });

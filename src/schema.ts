@@ -6,7 +6,7 @@ export type Schema = {
   confirmAttribute: string;
   methodAttribute: string;
   replaceAttribute: string;
-  permanentAttribute: string;
+  forceAttribute: string;
   disableAttribute: string;
   disableWithAttribute: string;
   fetcherAttribute: string;
@@ -30,7 +30,7 @@ export const defaultSchema: Schema = {
   confirmAttribute: 'data-turbo-confirm',
   methodAttribute: 'data-turbo-method',
   replaceAttribute: 'data-turbo-replace',
-  permanentAttribute: 'data-turbo-permanent',
+  forceAttribute: 'data-turbo-force',
   disableAttribute: 'data-turbo-disable',
   disableWithAttribute: 'data-turbo-disable-with',
   fetcherAttribute: 'data-turbo-fetcher',

@@ -36,11 +36,6 @@ export function dispatch<T>(
   return event;
 }
 
-export function difference<T>(a: Set<T>, b: Set<T>) {
-  return new Set([...a].filter((x) => !b.has(x)));
-}
-
-type Func = ReturnType<typeof justThrottle>;
 const DEFAULT_INTERVAL = 500;
 
 export function debounce(target: Element, callback: () => void, interval?: number) {
@@ -53,7 +48,7 @@ export function debounce(target: Element, callback: () => void, interval?: numbe
   }
   (fn ?? callback)();
 }
-const debounced = new WeakMap<Element, Func>();
+const debounced = new WeakMap<Element, ReturnType<typeof justDebounce>>();
 
 export function cancelDebounce(target: Element) {
   debounced.get(target)?.cancel();
@@ -69,7 +64,7 @@ export function throttle(target: Element, callback: () => void, interval?: numbe
   }
   (fn ?? callback)();
 }
-const throttled = new WeakMap<Element, Func>();
+const throttled = new WeakMap<Element, ReturnType<typeof justThrottle>>();
 
 export function cancelThrottle(target: Element) {
   throttled.get(target)?.cancel();

@@ -2,24 +2,22 @@ import { nanoid } from 'nanoid';
 import invariant from 'tiny-invariant';
 
 import { Directive } from '../directive-controller';
-import { getMetadata } from '../metadata';
 
 export class Fetcher extends Directive {
   connect() {
     const fetcherKey = this.generateFetcherKey();
 
-    getMetadata(this.element, true).fetcherKey = fetcherKey;
-    registry.set(fetcherKey, this.element);
+    fetcherKeyRegistry.set(this.element, fetcherKey);
+    elementRegistry.set(fetcherKey, this.element);
   }
 
   disconnect() {
-    const metadata = getMetadata(this.element);
-    const fetcherKey = metadata?.fetcherKey;
+    const fetcherKey = fetcherKeyRegistry.get(this.element);
+    fetcherKeyRegistry.delete(this.element);
 
     if (fetcherKey) {
       this.router.deleteFetcher(fetcherKey);
-      registry.delete(fetcherKey);
-      delete metadata.fetcherKey;
+      elementRegistry.delete(fetcherKey);
     }
   }
 
@@ -29,9 +27,14 @@ export class Fetcher extends Directive {
 }
 
 export function getFetcherElement(fetcherKey: string): Element {
-  const element = registry.get(fetcherKey);
+  const element = elementRegistry.get(fetcherKey);
   invariant(element, `No fetcher element found for "${fetcherKey}"`);
   return element;
 }
 
-const registry = new Map<string, Element>();
+export function getFetcherKey(form: HTMLFormElement): string | null {
+  return fetcherKeyRegistry.get(form) ?? null;
+}
+
+const elementRegistry = new Map<string, Element>();
+const fetcherKeyRegistry = new WeakMap<Element, string>();

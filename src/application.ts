@@ -1,36 +1,29 @@
 import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/router';
-import morphdom from 'morphdom';
 import invariant from 'tiny-invariant';
 
-import type { Schema } from './schema';
-import type { HTMLSubmitterElement } from './dom';
-import { defaultSchema } from './schema';
+import { type Schema, defaultSchema } from './schema';
 import type { RouteData } from './loader';
 import {
+  type HTMLSubmitterElement,
   getFormSubmissionInfo,
   shouldProcessLinkClick,
   findLinkFromClickTarget,
   parseHTML,
   isSubmitterElement,
   isFormElement,
-  isFormInputElement,
-  isLinkElement,
-  isFormOptionElement,
-  isInputElement,
   domReady,
 } from './dom';
 import { dispatch, expandURL, relativeURL } from './utils';
-import { renderStream } from './turbo-stream';
-import { Transition } from './transition';
-import { getMetadata } from './metadata';
+import { renderTurboStreamTemplate } from './turbo-stream';
+import { NavigationContext } from './navigation-context';
+import { getFetcherKey } from './directives/fetcher';
 import {
   DirectiveController,
   DirectiveFactory,
   DirectiveConstructor,
 } from './directive-controller';
-import { difference } from './utils';
-import { ClassListObserver } from './mutation-observers/class-list-observer';
-
+import { morphDocument } from './morph';
+import { MorphContext } from './morph-context';
 import * as Directives from './directives';
 
 type RenderDetail = {
@@ -50,16 +43,16 @@ export class Application {
   #router: Router;
   #element: Element;
 
-  #eventListener: EventListenerObject;
-  #transition: Transition;
   #controllers = new Set<DirectiveController>();
-  #classListObserver: ClassListObserver;
+  #eventListener: EventListenerObject;
+  #navigationContext: NavigationContext;
+  #morphContext: MorphContext;
 
   constructor({ router, element, schema, debug }: ApplicationOptions) {
     this.#router = router;
     this.#element = element ?? document.documentElement;
     this.#schema = Object.assign({}, defaultSchema, schema);
-    this.#transition = new Transition(
+    this.#navigationContext = new NavigationContext(
       this.#element,
       this.#schema,
       {
@@ -68,89 +61,64 @@ export class Application {
       },
       debug
     );
+    this.#morphContext = new MorphContext(this.#element);
     this.#eventListener = { handleEvent: this.handleEvent.bind(this) };
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
     this.register(this.#schema.revalidateAttribute, Directives.Revalidate);
     this.register(this.#schema.submitOnChangeAttribute, Directives.SubmitOnChange);
-
-    this.#classListObserver = new ClassListObserver(this.#element, {
-      classListChanged: this.classListChanged.bind(this),
-    });
   }
 
-  static async start(options: ApplicationOptions) {
+  static start(options: ApplicationOptions): Promise<Application> {
     const application = new Application(options);
-    await application.start();
-    return application;
+    return application.start();
   }
 
-  async start() {
-    this.#router.subscribe(this.#transition.to.bind(this.#transition));
+  async start(): Promise<this> {
+    this.#router.subscribe(this.#navigationContext.to.bind(this.#navigationContext));
     this.#router.initialize();
 
     this.#element.addEventListener('click', this.#eventListener);
     this.#element.addEventListener('submit', this.#eventListener);
-    this.#element.addEventListener('input', this.#eventListener);
 
     await domReady();
 
     for (const controller of this.#controllers) {
       controller.start();
     }
-    this.#classListObserver.observe();
+    this.#morphContext.start();
+
+    return this;
   }
 
-  stop() {
+  stop(): this {
     this.#router.dispose();
 
     for (const controller of this.#controllers) {
       controller.stop();
     }
-    this.#classListObserver.disconnect();
+    this.#morphContext.stop();
 
     this.#element.removeEventListener('click', this.#eventListener);
     this.#element.removeEventListener('submit', this.#eventListener);
-    this.#element.removeEventListener('input', this.#eventListener);
+
+    return this;
   }
 
-  register(directive: string, Directive: DirectiveConstructor) {
+  private register(directiveAttributeName: string, DirectiveClass: DirectiveConstructor) {
     const factory: DirectiveFactory = (element) =>
-      new Directive(element, this.#router, this.#schema);
-    const controller = new DirectiveController(this.#element, directive, factory);
+      new DirectiveClass(element, this.#router, this.#schema);
+    const controller = new DirectiveController(this.#element, directiveAttributeName, factory);
     this.#controllers.add(controller);
-  }
-
-  private classListChanged(element: Element, oldClassList: Set<string>) {
-    const metadata = getMetadata(element, true);
-    const classList = new Set(element.classList);
-
-    const added = difference(classList, oldClassList);
-    const removed = difference(oldClassList, classList);
-
-    for (const className of added) {
-      metadata.addedClassNames.add(className);
-      metadata.removedClassNames.delete(className);
-    }
-    for (const className of removed) {
-      metadata.removedClassNames.add(className);
-      metadata.addedClassNames.delete(className);
-    }
   }
 
   private handleEvent(event: Event): void {
     const target = (event.composedPath && event.composedPath()[0]) || event.target;
 
-    switch (event.type) {
-      case 'click':
-        this.onClick(event as MouseEvent, target);
-        break;
-      case 'submit':
-        this.onSubmit(event as SubmitEvent, target);
-        break;
-      case 'input':
-        this.onInput(target);
-        break;
+    if (event.type == 'click') {
+      this.onClick(event as MouseEvent, target);
+    } else if (event.type == 'submit') {
+      this.onSubmit(event as SubmitEvent, target);
     }
   }
 
@@ -210,33 +178,33 @@ export class Application {
     }
   }
 
-  private onInput(element: EventTarget) {
-    if (isFormInputElement(element)) {
-      getMetadata(element, true).touched = true;
-    }
+  private handleTurboStream(_: Element, content: string) {
+    this.#morphContext.pause();
+    renderTurboStreamTemplate(content, { forceAttribute: this.#schema.forceAttribute });
+    this.#morphContext.restart();
   }
 
-  private handleTurboStream(_: Element, content: string) {
-    renderStream(content, this.morph.bind(this));
+  private handleHTML(content: string, detail: RenderDetail) {
+    const doc = parseHTML(content);
+    this.beforeRender(doc.documentElement, detail);
+    this.#morphContext.pause();
+    morphDocument(doc, { forceAttribute: this.#schema.forceAttribute });
+    this.#morphContext.restart();
+    this.afterRender(detail);
   }
 
   private handleJSON(target: Element, content: { fetcherKey: string; data: unknown }) {
     dispatch(this.#schema.fetcherJSONEvent, { target, detail: content });
   }
 
-  private handleHTML(content: string, detail: RenderDetail) {
-    const doc = parseHTML(content);
-    this.morphDocument(doc, detail);
-  }
-
-  submitForm(form: HTMLFormElement, submitter?: HTMLSubmitterElement) {
+  private submitForm(form: HTMLFormElement, submitter?: HTMLSubmitterElement) {
     const { url, method, formData } = getFormSubmissionInfo(form, location.pathname, { submitter });
     const replace =
-      submitter?.getAttribute(this.#schema.replaceAttribute) == 'true' ||
-      form.getAttribute(this.#schema.replaceAttribute) == 'true';
+      submitter?.hasAttribute(this.#schema.replaceAttribute) ||
+      form.hasAttribute(this.#schema.replaceAttribute);
     const href = relativeURL(url);
     const options = { formMethod: method, formData, replace };
-    const fetcherKey = getMetadata(form)?.fetcherKey;
+    const fetcherKey = getFetcherKey(form);
 
     if (fetcherKey) {
       const match = this.#router.state.matches.at(-1);
@@ -248,10 +216,10 @@ export class Application {
     }
   }
 
-  followOrSubmitLink(link: HTMLAnchorElement) {
+  private followOrSubmitLink(link: HTMLAnchorElement) {
     const href = expandURL(link.getAttribute('href') || '');
     const turboMethod = link.getAttribute(this.#schema.methodAttribute)?.toLowerCase();
-    const replace = link.getAttribute(this.#schema.replaceAttribute) == 'true';
+    const replace = link.hasAttribute(this.#schema.replaceAttribute);
 
     if (turboMethod && turboMethod !== 'get') {
       const { url, method, formData } = getFormSubmissionInfo(
@@ -291,79 +259,6 @@ export class Application {
       element.getAttribute(this.#schema.confirmAttribute);
 
     return !confirmMessage || confirm(confirmMessage);
-  }
-
-  private onBeforeElementUpdated(fromElement: Element, toElement: Element) {
-    const force = !!toElement.closest(`[${this.#schema.forceAttribute}]`);
-    const metadata = getMetadata(fromElement);
-
-    if (force && metadata) {
-      if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
-        metadata.touched = false;
-      }
-    }
-
-    if (fromElement.isEqualNode(toElement)) {
-      return false;
-    }
-
-    if (!force && metadata) {
-      toElement.classList.add(...metadata.addedClassNames);
-      toElement.classList.remove(...metadata.removedClassNames);
-
-      if (metadata.touched) {
-        if (
-          isInputElement(fromElement) &&
-          (fromElement.type == 'checkbox' || fromElement.type == 'radio')
-        ) {
-          Object.assign(toElement, { checked: fromElement.checked });
-        } else if (isFormOptionElement(fromElement)) {
-          Object.assign(toElement, { selected: fromElement.selected });
-        } else if (isFormInputElement(fromElement)) {
-          Object.assign(toElement, { value: fromElement.value });
-        }
-      }
-    }
-
-    return true;
-  }
-
-  private morph(fromElement: Element, toElement: Element, childrenOnly = false) {
-    this.#classListObserver.disconnect();
-
-    morphdom(fromElement, toElement, {
-      childrenOnly,
-      onBeforeElUpdated: this.onBeforeElementUpdated.bind(this),
-    });
-
-    this.#classListObserver.observe();
-  }
-
-  private morphHead(toElement: HTMLHeadElement) {
-    morphdom(document.head, toElement, {
-      childrenOnly: true,
-      onBeforeElUpdated(fromElement, toElement) {
-        if (fromElement.isEqualNode(toElement)) {
-          return false;
-        }
-        return true;
-      },
-      onBeforeNodeDiscarded(node) {
-        if (isLinkElement(node)) {
-          return false;
-        }
-        return true;
-      },
-    });
-  }
-
-  private morphDocument(doc: Document, detail: RenderDetail) {
-    this.beforeRender(doc.documentElement, detail);
-    if (doc.head) {
-      this.morphHead(doc.head);
-    }
-    this.morph(document.body, doc.body);
-    this.afterRender(detail);
   }
 
   private beforeRender(documentElement: HTMLElement, detail: RenderDetail) {

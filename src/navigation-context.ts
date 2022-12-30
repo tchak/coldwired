@@ -7,29 +7,34 @@ import type {
 } from '@remix-run/router';
 
 import type { Schema } from './schema';
-import type { RouteData } from './loader';
-import { getRouteData } from './loader';
+import { type RouteData, getRouteData } from './loader';
 import { dispatch } from './utils';
-import { getMetadata } from './metadata';
 import { isButtonElement, isFocused } from './dom';
 import { getFetcherElement } from './directives/fetcher';
 
-export type TransitionDelegate = {
+export type NavigationContextDelegate = {
   navigationDone(navigation: NavigationStates['Idle'], data?: RouteData): void;
   fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element): void;
 };
 
-export class Transition {
+type Metadata = { content?: string; focused: boolean };
+
+export class NavigationContext {
   #element: Element;
   #schema: Schema;
   #debug: boolean;
-  #delegate: TransitionDelegate;
+  #delegate: NavigationContextDelegate;
 
   #fetchers = new Map<string, Fetcher>();
   #state?: RouterState;
   #snapshot?: string;
 
-  constructor(element: Element, schema: Schema, delegate: TransitionDelegate, debug = false) {
+  constructor(
+    element: Element,
+    schema: Schema,
+    delegate: NavigationContextDelegate,
+    debug = false
+  ) {
     this.#element = element;
     this.#schema = schema;
     this.#delegate = delegate;
@@ -48,7 +53,7 @@ export class Transition {
         }
       } else if (previousState == 'submitting') {
         for (const form of this.forms) {
-          this.disableFormInputs(form);
+          this.enableFormInputs(form);
         }
       }
     }
@@ -133,45 +138,45 @@ export class Transition {
   }
 
   private disableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-      this.formInputSelectors('enabled')
-    )) {
+    for (const element of container.querySelectorAll<
+      HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement
+    >(this.formInputSelectors('enabled'))) {
       const disableWith = element.getAttribute(this.#schema.disableWithAttribute);
-      const metadata = getMetadata(element, true);
+      const metadata: Metadata = { focused: false };
 
       if (disableWith) {
         if (isButtonElement(element)) {
-          metadata.originalContent = element.innerHTML;
+          metadata.content = element.innerHTML;
           element.innerHTML = disableWith;
-        } else {
-          metadata.originalContent = element.value;
+        } else if (['submit', 'reset', 'button'].includes(element.type)) {
+          metadata.content = element.value;
           element.value = disableWith;
         }
       }
 
-      metadata.originalFocused = isFocused(element);
+      metadata.focused = isFocused(element);
+      metadataRegistry.set(element, metadata);
       element.disabled = true;
     }
   }
 
   private enableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-      this.formInputSelectors('disabled')
-    )) {
-      const metadata = getMetadata(element);
-      if (metadata?.originalContent) {
+    for (const element of container.querySelectorAll<
+      HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement
+    >(this.formInputSelectors('disabled'))) {
+      const { content, focused } = metadataRegistry.get(element) ?? { focused: false };
+      if (content) {
         if (isButtonElement(element)) {
-          element.innerHTML = metadata.originalContent;
-        } else {
-          element.value = metadata.originalContent;
+          element.innerHTML = content;
+        } else if (['submit', 'reset', 'button'].includes(element.type)) {
+          element.value = content;
         }
-        delete metadata.originalContent;
       }
       element.disabled = false;
-      if (isFocused(document.body) && metadata?.originalFocused) {
+      if (isFocused(document.body) && focused) {
         element.focus();
-        delete metadata.originalFocused;
       }
+      metadataRegistry.delete(element);
     }
   }
 
@@ -187,3 +192,5 @@ export class Transition {
     return selectors.join(', ');
   }
 }
+
+const metadataRegistry = new WeakMap<Element, Metadata>();

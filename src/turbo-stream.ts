@@ -1,44 +1,51 @@
 import invariant from 'tiny-invariant';
 
-type Morph = (fromElement: Element, toElement: Element, childrenOnly?: boolean) => void;
-type ActionContext = {
-  morph: Morph;
-  targetElements: Element[];
-};
-type ActionFunction = (context: ActionContext, templateContent: Element) => void;
+import { morphElement, MorphOptions } from './morph';
+import { dispatch } from './utils';
 
-export function renderStream(html: string, morph: Morph) {
+type ActionContext = { morphElement: typeof morphElement; targetElements: Element[] };
+type TurboStreamAction = (
+  context: ActionContext,
+  templateContent: () => DocumentFragment,
+  turboStreamElement: Element
+) => void;
+
+export function renderTurboStreamTemplate(html: string, options?: MorphOptions) {
   const template = document.createElement('template');
   template.innerHTML = html;
   document.importNode(template, true);
-  for (const stream of template.content.querySelectorAll('turbo-stream')) {
-    renderTurboStream(stream, morph);
+  for (const turboStreamElement of template.content.querySelectorAll('turbo-stream')) {
+    renderTurboStream(turboStreamElement, options);
   }
 }
 
 const StreamActions: {
-  [action: string]: ActionFunction;
+  [action: string]: TurboStreamAction;
 } = {
   after(context, templateContent) {
-    context.targetElements.forEach((element) =>
-      element.parentElement?.insertBefore(templateContent, element.nextSibling)
-    );
-  },
-
-  append(context, templateContent) {
-    removeDuplicateTargetChildren(context.targetElements, templateContent);
-    context.targetElements.forEach((element) => element.append(templateContent));
+    context.targetElements.forEach((element) => {
+      if (element.nextSibling) {
+        element.parentElement?.insertBefore(templateContent(), element.nextSibling);
+      } else {
+        element.parentElement?.append(templateContent());
+      }
+    });
   },
 
   before(context, templateContent) {
     context.targetElements.forEach((element) =>
-      element.parentElement?.insertBefore(templateContent, element)
+      element.parentElement?.insertBefore(templateContent(), element)
     );
   },
 
+  append(context, templateContent) {
+    removeDuplicateTargetChildren(context.targetElements, templateContent());
+    context.targetElements.forEach((element) => element.append(templateContent()));
+  },
+
   prepend(context, templateContent) {
-    removeDuplicateTargetChildren(context.targetElements, templateContent);
-    context.targetElements.forEach((element) => element.prepend(templateContent));
+    removeDuplicateTargetChildren(context.targetElements, templateContent());
+    context.targetElements.forEach((element) => element.prepend(templateContent()));
   },
 
   remove(context) {
@@ -46,47 +53,84 @@ const StreamActions: {
   },
 
   replace(context, templateContent) {
-    context.targetElements.forEach((element) => context.morph(element, templateContent));
+    context.targetElements.forEach((element) => context.morphElement(element, templateContent()));
   },
 
   update(context, templateContent) {
-    context.targetElements.forEach((element) => context.morph(element, templateContent, true));
+    context.targetElements.forEach((element) =>
+      context.morphElement(element, templateContent(), { childrenOnly: true })
+    );
+  },
+
+  dispatch(context, _, turboStreamElement) {
+    const type = turboStreamElement.getAttribute('event-type');
+    invariant(type, '[turbo-stream] event-type must be present');
+
+    const detailJSON = turboStreamElement.getAttribute('event-detail');
+    const detail = detailJSON ? JSON.parse(detailJSON) : {};
+
+    if (context.targetElements.length > 0) {
+      context.targetElements.forEach((target) => dispatch(type, { target, detail }));
+    } else {
+      dispatch(type, { detail });
+    }
   },
 };
 
-function renderTurboStream(stream: Element, morph: Morph): void {
-  invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
+function renderTurboStream(turboStreamElement: Element, defaultOptions?: MorphOptions): void {
+  invariant(
+    turboStreamElement.tagName == 'TURBO-STREAM',
+    '[turbo-stream] element must be a <turbo-stream>'
+  );
 
-  const action = stream.getAttribute('action') as keyof typeof StreamActions;
-  const actionFunction = StreamActions[action];
-  invariant(actionFunction, `[turbo-stream] action "${action}" is not supported`);
-
-  const templateContent = actionFunction.length == 2 ? getTemplateContent(stream) : ({} as Element);
-  const performAction = () => {
-    const targetElements = getTargetElements(stream);
-    requestAnimationFrame(() => actionFunction({ morph, targetElements }, templateContent));
+  const turboStreamAction = getTurboStreamAction(turboStreamElement);
+  const turboStreamActionFn = () => {
+    requestAnimationFrame(() =>
+      turboStreamAction(
+        {
+          morphElement(fromElement, toElement, options) {
+            morphElement(fromElement, toElement, { ...defaultOptions, ...options });
+          },
+          targetElements: getTargetElements(turboStreamElement),
+        },
+        () => getTemplateContent(turboStreamElement),
+        turboStreamElement
+      )
+    );
   };
-  const delay = stream.getAttribute('delay');
+  const delay = turboStreamElement.getAttribute('delay');
 
   if (delay) {
-    setTimeout(performAction, parseInt(delay));
+    setTimeout(turboStreamActionFn, parseInt(delay));
   } else {
-    performAction();
+    turboStreamActionFn();
   }
 }
 
-function getTemplateContent(stream: Element): Element {
-  const templateElement = stream.firstElementChild;
-  invariant(
-    templateElement && templateElement instanceof HTMLTemplateElement,
-    '[turbo-stream] first child element must be a <template> element'
-  );
-  return templateElement.content.cloneNode(true) as Element;
+function getTurboStreamAction(turboStreamElement: Element): TurboStreamAction {
+  const actionName = turboStreamElement.getAttribute('action') as keyof typeof StreamActions;
+  const turboStreamAction = StreamActions[actionName];
+  invariant(turboStreamAction, `[turbo-stream] action "${actionName}" is not supported`);
+  return turboStreamAction;
 }
 
-function getTargetElements(stream: Element): Element[] {
-  const target = stream.getAttribute('target');
-  const targets = stream.getAttribute('targets');
+function getTemplateContent(turboStreamElement: Element): DocumentFragment {
+  const templateElement = turboStreamElement.firstElementChild;
+  if (!templateElement) {
+    return document.createDocumentFragment();
+  }
+  invariant(
+    templateElement instanceof HTMLTemplateElement,
+    '[turbo-stream] first child element must be a <template> element'
+  );
+  const templateContent = templateElement.content;
+  templateContent.normalize();
+  return templateContent.cloneNode(true) as DocumentFragment;
+}
+
+function getTargetElements(turboStreamElement: Element): Element[] {
+  const target = turboStreamElement.getAttribute('target');
+  const targets = turboStreamElement.getAttribute('targets');
 
   if (target) {
     return targetElementsById(target);
@@ -94,7 +138,7 @@ function getTargetElements(stream: Element): Element[] {
     return targetElementsByQuery(targets);
   }
 
-  invariant(false, '[turbo-stream] "target" or "targets" attribute is missing');
+  return [];
 }
 
 function targetElementsById(target: string): Element[] {
@@ -117,15 +161,20 @@ function targetElementsByQuery(targets: string): Element[] {
   }
 }
 
-function removeDuplicateTargetChildren(targetElements: Element[], templateContent: Element) {
+function removeDuplicateTargetChildren(
+  targetElements: Element[],
+  templateContent: DocumentFragment
+) {
   duplicateChildren(targetElements, templateContent).forEach((c) => c.remove());
 }
 
-function duplicateChildren(targetElements: Element[], templateContent: Element) {
-  const existingChildren = targetElements.flatMap((e) => [...e.children]).filter((c) => !!c.id);
-  const newChildrenIds = [...(templateContent?.children || [])]
-    .filter((c) => !!c.id)
-    .map((c) => c.id);
+function duplicateChildren(targetElements: Element[], templateContent: DocumentFragment) {
+  const existingChildren = targetElements
+    .flatMap((element) => [...element.children])
+    .filter((element) => !!element.id);
+  const newChildrenIds = new Set(
+    [...templateContent.children].filter((element) => !!element.id).map((element) => element.id)
+  );
 
-  return existingChildren.filter((c) => newChildrenIds.includes(c.id));
+  return existingChildren.filter((element) => newChildrenIds.has(element.id));
 }

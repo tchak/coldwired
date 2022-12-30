@@ -19,8 +19,8 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - provide a directive to submit forms on changes (`data-turbo-submit-on-change`)
  - provide a directive to revalidate pages (`data-turbo-revalidate`)
  - in fetcher responses, accepts [turbo-stream](https://turbo.hotwired.dev/handbook/streams) format and bypass revalidation in those cases
- - if `data-turbo-disabled` is used on `<input>` or `<button>` it will atomatically disable them during submission
  - if `data-turbo-method` is used on `<a>` it will submit the link instead of navigating
+ - if `data-turbo-disabled` is used on `<input>`, `<select>` or `<button>` it will atomatically disable them during submission
  - if `data-turbo-confirm` is used on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
 
 ## Demo

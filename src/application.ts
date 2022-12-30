@@ -2,7 +2,7 @@ import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/r
 import invariant from 'tiny-invariant';
 
 import { type Schema, defaultSchema } from './schema';
-import type { RouteData } from './loader';
+import type { RouteData } from './data';
 import {
   type HTMLSubmitterElement,
   getFormSubmissionInfo,

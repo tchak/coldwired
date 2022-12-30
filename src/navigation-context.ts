@@ -7,7 +7,7 @@ import type {
 } from '@remix-run/router';
 
 import type { Schema } from './schema';
-import { type RouteData, getRouteData } from './loader';
+import { type RouteData, getRouteData } from './data';
 import { dispatch } from './utils';
 import { isButtonElement, isFocused } from './dom';
 import { getFetcherElement } from './directives/fetcher';

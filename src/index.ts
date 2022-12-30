@@ -2,7 +2,7 @@ export { createBrowserTurboRouter, createMemoryTurboRouter } from './router';
 export * from './application';
 export * from './schema';
 export { Directive } from './directive-controller';
-export { ContentType } from './loader';
+export { ContentType } from './data';
 export type {
   Router,
   Fetcher,

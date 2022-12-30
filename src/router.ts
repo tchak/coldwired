@@ -7,7 +7,7 @@ import {
   History,
 } from '@remix-run/router';
 
-import { setupDataFunctions } from './loader';
+import { setupDataFunctions } from './data';
 
 interface RouteData {
   [routeId: string]: any;
@@ -32,9 +32,7 @@ function createTurboRouter({
   history,
   routes,
   fetchOptions,
-}: RouterOptions & {
-  history: History;
-}): Router {
+}: RouterOptions & { history: History }): Router {
   setupDataFunctions(routes, fetchOptions);
 
   const matches = matchRoutes(routes, location);

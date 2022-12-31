@@ -1,9 +1,7 @@
+import { isFormInputElement } from '../utils';
+
 import { getMetadata } from './metadata';
-import { isFormInputElement } from './dom';
-import {
-  ClassListObserver,
-  ClassListObserverDelegate,
-} from './mutation-observers/class-list-observer';
+import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
 
 export class MorphContext {
   #element: Element;
@@ -24,22 +22,18 @@ export class MorphContext {
   start(): this {
     this.#classListObserver.observe();
     this.#element.addEventListener('input', this.#eventListener);
-
     return this;
   }
 
   stop(): this {
     this.#classListObserver.disconnect();
     this.#element.removeEventListener('input', this.#eventListener);
-
     return this;
   }
 
-  pause() {
+  withoutObserver(callback: () => void) {
     this.#classListObserver.disconnect();
-  }
-
-  restart() {
+    callback();
     this.#classListObserver.observe();
   }
 }

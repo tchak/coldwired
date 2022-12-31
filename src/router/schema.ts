@@ -14,7 +14,6 @@ export type Schema = {
   submitOnChangeAttribute: string;
   debounceIntervalAttribute: string;
   revalidateIntervalAttribute: string;
-  beforeRenderEvent: string;
   renderEvent: string;
   navigationStateChangeEvent: string;
   fetcherStateChangeEvent: string;
@@ -38,7 +37,6 @@ export const defaultSchema: Schema = {
   submitOnChangeAttribute: 'data-turbo-submit-on-change',
   debounceIntervalAttribute: 'data-turbo-debounce-interval',
   revalidateIntervalAttribute: 'data-turbo-revalidate-interval',
-  beforeRenderEvent: 'turbo:before-render',
   renderEvent: 'turbo:render',
   navigationStateChangeEvent: 'turbo:navigation-state-change',
   fetcherStateChangeEvent: 'turbo:fetcher-state-change',

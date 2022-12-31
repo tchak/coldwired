@@ -4,8 +4,14 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import { createMemoryTurboRouter, ContentType, defaultSchema } from '.';
-import { Application, Router, RouteObject } from '.';
+import {
+  createMemoryTurboRouter,
+  ContentType,
+  defaultSchema,
+  Application,
+  type Router,
+  type RouteObject,
+} from '.';
 
 export const handlers = [
   rest.get('/', (_, res, ctx) => {
@@ -138,7 +144,7 @@ function currentFetcherState(target: Element | null) {
   return target?.getAttribute(defaultSchema.fetcherStateAttribute);
 }
 
-describe('remix router turbo', () => {
+describe('@coldwired/router', () => {
   let application: Application;
   let router: Router;
 

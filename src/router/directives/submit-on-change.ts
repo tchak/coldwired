@@ -1,6 +1,6 @@
+import { debounce, parseIntWithDefault, isFormInputElement, isTextInputElement } from '../../utils';
+
 import { Directive } from '../directive-controller';
-import { debounce, parseIntWithDefault } from '../utils';
-import { isFormInputElement, isTextInputElement } from '../dom';
 
 export class SubmitOnChange extends Directive implements EventListenerObject {
   connect() {

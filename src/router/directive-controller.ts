@@ -1,10 +1,7 @@
 import { Router } from '@remix-run/router';
 
 import type { Schema } from './schema';
-import {
-  DirectiveObserver,
-  DirectiveObserverDelegate,
-} from './mutation-observers/directive-observer';
+import { DirectiveObserver, DirectiveObserverDelegate } from './directive-observer';
 
 export type DirectiveConstructor = new (
   element: Element,

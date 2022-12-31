@@ -1,4 +1,4 @@
-import { isElement } from '../dom';
+import { isElement } from '../utils';
 
 export type ClassListObserverDelegate = {
   classListChanged(element: Element, oldClassList: Set<string>): void;

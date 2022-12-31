@@ -1,81 +1,9 @@
 import type { FormEncType, FormMethod } from '@remix-run/router';
 import invariant from 'tiny-invariant';
 
-type MaybeElement =
-  | Node
-  | EventTarget
-  | { [name: string]: string }
-  | URLSearchParams
-  | FormData
-  | null;
+import { isFormElement, isButtonElement, isInputElement, isElement } from '../utils';
 
 export type HTMLSubmitterElement = HTMLInputElement | HTMLButtonElement;
-
-export function isElement(node: MaybeElement): node is Element {
-  return !!node && 'nodeType' in node && node.nodeType == Node.ELEMENT_NODE;
-}
-
-export function isButtonElement(node: MaybeElement): node is HTMLButtonElement {
-  return isElement(node) && node.tagName == 'BUTTON';
-}
-
-export function isAnchorElement(node: MaybeElement): node is HTMLAnchorElement {
-  return isElement(node) && node.tagName == 'A';
-}
-
-export function isLinkElement(node: MaybeElement): node is HTMLLinkElement {
-  return isElement(node) && node.tagName == 'LINK';
-}
-
-export function isFormElement(node: MaybeElement): node is HTMLFormElement {
-  return isElement(node) && node.tagName == 'FORM';
-}
-
-export function isSubmitterElement(node: MaybeElement): node is HTMLSubmitterElement {
-  return isButtonElement(node) || isInputElement(node);
-}
-
-export function isInputElement(node: MaybeElement): node is HTMLInputElement {
-  return isElement(node) && node.tagName == 'INPUT';
-}
-
-export function isFormInputElement(
-  node: MaybeElement
-): node is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
-  return isElement(node) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName);
-}
-
-export function isTextAreaElement(node: MaybeElement): node is HTMLTextAreaElement {
-  return isElement(node) && node.tagName == 'TEXTAREA';
-}
-
-export function isSelectElement(node: MaybeElement): node is HTMLSelectElement {
-  return isElement(node) && node.tagName == 'SELECT';
-}
-
-export function isFormOptionElement(node: MaybeElement): node is HTMLOptionElement {
-  return isElement(node) && node.tagName == 'OPTION';
-}
-
-export function isTextInputElement(
-  node: MaybeElement
-): node is HTMLInputElement | HTMLTextAreaElement {
-  return (
-    isElement(node) &&
-    (node.tagName == 'TEXTAREA' ||
-      (isInputElement(node) && !['checkbox', 'radio', 'range'].includes(node.type)))
-  );
-}
-
-export function isNonTextInputElement(
-  node: MaybeElement
-): node is HTMLInputElement | HTMLSelectElement {
-  return isFormInputElement(node) && !isTextInputElement(node);
-}
-
-export function isFocused(element: Element) {
-  return document.activeElement == element;
-}
 
 export function findLinkFromClickTarget(target: EventTarget | null): HTMLAnchorElement | null {
   if (target instanceof Element) {
@@ -221,18 +149,4 @@ export function getFormSubmissionInfo(
   const url = new URL(action, `${protocol}//${host}`);
 
   return { url, method, encType, formData };
-}
-
-export function parseHTML(html: string) {
-  return new DOMParser().parseFromString(html, 'text/html');
-}
-
-export function domReady() {
-  return new Promise<void>((resolve) => {
-    if (document.readyState == 'loading') {
-      document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
-    } else {
-      resolve();
-    }
-  });
 }

@@ -1,5 +1,5 @@
 import { Directive } from '../directive-controller';
-import { throttle, parseIntWithDefault } from '../utils';
+import { throttle, parseIntWithDefault } from '../../utils';
 
 const DEFAULT_MIN_TIMEOUT = 5_000; // 5 seconds
 

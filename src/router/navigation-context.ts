@@ -6,10 +6,10 @@ import type {
   NavigationStates,
 } from '@remix-run/router';
 
+import { dispatch, isButtonElement, isFocused } from '../utils';
+
 import type { Schema } from './schema';
 import { type RouteData, getRouteData } from './data';
-import { dispatch } from './utils';
-import { isButtonElement, isFocused } from './dom';
 import { getFetcherElement } from './directives/fetcher';
 
 export type NavigationContextDelegate = {

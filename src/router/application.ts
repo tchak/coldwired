@@ -1,6 +1,18 @@
 import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/router';
 import invariant from 'tiny-invariant';
 
+import { renderTurboStream } from '../turbo-stream';
+import { morph, observe } from '../morph';
+import {
+  dispatch,
+  expandURL,
+  relativeURL,
+  isSubmitterElement,
+  isFormElement,
+  parseHTMLDocument,
+  domReady,
+} from '../utils';
+
 import { type Schema, defaultSchema } from './schema';
 import type { RouteData } from './data';
 import {
@@ -8,13 +20,7 @@ import {
   getFormSubmissionInfo,
   shouldProcessLinkClick,
   findLinkFromClickTarget,
-  parseHTML,
-  isSubmitterElement,
-  isFormElement,
-  domReady,
 } from './dom';
-import { dispatch, expandURL, relativeURL } from './utils';
-import { renderTurboStreamTemplate } from './turbo-stream';
 import { NavigationContext } from './navigation-context';
 import { getFetcherKey } from './directives/fetcher';
 import {
@@ -22,8 +28,6 @@ import {
   DirectiveFactory,
   DirectiveConstructor,
 } from './directive-controller';
-import { morphDocument } from './morph';
-import { MorphContext } from './morph-context';
 import * as Directives from './directives';
 
 type RenderDetail = {
@@ -46,7 +50,7 @@ export class Application {
   #controllers = new Set<DirectiveController>();
   #eventListener: EventListenerObject;
   #navigationContext: NavigationContext;
-  #morphContext: MorphContext;
+  #dispose?: () => void;
 
   constructor({ router, element, schema, debug }: ApplicationOptions) {
     this.#router = router;
@@ -61,7 +65,6 @@ export class Application {
       },
       debug
     );
-    this.#morphContext = new MorphContext(this.#element);
     this.#eventListener = { handleEvent: this.handleEvent.bind(this) };
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
@@ -83,21 +86,21 @@ export class Application {
 
     await domReady();
 
+    this.#dispose = observe(this.#element);
     for (const controller of this.#controllers) {
       controller.start();
     }
-    this.#morphContext.start();
 
     return this;
   }
 
   stop(): this {
     this.#router.dispose();
+    this.#dispose?.();
 
     for (const controller of this.#controllers) {
       controller.stop();
     }
-    this.#morphContext.stop();
 
     this.#element.removeEventListener('click', this.#eventListener);
     this.#element.removeEventListener('submit', this.#eventListener);
@@ -179,17 +182,14 @@ export class Application {
   }
 
   private handleTurboStream(_: Element, content: string) {
-    this.#morphContext.pause();
-    renderTurboStreamTemplate(content, { forceAttribute: this.#schema.forceAttribute });
-    this.#morphContext.restart();
+    renderTurboStream(content, {
+      morphOptions: { forceAttribute: this.#schema.forceAttribute },
+    });
   }
 
   private handleHTML(content: string, detail: RenderDetail) {
-    const doc = parseHTML(content);
-    this.beforeRender(doc.documentElement, detail);
-    this.#morphContext.pause();
-    morphDocument(doc, { forceAttribute: this.#schema.forceAttribute });
-    this.#morphContext.restart();
+    const newDocument = parseHTMLDocument(content);
+    morph(document, newDocument, { forceAttribute: this.#schema.forceAttribute });
     this.afterRender(detail);
   }
 
@@ -259,13 +259,6 @@ export class Application {
       element.getAttribute(this.#schema.confirmAttribute);
 
     return !confirmMessage || confirm(confirmMessage);
-  }
-
-  private beforeRender(documentElement: HTMLElement, detail: RenderDetail) {
-    dispatch(this.#schema.beforeRenderEvent, {
-      target: this.#element,
-      detail: { ...detail, documentElement },
-    });
   }
 
   private afterRender(detail: RenderDetail) {

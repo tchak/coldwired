@@ -6,18 +6,17 @@ import type {
   NavigationStates,
 } from '@remix-run/router';
 
-import { dispatch, isButtonElement, isFocused } from '../utils';
+import { dispatch } from '../utils';
 
 import type { Schema } from './schema';
 import { type RouteData, getRouteData } from './data';
 import { getFetcherElement } from './directives/fetcher';
+import { disableFormInputs, enableFormInputs } from './disable';
 
 export type NavigationContextDelegate = {
   navigationDone(navigation: NavigationStates['Idle'], data?: RouteData): void;
   fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element): void;
 };
-
-type Metadata = { content?: string; focused: boolean };
 
 export class NavigationContext {
   #element: Element;
@@ -49,11 +48,17 @@ export class NavigationContext {
 
       if (state.navigation.state == 'submitting') {
         for (const form of this.forms) {
-          this.disableFormInputs(form);
+          disableFormInputs(form, {
+            disableAttribute: this.#schema.disableAttribute,
+            disableWithAttribute: this.#schema.disableWithAttribute,
+          });
         }
       } else if (previousState == 'submitting') {
         for (const form of this.forms) {
-          this.enableFormInputs(form);
+          enableFormInputs(form, {
+            disableAttribute: this.#schema.disableAttribute,
+            disableWithAttribute: this.#schema.disableWithAttribute,
+          });
         }
       }
     }
@@ -70,9 +75,15 @@ export class NavigationContext {
         this.fetcherStateChange(fetcherKey, fetcher, element);
 
         if (fetcher.state == 'submitting') {
-          this.disableFormInputs(element);
+          disableFormInputs(element, {
+            disableAttribute: this.#schema.disableAttribute,
+            disableWithAttribute: this.#schema.disableWithAttribute,
+          });
         } else if (previousState == 'submitting') {
-          this.enableFormInputs(element);
+          enableFormInputs(element, {
+            disableAttribute: this.#schema.disableAttribute,
+            disableWithAttribute: this.#schema.disableWithAttribute,
+          });
         }
 
         this.#fetchers.set(fetcherKey, fetcher);
@@ -136,61 +147,4 @@ export class NavigationContext {
       detail: { fetcher },
     });
   }
-
-  private disableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<
-      HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement
-    >(this.formInputSelectors('enabled'))) {
-      const disableWith = element.getAttribute(this.#schema.disableWithAttribute);
-      const metadata: Metadata = { focused: false };
-
-      if (disableWith) {
-        if (isButtonElement(element)) {
-          metadata.content = element.innerHTML;
-          element.innerHTML = disableWith;
-        } else if (['submit', 'reset', 'button'].includes(element.type)) {
-          metadata.content = element.value;
-          element.value = disableWith;
-        }
-      }
-
-      metadata.focused = isFocused(element);
-      metadataRegistry.set(element, metadata);
-      element.disabled = true;
-    }
-  }
-
-  private enableFormInputs(container: Element) {
-    for (const element of container.querySelectorAll<
-      HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement
-    >(this.formInputSelectors('disabled'))) {
-      const { content, focused } = metadataRegistry.get(element) ?? { focused: false };
-      if (content) {
-        if (isButtonElement(element)) {
-          element.innerHTML = content;
-        } else if (['submit', 'reset', 'button'].includes(element.type)) {
-          element.value = content;
-        }
-      }
-      element.disabled = false;
-      if (isFocused(document.body) && focused) {
-        element.focus();
-      }
-      metadataRegistry.delete(element);
-    }
-  }
-
-  private formInputSelectors(pseudoClass: 'enabled' | 'disabled') {
-    const selectors: string[] = [];
-
-    for (const tag of ['input', 'button', 'textarea', 'select']) {
-      for (const attribute of [this.#schema.disableAttribute, this.#schema.disableWithAttribute]) {
-        selectors.push(`${tag}[${attribute}]:${pseudoClass}`);
-      }
-    }
-
-    return selectors.join(', ');
-  }
 }
-
-const metadataRegistry = new WeakMap<Element, Metadata>();

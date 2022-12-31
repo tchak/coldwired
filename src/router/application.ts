@@ -1,7 +1,11 @@
 import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/router';
 import invariant from 'tiny-invariant';
 
-import { renderTurboStream } from '../turbo-stream';
+import {
+  renderTurboStream,
+  resetPinnedTurboStreams,
+  applyPinnedTurboStreams,
+} from '../turbo-stream';
 import { morph, observe } from '../morph';
 import {
   dispatch,
@@ -31,6 +35,7 @@ import {
 import * as Directives from './directives';
 
 type RenderDetail = {
+  revalidation?: boolean;
   navigation?: NavigationStates['Idle'];
   fetcher?: Fetcher;
 };
@@ -50,6 +55,7 @@ export class Application {
   #controllers = new Set<DirectiveController>();
   #eventListener: EventListenerObject;
   #navigationContext: NavigationContext;
+  #navigationController = new AbortController();
   #dispose?: () => void;
 
   constructor({ router, element, schema, debug }: ApplicationOptions) {
@@ -95,6 +101,7 @@ export class Application {
   }
 
   stop(): this {
+    this.reset();
     this.#router.dispose();
     this.#dispose?.();
 
@@ -106,6 +113,12 @@ export class Application {
     this.#element.removeEventListener('submit', this.#eventListener);
 
     return this;
+  }
+
+  private reset() {
+    this.#navigationController.abort();
+    this.#navigationController = new AbortController();
+    resetPinnedTurboStreams();
   }
 
   private register(directiveAttributeName: string, DirectiveClass: DirectiveConstructor) {
@@ -125,23 +138,27 @@ export class Application {
     }
   }
 
-  private fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element) {
-    switch (fetcher.data?.format) {
+  private fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element, data?: RouteData) {
+    switch (data?.format) {
       case 'turbo-stream':
-        this.handleTurboStream(form, fetcher.data.content);
+        this.handleTurboStream(form, data.content);
         break;
       case 'json':
-        this.handleJSON(form, { fetcherKey, data: fetcher.data.content });
+        this.handleJSON(form, { fetcherKey, data: data.content });
         break;
       case 'html':
-        this.handleHTML(fetcher.data.content, { fetcher });
+        this.handleHTML(data.content, { fetcher });
     }
   }
 
-  private navigationDone(navigation: NavigationStates['Idle'], data?: RouteData) {
+  private navigationDone(
+    navigation: NavigationStates['Idle'],
+    revalidation: boolean,
+    data?: RouteData
+  ) {
     switch (data?.format) {
       case 'html':
-        this.handleHTML(data.content, { navigation });
+        this.handleHTML(data.content, { navigation, revalidation });
         break;
       case 'turbo-stream':
         invariant(false, 'Navigation can not return turbo-stream');
@@ -182,13 +199,19 @@ export class Application {
   }
 
   private handleTurboStream(_: Element, content: string) {
-    renderTurboStream(content, {
+    renderTurboStream(content, this.#element, {
+      signal: this.#navigationController.signal,
       morphOptions: { forceAttribute: this.#schema.forceAttribute },
     });
   }
 
   private handleHTML(content: string, detail: RenderDetail) {
     const newDocument = parseHTMLDocument(content);
+    if (detail.revalidation) {
+      applyPinnedTurboStreams(newDocument.body);
+    } else {
+      this.reset();
+    }
     morph(document, newDocument, { forceAttribute: this.#schema.forceAttribute });
     this.afterRender(detail);
   }

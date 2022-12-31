@@ -57,7 +57,7 @@ function morphToSomething(
     } else if (typeof toElementOrDocument == 'string') {
       morphToDocumentFragment(
         fromElementOrDocument,
-        parseHTMLFragment(toElementOrDocument),
+        parseHTMLFragment(toElementOrDocument, fromElementOrDocument.ownerDocument),
         options
       );
     } else {
@@ -72,25 +72,32 @@ function morphToDocumentFragment(
   options?: MorphOptions
 ) {
   toDocumentFragment.normalize();
-  const [firstChild, secondChild, ...children] = [...toDocumentFragment.childNodes].filter(
-    isElementOrText
-  );
 
-  if (isElement(firstChild)) {
-    if (secondChild) {
-      fromElement.after(secondChild);
-    }
-    morphToElement(fromElement, firstChild, options);
-  } else if (isElement(secondChild)) {
-    fromElement.before(firstChild);
-    morphToElement(fromElement, secondChild, options);
+  if (options?.childrenOnly) {
+    const wrapper = toDocumentFragment.ownerDocument.createElement('div');
+    wrapper.append(toDocumentFragment);
+    morphToElement(fromElement, wrapper, options);
   } else {
-    if (secondChild) {
-      fromElement.after(secondChild);
+    const [firstChild, secondChild, ...children] = [...toDocumentFragment.childNodes].filter(
+      isElementOrText
+    );
+
+    if (isElement(firstChild)) {
+      if (secondChild) {
+        fromElement.after(secondChild);
+      }
+      morphToElement(fromElement, firstChild, options);
+    } else if (isElement(secondChild)) {
+      fromElement.before(firstChild);
+      morphToElement(fromElement, secondChild, options);
+    } else {
+      if (secondChild) {
+        fromElement.after(secondChild);
+      }
+      fromElement.replaceWith(firstChild);
     }
-    fromElement.replaceWith(firstChild);
+    fromElement.after(...children);
   }
-  fromElement.after(...children);
 }
 
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {

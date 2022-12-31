@@ -9,13 +9,17 @@ import type {
 import { dispatch } from '../utils';
 
 import type { Schema } from './schema';
-import { type RouteData, getRouteData } from './data';
+import { type RouteData, getRouteData, getFetcherData } from './data';
 import { getFetcherElement } from './directives/fetcher';
 import { disableFormInputs, enableFormInputs } from './disable';
 
 export type NavigationContextDelegate = {
-  navigationDone(navigation: NavigationStates['Idle'], data?: RouteData): void;
-  fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element): void;
+  navigationDone(
+    navigation: NavigationStates['Idle'],
+    revalidation: boolean,
+    data?: RouteData
+  ): void;
+  fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element, data?: RouteData): void;
 };
 
 export class NavigationContext {
@@ -44,8 +48,6 @@ export class NavigationContext {
     const previousState = this.#state?.navigation.state;
 
     if (previousState != state.navigation.state) {
-      this.navigationStateChange(state.navigation);
-
       if (state.navigation.state == 'submitting') {
         for (const form of this.forms) {
           disableFormInputs(form, {
@@ -61,10 +63,6 @@ export class NavigationContext {
           });
         }
       }
-    }
-
-    if (this.#state?.revalidation != state.revalidation) {
-      this.revalidationStateChange(state.revalidation);
     }
 
     for (const [fetcherKey, fetcher] of state.fetchers) {
@@ -90,22 +88,38 @@ export class NavigationContext {
       }
 
       if (fetcher.state == 'idle') {
-        this.#delegate.fetcherDone(fetcherKey, fetcher, element);
+        const data = getFetcherData(fetcher);
+        if (data?.format == 'html') {
+          if (data.content != this.#snapshot) {
+            this.#delegate.fetcherDone(fetcherKey, fetcher, element, data);
+            this.#snapshot = data.content;
+          }
+        } else {
+          this.#delegate.fetcherDone(fetcherKey, fetcher, element, data);
+        }
       }
     }
 
     if (state.initialized && state.navigation.state == 'idle') {
+      const revalidation = this.#state?.matches.at(-1)?.pathname == state.matches.at(-1)?.pathname;
       const { loaderData, actionData } = getRouteData(state);
       const data = actionData ?? loaderData;
 
       if (data?.format == 'html') {
         if (data.content != this.#snapshot) {
-          this.#delegate.navigationDone(state.navigation, data);
+          this.#delegate.navigationDone(state.navigation, revalidation, data);
           this.#snapshot = data.content;
         }
       } else {
-        this.#delegate.navigationDone(state.navigation, data);
+        this.#delegate.navigationDone(state.navigation, revalidation, data);
       }
+    }
+
+    if (previousState != state.navigation.state) {
+      this.navigationStateChange(state.navigation);
+    }
+    if (this.#state?.revalidation != state.revalidation) {
+      this.revalidationStateChange(state.revalidation);
     }
 
     this.#state = state;

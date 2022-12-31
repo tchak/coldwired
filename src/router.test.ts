@@ -9,6 +9,7 @@ import {
   ContentType,
   defaultSchema,
   Application,
+  renderTurboStream,
   type Router,
   type RouteObject,
 } from '.';
@@ -67,8 +68,27 @@ export const handlers = [
       )
     );
   }),
+  rest.get('/forms/redirect-to-self', (_, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(
+        html(
+          `<h1>Form ${Date.now()}</h1>
+          <form method="post" action="/forms/redirect-to-self">
+            <input name="firstName" value="Paul">
+            <input type="submit" value="Submit">
+          </form>`,
+          'Form'
+        )
+      )
+    );
+  }),
   rest.post('/forms', (_, res, ctx) => {
     return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
+  }),
+  rest.post('/forms/redirect-to-self', (_, res, ctx) => {
+    return res(ctx.status(204), ctx.set('x-remix-redirect', '/forms/redirect-to-self'));
   }),
   rest.get('/forms/fetcher', (_, res, ctx) => {
     return res(
@@ -123,6 +143,7 @@ const routes: () => RouteObject[] = () => [
   { path: '/', handle: { method: 'get' } },
   { path: '/about', handle: { method: ['get'] } },
   { path: '/forms/submit-on-change', handle: { method: ['get'] } },
+  { path: '/forms/redirect-to-self', handle: { method: ['get', 'post'] } },
   { path: '/forms', handle: { method: ['get', 'post'] } },
   { path: '/forms/fetcher', handle: { method: ['get', 'post'] } },
   { path: '/turbo-stream', handle: { method: 'post' } },
@@ -205,6 +226,79 @@ describe('@coldwired/router', () => {
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(router.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
+  });
+
+  it('should redirect to self', async () => {
+    router.navigate('/forms/redirect-to-self');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(router.state.location.pathname).toEqual('/forms/redirect-to-self');
+
+    click(getByText(document.body, 'Submit'));
+    expect(currentNavigationState()).toEqual('submitting');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(router.state.location.pathname).toEqual('/forms/redirect-to-self');
+
+    let text = document.querySelector('h1')?.textContent;
+    router.revalidate();
+    await waitForEvent(defaultSchema.revalidationStateChangeEvent);
+    const newText = document.querySelector('h1')?.textContent;
+
+    expect(text?.startsWith('Form')).toBeTruthy();
+    expect(newText?.startsWith('Form')).toBeTruthy();
+    expect(text).not.toEqual(newText);
+
+    await renderTurboStream(
+      '<turbo-stream action="update" targets="h1" pinned="last"><template>New Form</template></turbo-stream>',
+      document.body
+    );
+
+    await renderTurboStream(
+      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error1</p></template></turbo-stream>',
+      document.body
+    );
+    await renderTurboStream(
+      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error2</p></template></turbo-stream>',
+      document.body
+    );
+
+    await renderTurboStream(
+      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning1</p></template></turbo-stream>',
+      document.body
+    );
+    await renderTurboStream(
+      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning2</p></template></turbo-stream>',
+      document.body
+    );
+
+    text = document.querySelector('h1')?.textContent;
+    expect(text).toEqual('New Form');
+
+    let errors = [...document.querySelectorAll('form p.e')].map((p) => p.textContent);
+    expect(errors).toEqual(['error1', 'error2']);
+    let warnings = [...document.querySelectorAll('form p:not(.e)')].map((p) => p.textContent);
+    expect(warnings).toEqual(['warning2', 'warning1']);
+
+    router.revalidate();
+    await waitForEvent(defaultSchema.revalidationStateChangeEvent);
+    text = document.querySelector('h1')?.textContent;
+    expect(text).toEqual('New Form');
+
+    errors = [...document.querySelectorAll('form p.e')].map((p) => p.textContent);
+    expect(errors).toEqual(['error1', 'error2']);
+    warnings = [...document.querySelectorAll('form p:not(.e)')].map((p) => p.textContent);
+    expect(warnings).toEqual(['warning2']);
+
+    router.navigate('/about');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    router.navigate('/forms/redirect-to-self');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+
+    text = document.querySelector('h1')?.textContent;
+    expect(text).not.toEqual('New Form');
+    expect(text?.startsWith('Form')).toBeTruthy();
+    errors = [...document.querySelectorAll('form p')].map((p) => p.textContent);
+    expect(errors).toEqual([]);
   });
 
   it('should submit forms with `submit-on-change` directive', async () => {

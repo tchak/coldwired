@@ -5,10 +5,26 @@ import { dispatch, parseHTMLFragment, nextAnimationFrame, wait, AbortError } fro
 
 export type RenderTurboStreamOptions = { signal?: AbortSignal; morphOptions?: MorphOptions };
 
-export async function renderTurboStream(html: string, options?: RenderTurboStreamOptions) {
+export async function renderTurboStream(
+  turboStream: string,
+  container: Element,
+  options?: RenderTurboStreamOptions
+) {
   await Promise.all(
-    [...parseHTMLFragment(html).children].map((stream) => renderTurboStreamElement(stream, options))
+    [...parseHTMLFragment(turboStream, container.ownerDocument).children].map((stream) =>
+      renderTurboStreamElement(stream, container, options)
+    )
   );
+}
+
+export function applyPinnedTurboStreams(container: Element) {
+  for (const stream of getPinnedTurboStreamElements()) {
+    applyTurboStreamElement(stream, container);
+  }
+}
+
+export function resetPinnedTurboStreams() {
+  streamRegistry.clear();
 }
 
 export type TurboStreamAction = (params: {
@@ -60,10 +76,8 @@ export const TurboStreamActions: {
   },
 
   update({ targets, fragment, morphOptions }) {
-    const wrapper = document.createElement('div');
-    wrapper.append(fragment);
     for (const element of targets) {
-      morph(element, wrapper.cloneNode(true) as DocumentFragment, {
+      morph(element, fragment.cloneNode(true) as DocumentFragment, {
         ...morphOptions,
         childrenOnly: true,
       });
@@ -89,6 +103,7 @@ export const TurboStreamActions: {
 
 async function renderTurboStreamElement(
   stream: Element,
+  container: Element,
   options?: RenderTurboStreamOptions
 ): Promise<void> {
   invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
@@ -109,11 +124,21 @@ async function renderTurboStreamElement(
 
   if (options?.signal?.aborted) return;
 
+  pinTurboStream(stream);
+
   action({
     stream,
-    targets: getTargetElements(stream),
+    targets: getTargetElements(stream, container),
     fragment: getTemplateContent(stream),
     morphOptions: options?.morphOptions,
+  });
+}
+
+function applyTurboStreamElement(stream: Element, container: Element) {
+  getTurboStreamAction(stream)({
+    stream,
+    targets: getTargetElements(stream, container),
+    fragment: getTemplateContent(stream),
   });
 }
 
@@ -127,7 +152,7 @@ function getTurboStreamAction(stream: Element): TurboStreamAction {
 function getTemplateContent(stream: Element): DocumentFragment {
   const templateElement = stream.firstElementChild;
   if (!templateElement) {
-    return document.createDocumentFragment();
+    return stream.ownerDocument.createDocumentFragment();
   }
   invariant(
     templateElement instanceof HTMLTemplateElement,
@@ -138,37 +163,11 @@ function getTemplateContent(stream: Element): DocumentFragment {
   return templateContent;
 }
 
-function getTargetElements(stream: Element): Element[] {
-  const target = stream.getAttribute('target');
-  const targets = stream.getAttribute('targets');
+function getTargetElements(stream: Element, container: Element): Element[] {
+  const selector = getTurboStreamTargetSelector(stream);
+  if (!selector) return [];
 
-  if (target) {
-    return targetElementsById(target);
-  } else if (targets) {
-    return targetElementsByQuery(targets);
-  }
-
-  return [];
-}
-
-function targetElementsById(target: string): Element[] {
-  const element = document.getElementById(target);
-
-  if (element != null) {
-    return [element];
-  } else {
-    return [];
-  }
-}
-
-function targetElementsByQuery(targets: string): Element[] {
-  const elements = document.querySelectorAll(targets);
-
-  if (elements.length != 0) {
-    return [...elements];
-  } else {
-    return [];
-  }
+  return [...container.querySelectorAll(selector)];
 }
 
 function removeDuplicateTargetChildren(targets: Element[], fragment: DocumentFragment) {
@@ -187,3 +186,51 @@ function duplicateChildren(targets: Element[], fragment: DocumentFragment) {
 
   return existingChildren.filter((element) => newChildrenIds.has(element.id));
 }
+
+function pinTurboStream(stream: Element) {
+  const pinned = stream.getAttribute('pinned') ?? false;
+  if (!pinned) return;
+
+  stream.removeAttribute('pinned');
+  invariant(['last', 'all'].includes(pinned), '[turbo-stream] pinned must be "last" or "all"');
+
+  const key = getTurboStreamKey(stream);
+
+  if (pinned == 'all') {
+    let streams = streamRegistry.get(key);
+    if (!streams) {
+      streams = [];
+      streamRegistry.set(key, streams);
+    }
+    streams.push(stream.cloneNode(true) as Element);
+  } else {
+    streamRegistry.set(key, [stream.cloneNode(true) as Element]);
+  }
+}
+
+function getTurboStreamTargetSelector(stream: Element) {
+  const target = stream.getAttribute('target');
+  const targets = stream.getAttribute('targets');
+  if (targets) {
+    return targets;
+  } else if (target) {
+    return `#${target}`;
+  }
+  return null;
+}
+
+function getTurboStreamKey(stream: Element) {
+  const action = stream.getAttribute('action');
+  const selector = getTurboStreamTargetSelector(stream);
+  invariant(action, '[turbo-stream] action must be present');
+  if (selector) {
+    return `${action}--${selector}`;
+  }
+  return action;
+}
+
+function getPinnedTurboStreamElements() {
+  return [...streamRegistry].flatMap(([, streams]) => streams);
+}
+
+const streamRegistry = new Map<string, Element[]>();

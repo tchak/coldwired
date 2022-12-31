@@ -143,19 +143,19 @@ function isNode(node: unknown): node is Node {
 }
 
 export function isFocused(element: Element) {
-  return document.activeElement == element;
+  return element.ownerDocument.activeElement == element;
 }
 
 export function parseHTMLDocument(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }
 
-export function parseHTMLFragment(html: string): DocumentFragment {
-  const template = document.createElement('template');
+export function parseHTMLFragment(html: string, ownerDocument: Document): DocumentFragment {
+  const template = ownerDocument.createElement('template');
   template.innerHTML = html;
-  const documentFragment = template.content;
-  documentFragment.normalize();
-  return documentFragment;
+  const fragment = template.content;
+  fragment.normalize();
+  return fragment;
 }
 
 export function domReady() {

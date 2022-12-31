@@ -3,9 +3,12 @@ import type {
   AgnosticRouteObject,
   ShouldRevalidateFunction,
   RouterState,
+  Fetcher,
 } from '@remix-run/router';
 import { json, redirect } from '@remix-run/router';
 import { nanoid } from 'nanoid';
+
+import { expandURL } from '../utils';
 
 export enum ContentType {
   TurboStream = 'text/vnd.turbo-stream.html',
@@ -37,6 +40,13 @@ export function getRouteData(state: RouterState): {
     return { loaderData, actionData, errors };
   }
   return {};
+}
+
+export function getFetcherData(fetcher: Fetcher): RouteData | undefined {
+  if (fetcher.data?.format) {
+    return fetcher.data;
+  }
+  return;
 }
 
 function toLowerCase(str: string) {
@@ -111,7 +121,7 @@ function onFetchResponse(response: Response) {
   if (response.ok) {
     const url = response.headers.get('x-remix-redirect');
     if (url) {
-      const pathname = new URL(url, document.baseURI).pathname;
+      const pathname = expandURL(url).pathname;
       return redirect(pathname);
     } else if (isJSON(response)) {
       return response.json().then((content) => json<RouteData>({ format: 'json', content }));

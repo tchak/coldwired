@@ -93,6 +93,14 @@ describe('@coldwired/morph', () => {
     expect(document.body.innerHTML).toBe('Hello');
   });
 
+  it('should morph children to text', () => {
+    morph(document, parseHTMLDocument('<div class="bar"></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    morph(from, 'Hello', { childrenOnly: true });
+    expect(document.body.innerHTML).toBe('<div class="bar">Hello</div>');
+  });
+
   it('should morph to text and element', () => {
     morph(document, parseHTMLDocument('<div class="bar"></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
@@ -102,5 +110,16 @@ describe('@coldwired/morph', () => {
     expect(document.body.firstChild?.textContent).toEqual('Hello');
     expect(document.body.firstElementChild).toEqual(from);
     expect(from.outerHTML).toEqual('<div class="foo">World</div>');
+  });
+
+  it('should morph children to text and element', () => {
+    morph(document, parseHTMLDocument('<div class="bar"></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    morph(from, 'Hello<div class="foo">World</div>World<span>!</span>', { childrenOnly: true });
+    expect(document.body.innerHTML).toBe(
+      '<div class="bar">Hello<div class="foo">World</div>World<span>!</span></div>'
+    );
+    expect(document.body.firstElementChild?.firstChild?.textContent).toEqual('Hello');
   });
 });

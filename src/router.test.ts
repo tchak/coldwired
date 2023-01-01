@@ -4,7 +4,7 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import { ContentType, defaultSchema, Application, renderTurboStream, type RouteObject } from '.';
+import { ContentType, defaultSchema, Application, type RouteObject } from '.';
 
 export const handlers = [
   rest.get('/', (_, res, ctx) => {
@@ -146,7 +146,7 @@ const html = (body: string, title = 'Title') =>
     <head>
       <title>${title}</title>
     </head>
-    <body>${body}</body>
+    <body data-turbo>${body}</body>
   </html>`;
 
 function currentNavigationState() {
@@ -238,27 +238,22 @@ describe('@coldwired/router', () => {
     expect(newText?.startsWith('Form')).toBeTruthy();
     expect(text).not.toEqual(newText);
 
-    await renderTurboStream(
-      '<turbo-stream action="update" targets="h1" pinned="last"><template>New Form</template></turbo-stream>',
-      document.body
+    await application.render(
+      '<turbo-stream action="update" targets="h1" pinned="last"><template>New Form</template></turbo-stream>'
     );
 
-    await renderTurboStream(
-      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error1</p></template></turbo-stream>',
-      document.body
+    await application.render(
+      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error1</p></template></turbo-stream>'
     );
-    await renderTurboStream(
-      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error2</p></template></turbo-stream>',
-      document.body
+    await application.render(
+      '<turbo-stream action="append" targets="form" pinned="all"><template><p class="e">error2</p></template></turbo-stream>'
     );
 
-    await renderTurboStream(
-      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning1</p></template></turbo-stream>',
-      document.body
+    await application.render(
+      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning1</p></template></turbo-stream>'
     );
-    await renderTurboStream(
-      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning2</p></template></turbo-stream>',
-      document.body
+    await application.render(
+      '<turbo-stream action="prepend" targets="form" pinned="last"><template><p>warning2</p></template></turbo-stream>'
     );
 
     text = document.querySelector('h1')?.textContent;

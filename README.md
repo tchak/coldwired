@@ -48,8 +48,6 @@ npm install remix-router-turbo
 
 In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-requested-with: remix`. In order for redirects to work properly you must respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
 
-Most of the library is implemented as a collection of directives. They are similar to [stimulus](https://stimulus.hotwired.dev) controllers.
-
 ```ts
 import { Application, type RouteObject } from 'remix-router-turbo';
 
@@ -72,7 +70,7 @@ const application = await Application.start({ routes });
 
 ```html
 <html>
-  <body>
+  <body data-turbo>
     <form>
       (...)
     </form>

@@ -11,38 +11,15 @@ import {
   isElement,
 } from '../utils';
 
-import { getMetadata } from './metadata';
-import { MorphContext } from './morph-context';
+import { Metadata } from './metadata';
 
-export type MorphOptions = {
+type MorphOptions = {
   childrenOnly?: boolean;
   forceAttribute?: string;
+  metadata?: Metadata;
 };
 
-let morphContext: MorphContext | null = null;
-export function observe(element: Element = document.documentElement): () => void {
-  morphContext = MorphContext.start(element);
-  return () => {
-    morphContext?.stop();
-    morphContext = null;
-  };
-}
-
 export function morph(
-  fromElementOrDocument: Element | Document,
-  toElementOrDocument: string | Element | Document | DocumentFragment,
-  options?: MorphOptions
-) {
-  if (!morphContext) {
-    morphToSomething(fromElementOrDocument, toElementOrDocument, options);
-  } else {
-    morphContext.withoutObserver(() => {
-      morphToSomething(fromElementOrDocument, toElementOrDocument, options);
-    });
-  }
-}
-
-function morphToSomething(
   fromElementOrDocument: Element | Document,
   toElementOrDocument: string | Element | Document | DocumentFragment,
   options?: MorphOptions
@@ -107,7 +84,7 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
     childrenOnly: options?.childrenOnly,
     onBeforeElUpdated(fromElement: Element, toElement: Element) {
       const force = forceAttribute ? !!toElement.closest(`[${forceAttribute}]`) : false;
-      const metadata = getMetadata(fromElement);
+      const metadata = options?.metadata?.get(fromElement);
 
       if (force && metadata) {
         if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {

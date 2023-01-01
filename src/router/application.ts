@@ -2,12 +2,6 @@ import type { Router, Fetcher, NavigationStates, FormMethod } from '@remix-run/r
 import invariant from 'tiny-invariant';
 
 import {
-  renderTurboStream,
-  resetPinnedTurboStreams,
-  applyPinnedTurboStreams,
-} from '../turbo-stream';
-import { morph, observe } from '../morph';
-import {
   dispatch,
   expandURL,
   relativeURL,
@@ -16,6 +10,8 @@ import {
   parseHTMLDocument,
   domReady,
 } from '../utils';
+import { Actions } from '../actions';
+import { TurboStream } from '../turbo-stream';
 
 import { type RouteObject, createBrowserRouter, createMemoryRouter } from './router';
 import { type Schema, defaultSchema } from './schema';
@@ -26,7 +22,7 @@ import {
   shouldProcessLinkClick,
   findLinkFromClickTarget,
 } from './dom';
-import { NavigationContext } from './navigation-context';
+import { NavigationContext, NavigationContextDelegate } from './navigation-context';
 import { getFetcherKey } from './directives/fetcher';
 import {
   DirectiveController,
@@ -53,31 +49,32 @@ export type ApplicationOptions = {
 export class Application {
   #schema: Schema;
   #router: Router;
-  #element: Element;
+  #actions: Actions;
+  #turboStream: TurboStream;
 
   #controllers = new Set<DirectiveController>();
-  #eventListener: EventListenerObject;
+  #delegate: EventListenerObject & NavigationContextDelegate;
   #navigationContext: NavigationContext;
   #navigationController = new AbortController();
-  #dispose?: () => void;
 
-  constructor({ routes, element, schema, debug, fetchOptions, adapter }: ApplicationOptions) {
-    this.#element = element ?? document.documentElement;
+  constructor({ schema, debug, adapter, ...options }: ApplicationOptions) {
+    const element = options.element ?? document.documentElement;
     this.#router =
       adapter == 'memory'
-        ? createMemoryRouter({ routes, fetchOptions, element: this.#element })
-        : createBrowserRouter({ routes, fetchOptions, element: this.#element });
+        ? createMemoryRouter({ ...options, element })
+        : createBrowserRouter({ ...options, element });
     this.#schema = { ...defaultSchema, ...schema };
-    this.#navigationContext = new NavigationContext(
-      this.#element,
-      this.#schema,
-      {
-        navigationDone: this.navigationDone.bind(this),
-        fetcherDone: this.fetcherDone.bind(this),
-      },
-      debug
-    );
-    this.#eventListener = { handleEvent: this.handleEvent.bind(this) };
+    this.#actions = new Actions({
+      element,
+      schema: this.#schema,
+    });
+    this.#turboStream = new TurboStream({ actions: this.#actions });
+    this.#delegate = {
+      handleEvent: this.handleEvent.bind(this),
+      navigationDone: this.navigationDone.bind(this),
+      fetcherDone: this.fetcherDone.bind(this),
+    };
+    this.#navigationContext = new NavigationContext(element, this.#schema, this.#delegate, debug);
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
     this.register(this.#schema.revalidateAttribute, Directives.Revalidate);
@@ -92,13 +89,13 @@ export class Application {
   async start(): Promise<this> {
     this.#router.subscribe(this.#navigationContext.to.bind(this.#navigationContext));
     this.#router.initialize();
+    this.#actions.start();
 
-    this.#element.addEventListener('click', this.#eventListener);
-    this.#element.addEventListener('submit', this.#eventListener);
+    this.#actions.element.addEventListener('click', this.#delegate);
+    this.#actions.element.addEventListener('submit', this.#delegate);
 
     await domReady();
 
-    this.#dispose = observe(this.#element);
     for (const controller of this.#controllers) {
       controller.start();
     }
@@ -109,14 +106,14 @@ export class Application {
   stop(): this {
     this.reset();
     this.#router.dispose();
-    this.#dispose?.();
+    this.#actions.stop();
 
     for (const controller of this.#controllers) {
       controller.stop();
     }
 
-    this.#element.removeEventListener('click', this.#eventListener);
-    this.#element.removeEventListener('submit', this.#eventListener);
+    this.#actions.element.removeEventListener('click', this.#delegate);
+    this.#actions.element.removeEventListener('submit', this.#delegate);
 
     return this;
   }
@@ -133,16 +130,24 @@ export class Application {
     return this.#router.revalidate();
   }
 
+  async render(stream: string) {
+    await this.#turboStream.render(stream, this.#navigationController.signal);
+  }
+
   private reset() {
     this.#navigationController.abort();
     this.#navigationController = new AbortController();
-    resetPinnedTurboStreams();
+    this.#turboStream.resetPinned();
   }
 
   private register(directiveAttributeName: string, DirectiveClass: DirectiveConstructor) {
     const factory: DirectiveFactory = (element) =>
       new DirectiveClass(element, this.#router, this.#schema);
-    const controller = new DirectiveController(this.#element, directiveAttributeName, factory);
+    const controller = new DirectiveController(
+      this.#actions.element,
+      directiveAttributeName,
+      factory
+    );
     this.#controllers.add(controller);
   }
 
@@ -217,20 +222,17 @@ export class Application {
   }
 
   private handleTurboStream(_: Element, content: string) {
-    renderTurboStream(content, this.#element, {
-      signal: this.#navigationController.signal,
-      morphOptions: { forceAttribute: this.#schema.forceAttribute },
-    });
+    this.#turboStream.render(content, this.#navigationController.signal);
   }
 
   private handleHTML(content: string, detail: RenderDetail) {
     const newDocument = parseHTMLDocument(content);
     if (detail.revalidation) {
-      applyPinnedTurboStreams(newDocument.body);
+      this.#turboStream.applyPinned(newDocument.body);
     } else {
       this.reset();
     }
-    morph(document, newDocument, { forceAttribute: this.#schema.forceAttribute });
+    this.#actions.morph(document, newDocument);
     this.afterRender(detail);
   }
 
@@ -287,10 +289,10 @@ export class Application {
   }
 
   private isEnabled(element: Element) {
+    const container = element.closest(`[${this.#schema.enabledAttribute}]`);
     return (
-      element
-        .closest(`[${this.#schema.enabledAttribute}]`)
-        ?.getAttribute(this.#schema.enabledAttribute) != 'false'
+      container?.hasAttribute(this.#schema.enabledAttribute) &&
+      container.getAttribute(this.#schema.enabledAttribute) != 'false'
     );
   }
 
@@ -303,6 +305,6 @@ export class Application {
   }
 
   private afterRender(detail: RenderDetail) {
-    dispatch(this.#schema.renderEvent, { target: this.#element, detail });
+    dispatch(this.#schema.renderEvent, { target: this.#actions.element, detail });
   }
 }

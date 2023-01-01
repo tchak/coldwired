@@ -17,6 +17,7 @@ import {
   domReady,
 } from '../utils';
 
+import { type RouteObject, createBrowserRouter, createMemoryRouter } from './router';
 import { type Schema, defaultSchema } from './schema';
 import type { RouteData } from './data';
 import {
@@ -41,10 +42,12 @@ type RenderDetail = {
 };
 
 export type ApplicationOptions = {
-  router: Router;
+  routes: RouteObject[];
   element?: Element;
   schema?: Partial<Schema>;
   debug?: boolean;
+  fetchOptions?: RequestInit;
+  adapter?: 'memory' | 'browser';
 };
 
 export class Application {
@@ -58,10 +61,13 @@ export class Application {
   #navigationController = new AbortController();
   #dispose?: () => void;
 
-  constructor({ router, element, schema, debug }: ApplicationOptions) {
-    this.#router = router;
+  constructor({ routes, element, schema, debug, fetchOptions, adapter }: ApplicationOptions) {
     this.#element = element ?? document.documentElement;
-    this.#schema = Object.assign({}, defaultSchema, schema);
+    this.#router =
+      adapter == 'memory'
+        ? createMemoryRouter({ routes, fetchOptions, element: this.#element })
+        : createBrowserRouter({ routes, fetchOptions, element: this.#element });
+    this.#schema = { ...defaultSchema, ...schema };
     this.#navigationContext = new NavigationContext(
       this.#element,
       this.#schema,
@@ -113,6 +119,18 @@ export class Application {
     this.#element.removeEventListener('submit', this.#eventListener);
 
     return this;
+  }
+
+  get state() {
+    return this.#router.state;
+  }
+
+  navigate(...args: Parameters<Router['navigate']>) {
+    return this.#router.navigate(...args);
+  }
+
+  revalidate() {
+    return this.#router.revalidate();
   }
 
   private reset() {

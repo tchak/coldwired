@@ -4,15 +4,7 @@ import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import { getByText, fireEvent } from '@testing-library/dom';
 
-import {
-  createMemoryTurboRouter,
-  ContentType,
-  defaultSchema,
-  Application,
-  renderTurboStream,
-  type Router,
-  type RouteObject,
-} from '.';
+import { ContentType, defaultSchema, Application, renderTurboStream, type RouteObject } from '.';
 
 export const handlers = [
   rest.get('/', (_, res, ctx) => {
@@ -167,7 +159,6 @@ function currentFetcherState(target: Element | null) {
 
 describe('@coldwired/router', () => {
   let application: Application;
-  let router: Router;
 
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
@@ -176,21 +167,20 @@ describe('@coldwired/router', () => {
   beforeEach(async () => {
     document.body.innerHTML = '';
     application?.stop();
-    router = createMemoryTurboRouter({ routes: routes() });
-    application = await Application.start({ router });
+    application = await Application.start({ routes: routes(), adapter: 'memory' });
   });
 
   afterEach(() => server.resetHandlers());
 
   it('should handle link navigation', async () => {
-    expect(router.state.location.pathname).toEqual('/');
+    expect(application.state.location.pathname).toEqual('/');
     expect(document.body.innerHTML).toEqual('');
 
-    router.navigate('/about?foo=bar');
+    application.navigate('/about?foo=bar');
     expect(currentNavigationState()).toEqual('loading');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/about');
-    expect(router.state.location.search).toEqual('?foo=bar');
+    expect(application.state.location.pathname).toEqual('/about');
+    expect(application.state.location.search).toEqual('?foo=bar');
     expect(document.body.innerHTML).toMatch('<h1>About</h1><a href="/">Home</a>');
     expect(document.querySelector('title')?.textContent).toEqual('About');
     expect(currentNavigationState()).toEqual('idle');
@@ -198,49 +188,49 @@ describe('@coldwired/router', () => {
     click(getByText(document.body, 'Home'));
     expect(currentNavigationState()).toEqual('loading');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/');
+    expect(application.state.location.pathname).toEqual('/');
     expect(document.body.innerHTML).toMatch('<h1>Hello world!</h1>');
     expect(document.querySelector('title')?.textContent).toEqual('Title');
     expect(currentNavigationState()).toEqual('idle');
   });
 
   it('should handle not found errors', async () => {
-    router.navigate('/yolo');
+    application.navigate('/yolo');
     expect(currentNavigationState()).toEqual('loading');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/yolo');
+    expect(application.state.location.pathname).toEqual('/yolo');
     expect(document.body.innerHTML).toMatch('<h1>Not Found</h1>');
   });
 
   it('should handle form submits', async () => {
-    router.navigate('/forms');
+    application.navigate('/forms');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms');
+    expect(application.state.location.pathname).toEqual('/forms');
 
     click(getByText(document.body, 'Submit'));
     expect(currentNavigationState()).toEqual('submitting');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(currentNavigationState()).toEqual('loading');
-    expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
+    expect(application.state.navigation.formData?.get('firstName')).toEqual('Paul');
 
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/about');
+    expect(application.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });
 
   it('should redirect to self', async () => {
-    router.navigate('/forms/redirect-to-self');
+    application.navigate('/forms/redirect-to-self');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms/redirect-to-self');
+    expect(application.state.location.pathname).toEqual('/forms/redirect-to-self');
 
     click(getByText(document.body, 'Submit'));
     expect(currentNavigationState()).toEqual('submitting');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms/redirect-to-self');
+    expect(application.state.location.pathname).toEqual('/forms/redirect-to-self');
 
     let text = document.querySelector('h1')?.textContent;
-    router.revalidate();
+    application.revalidate();
     await waitForEvent(defaultSchema.revalidationStateChangeEvent);
     const newText = document.querySelector('h1')?.textContent;
 
@@ -279,7 +269,7 @@ describe('@coldwired/router', () => {
     let warnings = [...document.querySelectorAll('form p:not(.e)')].map((p) => p.textContent);
     expect(warnings).toEqual(['warning2', 'warning1']);
 
-    router.revalidate();
+    application.revalidate();
     await waitForEvent(defaultSchema.revalidationStateChangeEvent);
     text = document.querySelector('h1')?.textContent;
     expect(text).toEqual('New Form');
@@ -289,9 +279,9 @@ describe('@coldwired/router', () => {
     warnings = [...document.querySelectorAll('form p:not(.e)')].map((p) => p.textContent);
     expect(warnings).toEqual(['warning2']);
 
-    router.navigate('/about');
+    application.navigate('/about');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    router.navigate('/forms/redirect-to-self');
+    application.navigate('/forms/redirect-to-self');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
 
     text = document.querySelector('h1')?.textContent;
@@ -302,27 +292,27 @@ describe('@coldwired/router', () => {
   });
 
   it('should submit forms with `submit-on-change` directive', async () => {
-    router.navigate('/forms/submit-on-change');
+    application.navigate('/forms/submit-on-change');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms/submit-on-change');
+    expect(application.state.location.pathname).toEqual('/forms/submit-on-change');
 
     const checkbox = document.querySelector<HTMLInputElement>('input[name="accept"]');
     click(checkbox!);
     expect(currentNavigationState()).toEqual('submitting');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
     expect(currentNavigationState()).toEqual('loading');
-    expect(router.state.navigation.formData?.get('firstName')).toEqual('Paul');
-    expect(router.state.navigation.formData?.get('accept')).toEqual('true');
+    expect(application.state.navigation.formData?.get('firstName')).toEqual('Paul');
+    expect(application.state.navigation.formData?.get('accept')).toEqual('true');
 
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/about');
+    expect(application.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });
 
   it('should handle form submits with `fetcher` directive', async () => {
-    router.navigate('/forms/fetcher');
+    application.navigate('/forms/fetcher');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms/fetcher');
+    expect(application.state.location.pathname).toEqual('/forms/fetcher');
 
     document.querySelector('h1')?.classList.add('active');
     expect(document.body.innerHTML).toMatch('<h1 class="active">Fetcher</h1>');
@@ -333,7 +323,7 @@ describe('@coldwired/router', () => {
     expect(submit.value).toEqual('Submitting');
     await waitForEvent(defaultSchema.fetcherStateChangeEvent);
     expect(currentFetcherState(document.querySelector('form'))).toEqual('loading');
-    expect(router.state.fetchers.get('fetcher1')?.formData?.get('firstName')).toEqual('Paul');
+    expect(application.state.fetchers.get('fetcher1')?.formData?.get('firstName')).toEqual('Paul');
     expect(submit.disabled).toEqual(false);
     expect(submit.value).toEqual('Submit');
 
@@ -341,14 +331,14 @@ describe('@coldwired/router', () => {
     expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
     document.querySelector('h1')?.classList.remove('active');
     expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
-    expect(router.state.location.pathname).toEqual('/about');
+    expect(application.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });
 
   it('should handle responses with `turbo-stream` actions', async () => {
-    router.navigate('/forms/fetcher');
+    application.navigate('/forms/fetcher');
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(router.state.location.pathname).toEqual('/forms/fetcher');
+    expect(application.state.location.pathname).toEqual('/forms/fetcher');
 
     const body = document.body.innerHTML;
     expect(body).toMatch('Item');

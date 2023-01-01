@@ -1,7 +1,7 @@
 import { Directive } from '../directive-controller';
 import { throttle, parseIntWithDefault } from '../../utils';
 
-const DEFAULT_MIN_TIMEOUT = 5_000; // 5 seconds
+const DEFAULT_INTERVAL = 5_000; // 5 seconds
 
 export class Revalidate extends Directive {
   #timer?: ReturnType<typeof setInterval>;
@@ -29,6 +29,6 @@ export class Revalidate extends Directive {
 
   private get interval() {
     const value = this.element.getAttribute(this.schema.revalidateIntervalAttribute);
-    return parseIntWithDefault(value, DEFAULT_MIN_TIMEOUT);
+    return parseIntWithDefault(value, DEFAULT_INTERVAL);
   }
 }

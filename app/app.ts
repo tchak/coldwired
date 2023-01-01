@@ -1,14 +1,12 @@
-import { createBrowserTurboRouter, Application } from '../src';
+import { Application, type RouteObject } from '../src';
 
-const routes = [
+const routes: RouteObject[] = [
   { path: '/', id: 'root', handle: { method: ['get'] } },
   { path: '/about', id: 'about', handle: { method: ['get'] } },
 ];
 
-const router = createBrowserTurboRouter({ routes });
-
 async function main() {
-  await Application.start({ router, debug: true });
+  await Application.start({ routes, debug: true });
 }
 
 main();

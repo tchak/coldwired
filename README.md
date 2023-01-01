@@ -22,6 +22,9 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
  - if `data-turbo-method` is used on `<a>` it will submit the link instead of navigating
  - if `data-turbo-disabled` is used on `<input>`, `<select>` or `<button>` it will atomatically disable them during submission
  - if `data-turbo-confirm` is used on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
+ - preserve `class` attribute changes between renders unless `data-turbo-force` directive is used
+ - preserve `value` on touched `<input>` and `<select>` between renders unless `data-turbo-force` directive is used
+ - extends [turbo-stream](https://turbo.hotwired.dev/handbook/streams) with ability to delay actions, to dispatch events and to pin actions between renders
 
 ## Demo
 
@@ -48,7 +51,7 @@ In order to use this router you need to generate (or write) a JSON array of all 
 Most of the library is implemented as a collection of directives. They are similar to [stimulus](https://stimulus.hotwired.dev) controllers.
 
 ```ts
-import { createBrowserTurboRouter, RouteObject } from 'remix-router-turbo';
+import { Application, type RouteObject } from 'remix-router-turbo';
 
 const routes: RouteObject[] = [
   {
@@ -63,7 +66,7 @@ const routes: RouteObject[] = [
   }
 ];
 
-const router = createBrowserTurboRouter({ routes, debug: true });
+const application = await Application.start({ routes });
 
 ```
 

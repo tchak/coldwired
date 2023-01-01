@@ -13,24 +13,26 @@ interface RouteData {
   [routeId: string]: any;
 }
 
-type RouterOptions = {
+export type RouterOptions = {
   routes: RouteObject[];
+  element?: Element;
   fetchOptions?: RequestInit;
 };
 
 export type { RouteObject };
 
-export function createBrowserTurboRouter(init: RouterOptions): Router {
-  return createTurboRouter({ ...init, history: createBrowserHistory() });
+export function createBrowserRouter(init: RouterOptions): Router {
+  return createRouterWithHistroy({ ...init, history: createBrowserHistory() });
 }
 
-export function createMemoryTurboRouter(init: RouterOptions): Router {
-  return createTurboRouter({ ...init, history: createMemoryHistory() });
+export function createMemoryRouter(init: RouterOptions): Router {
+  return createRouterWithHistroy({ ...init, history: createMemoryHistory() });
 }
 
-function createTurboRouter({
+function createRouterWithHistroy({
   history,
   routes,
+  element,
   fetchOptions,
 }: RouterOptions & { history: History }): Router {
   setupDataFunctions(routes, fetchOptions);
@@ -41,7 +43,7 @@ function createTurboRouter({
     ? {
         [routeId]: {
           format: 'html',
-          content: document.documentElement.outerHTML,
+          content: element?.outerHTML ?? '',
         },
       }
     : {};

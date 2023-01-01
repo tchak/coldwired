@@ -146,6 +146,15 @@ export function isFocused(element: Element) {
   return element.ownerDocument.activeElement == element;
 }
 
+export function focusElement(element: Element) {
+  if ('focus' in element && typeof element.focus == 'function') {
+    element.focus();
+    if (isTextInputElement(element)) {
+      element.setSelectionRange(element.value.length, element.value.length);
+    }
+  }
+}
+
 export function parseHTMLDocument(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }

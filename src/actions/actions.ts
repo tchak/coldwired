@@ -1,6 +1,6 @@
 import invariant from 'tiny-invariant';
 
-import { dispatch, isFormInputElement } from '../utils';
+import { dispatch, isFormInputElement, focusElement } from '../utils';
 
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
 import { Metadata } from './metadata';
@@ -149,9 +149,7 @@ export class Actions {
 
   focus({ targets }: ActionParams) {
     for (const element of targets) {
-      if ('focus' in element && typeof element.focus == 'function') {
-        element.focus();
-      }
+      focusElement(element);
     }
   }
 

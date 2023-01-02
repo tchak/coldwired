@@ -7,7 +7,7 @@
 
 ## Why?
 
-At work we have a 6 years old reasonably big rails app. It powers quite a successful service while being run by a small team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced [hotwired/turbo](https://hotwired.dev) into our code base and it is quite a success. The team likes a lot the minimal JavaScript API surface. But turbo has problems. Those problems are very similar to the ones solved by [@remix-run/router](https://www.npmjs.com/package/@remix-run/router). The main one is coordinating multiple submitting forms on one page without full reloads.
+At work we have a six-year-old reasonably big rails app. It powers quite a successful service while being run by a small team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced [hotwired/turbo](https://hotwired.dev) into our code base and it is quite a success. The team likes the minimal JavaScript API surface a lot. But turbo has problems. Those problems are very similar to the ones solved by [@remix-run/router](https://www.npmjs.com/package/@remix-run/router). The main one is coordinating multiple submitting forms on one page without full reloads.
 
 ## How?
 

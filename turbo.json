@@ -8,6 +8,9 @@
     "clean": {
       "outputs": ["dist/**"]
     },
+    "dev": {
+      "outputs": []
+    },
     "test": {
       "outputs": []
     },

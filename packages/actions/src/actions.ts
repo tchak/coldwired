@@ -5,6 +5,7 @@ import { dispatch, isFormInputElement, focusElement } from '@coldwired/utils';
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
 import { Metadata } from './metadata';
 import { morph } from './morph';
+import { Schema, defaultSchema } from './schema';
 
 type ActionParams = {
   stream: Element;
@@ -28,8 +29,6 @@ const ActionNames = [
   'disable',
 ] as const;
 
-type Schema = { forceAttribute?: string };
-
 export class Actions {
   #element: Element;
   #schema: Schema;
@@ -39,7 +38,7 @@ export class Actions {
 
   constructor({ element, schema }: { element: Element; schema?: Schema }) {
     this.#element = element;
-    this.#schema = schema ?? {};
+    this.#schema = { ...defaultSchema, ...schema };
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       classListChanged: this.classListChanged.bind(this),

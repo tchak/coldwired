@@ -23,7 +23,7 @@ export class TurboStream {
     for (const stream of [...this.#pinnedStreams].flatMap(([, streams]) => streams)) {
       this.getTurboStreamAction(stream)({
         targets: getTargetElements(stream, element),
-        fragment: getTemplateContent(stream),
+        fragment: getTemplateContent(stream) ?? undefined,
       });
     }
   }
@@ -61,7 +61,7 @@ export class TurboStream {
 
     action({
       targets: getTargetElements(stream, this.#actions.element),
-      fragment: getTemplateContent(stream),
+      fragment: getTemplateContent(stream) ?? undefined,
     });
   }
 
@@ -87,10 +87,10 @@ export class TurboStream {
   }
 }
 
-function getTemplateContent(stream: Element): DocumentFragment {
+function getTemplateContent(stream: Element): DocumentFragment | null {
   const templateElement = stream.firstElementChild;
   if (!templateElement) {
-    return stream.ownerDocument.createDocumentFragment();
+    return null;
   }
   invariant(
     templateElement instanceof HTMLTemplateElement,

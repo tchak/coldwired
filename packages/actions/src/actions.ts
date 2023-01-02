@@ -9,7 +9,7 @@ import { Schema, defaultSchema } from './schema';
 
 type ActionParams = {
   targets: Element[];
-  fragment: DocumentFragment;
+  fragment?: DocumentFragment;
 };
 
 type Action = (params: ActionParams) => void;
@@ -61,11 +61,12 @@ export class Actions {
   }
 
   getAction(actionName: string): Action {
-    invariant(isActionName(actionName), `Action "${actionName}" is not supported`);
+    invariant(isActionName(actionName), `[actions] action "${actionName}" is not supported`);
     return (params) => this[actionName](params);
   }
 
   after({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     for (const element of targets) {
       element.after(fragment.cloneNode(true));
@@ -74,6 +75,7 @@ export class Actions {
   }
 
   before({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     for (const element of targets) {
       element.before(fragment.cloneNode(true));
@@ -82,6 +84,7 @@ export class Actions {
   }
 
   append({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
@@ -91,6 +94,7 @@ export class Actions {
   }
 
   prepend({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
@@ -108,6 +112,7 @@ export class Actions {
   }
 
   replace({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {
@@ -119,6 +124,7 @@ export class Actions {
   }
 
   update({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {

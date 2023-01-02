@@ -137,10 +137,10 @@ describe('@coldwired/actions', () => {
     actions.morph(document, parseHTMLDocument('<div class="bar"></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
 
-    actions.hide({ targets: [from], fragment: document.createDocumentFragment() });
+    actions.hide({ targets: [from] });
     expect(from.classList.contains('hidden')).toBeTruthy();
 
-    actions.show({ targets: [from], fragment: document.createDocumentFragment() });
+    actions.show({ targets: [from] });
     expect(from.classList.contains('hidden')).toBeFalsy();
   });
 
@@ -151,13 +151,13 @@ describe('@coldwired/actions', () => {
     expect(isFocused(from)).toBeFalsy();
     expect(from.disabled).toBeFalsy();
 
-    actions.focus({ targets: [from], fragment: document.createDocumentFragment() });
+    actions.focus({ targets: [from] });
     expect(isFocused(from)).toBeTruthy();
 
-    actions.disable({ targets: [from], fragment: document.createDocumentFragment() });
+    actions.disable({ targets: [from] });
     expect(from.disabled).toBeTruthy();
 
-    actions.enable({ targets: [from], fragment: document.createDocumentFragment() });
+    actions.enable({ targets: [from] });
     expect(from.disabled).toBeFalsy();
     expect(isFocused(from)).toBeTruthy();
   });

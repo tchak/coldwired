@@ -22,7 +22,6 @@ export class TurboStream {
   applyPinned(element: Element) {
     for (const stream of [...this.#pinnedStreams].flatMap(([, streams]) => streams)) {
       this.getTurboStreamAction(stream)({
-        stream,
         targets: getTargetElements(stream, element),
         fragment: getTemplateContent(stream),
       });
@@ -61,7 +60,6 @@ export class TurboStream {
     this.pinStream(stream);
 
     action({
-      stream,
       targets: getTargetElements(stream, this.#actions.element),
       fragment: getTemplateContent(stream),
     });

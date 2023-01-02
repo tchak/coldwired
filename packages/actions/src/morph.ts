@@ -117,6 +117,12 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
       return true;
     },
   });
+  if (forceAttribute) {
+    fromElement.removeAttribute(forceAttribute);
+    for (const element of [...fromElement.querySelectorAll(`[${forceAttribute}]`)]) {
+      element.removeAttribute(forceAttribute);
+    }
+  }
 }
 
 function morphDocument(fromDocument: Document, toDocument: Document, options?: MorphOptions): void {

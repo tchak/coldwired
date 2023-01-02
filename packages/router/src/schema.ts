@@ -1,4 +1,7 @@
-import { Schema as ActionsSchema } from '@coldwired/actions';
+import {
+  type Schema as ActionsSchema,
+  defaultSchema as defaultActionsSchema,
+} from '@coldwired/actions';
 
 export interface Schema extends ActionsSchema {
   enabledAttribute: string;
@@ -23,6 +26,7 @@ export interface Schema extends ActionsSchema {
 }
 
 export const defaultSchema: Schema = {
+  ...defaultActionsSchema,
   enabledAttribute: 'data-turbo',
   navigationStateAttribute: 'data-turbo-navigation-state',
   fetcherStateAttribute: 'data-turbo-fetcher-state',
@@ -30,7 +34,6 @@ export const defaultSchema: Schema = {
   confirmAttribute: 'data-turbo-confirm',
   methodAttribute: 'data-turbo-method',
   replaceAttribute: 'data-turbo-replace',
-  forceAttribute: 'data-turbo-force',
   disableAttribute: 'data-turbo-disable',
   disableWithAttribute: 'data-turbo-disable-with',
   fetcherAttribute: 'data-turbo-fetcher',

@@ -8,7 +8,6 @@ import { morph } from './morph';
 import { Schema, defaultSchema } from './schema';
 
 type ActionParams = {
-  stream: Element;
   targets: Element[];
   fragment: DocumentFragment;
 };
@@ -26,6 +25,8 @@ const ActionNames = [
   'focus',
   'enable',
   'disable',
+  'hide',
+  'show',
 ] as const;
 
 export class Actions {
@@ -148,6 +149,18 @@ export class Actions {
       if ('disabled' in element) {
         element.disabled = false;
       }
+    }
+  }
+
+  hide({ targets }: ActionParams) {
+    for (const element of targets) {
+      element.classList.add(this.#schema.hiddenClassName);
+    }
+  }
+
+  show({ targets }: ActionParams) {
+    for (const element of targets) {
+      element.classList.remove(this.#schema.hiddenClassName);
     }
   }
 

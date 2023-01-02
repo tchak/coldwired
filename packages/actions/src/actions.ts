@@ -23,7 +23,6 @@ const ActionNames = [
   'remove',
   'replace',
   'update',
-  'dispatch',
   'focus',
   'enable',
   'disable',
@@ -130,22 +129,6 @@ export class Actions {
     this.#classListObserver.observe();
   }
 
-  dispatch({ targets, stream }: ActionParams) {
-    const type = stream.getAttribute('event-type');
-    invariant(type, '[turbo-stream] event-type must be present');
-
-    const detailJSON = stream.getAttribute('event-detail');
-    const detail = detailJSON ? JSON.parse(detailJSON) : {};
-
-    if (targets.length > 0) {
-      for (const target of targets) {
-        dispatch(type, { target, detail });
-      }
-    } else {
-      dispatch(type, { detail });
-    }
-  }
-
   focus({ targets }: ActionParams) {
     for (const element of targets) {
       focusElement(element);
@@ -231,4 +214,25 @@ function difference<T>(a: Set<T>, b: Set<T>) {
 
 function isActionName(actionName: unknown): actionName is typeof ActionNames[number] {
   return ActionNames.includes(actionName as any);
+}
+
+class DispatchEventElement extends HTMLElement {
+  connectedCallback() {
+    const type = this.getAttribute('type');
+    const target =
+      this.parentElement?.tagName == 'BODY'
+        ? this.ownerDocument.documentElement
+        : this.parentElement;
+
+    invariant(type, '[dispatch-event] must have "type" attribute');
+    invariant(target, '[dispatch-event] must be connected to a document');
+
+    dispatch(type, { target });
+
+    this.remove();
+  }
+}
+
+if (!customElements.get('dispatch-event')) {
+  customElements.define('dispatch-event', DispatchEventElement);
 }

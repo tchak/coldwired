@@ -2,8 +2,8 @@
 
 [npm-badge]: https://img.shields.io/npm/v/remix-router-turbo.svg
 [npm]: https://www.npmjs.org/package/remix-router-turbo
-[build-badge]: https://github.com/tchak/remix-router-turbo/workflows/CI/badge.svg
-[build]: https://github.com/tchak/remix-router-turbo/actions
+[build-badge]: https://github.com/tchak/coldwired/workflows/CI/badge.svg
+[build]: https://github.com/tchak/coldwired/actions
 
 ## Why?
 
@@ -11,10 +11,10 @@ At work we have a 6 years old reasonably big rails app. It powers quite a succes
 
 ## How?
 
-This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/handbook/drive) with remix based router. It does several things:
+This project is an almost "drop in" replacement of [turbo-drive](https://turbo.hotwired.dev/handbook/drive) with [remix](https://www.npmjs.com/package/@remix-run/router) based router. It does several things:
  - intercepts `click` and `submit` events to navigate with client router
  - use [morphdom](https://github.com/patrick-steele-idem/morphdom) to render pages
- - bypass remix routing if `data-turbo="false"` is set on links and forms
+ - bypass in browser routing if `data-turbo="false"` is set on links and forms
  - provide a directive to register fetchers (`data-turbo-fetcher`)
  - provide a directive to submit forms on changes (`data-turbo-submit-on-change`)
  - provide a directive to revalidate pages (`data-turbo-revalidate`)

@@ -1,20 +1,7 @@
 {
-  "name": "remix-router-turbo",
-  "description": "@remix-run/router on rails",
+  "name": "coldwired",
+  "description": "An implementation of @hotwired/turbo based on remix and morphdom",
   "license": "MIT",
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/remix-router-turbo.cjs.js",
-  "module": "./dist/remix-router-turbo.es.js",
-  "types": "./dist/types/src/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/remix-router-turbo.es.js",
-      "require": "./dist/remix-router-turbo.cjs.js"
-    }
-  },
-  "version": "0.7.1",
   "keywords": [
     "remix",
     "router",
@@ -22,35 +9,22 @@
     "stimulus"
   ],
   "scripts": {
-    "dev": "vite app",
-    "build": "run-s clean build:*",
-    "build:vite": "vite build",
-    "build:tsc": "tsc --emitDeclarationOnly",
-    "test": "vitest",
-    "coverage": "vitest run --coverage",
-    "lint": "run-s lint:*",
-    "lint:types": "tsc --noEmit",
-    "lint:js": "eslint . --ext .ts,.tsx",
-    "clean": "del dist coverage node_modules/.vite",
-    "prepare": "pnpm build",
-    "release": "release-it"
-  },
-  "dependencies": {
-    "@remix-run/router": "1.2.1",
-    "just-debounce-it": "^3.2.0",
-    "just-throttle": "^4.2.0",
-    "morphdom": "^2.6.1",
-    "nanoid": "^4.0.0"
+    "turbo": "turbo run test lint build",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "prepare": "pnpm run build"
   },
   "devDependencies": {
     "@remix-run/node": "^1.9.0",
     "@testing-library/dom": "^8.19.1",
     "@typescript-eslint/eslint-plugin": "^5.47.1",
     "@typescript-eslint/parser": "^5.47.1",
-    "@vitest/ui": "^0.26.2",
+    "@vitest/ui": "^0.26.3",
     "c8": "^7.12.0",
     "del-cli": "^5.0.0",
-    "eslint": "^8.30.0",
+    "eslint": "^8.31.0",
     "eslint-config-prettier": "^8.5.0",
     "jsdom": "^20.0.3",
     "msw": "^0.49.2",
@@ -60,44 +34,18 @@
     "react-dom": "^18.2.0",
     "release-it": "^15.6.0",
     "tiny-invariant": "^1.3.1",
+    "turbo": "^1.6.3",
     "typescript": "^4.9.4",
     "vite": "^4.0.3",
-    "vitest": "^0.26.2"
+    "vitest": "^0.26.3"
   },
   "engines": {
     "node": ">=16"
   },
-  "packageManager": "pnpm@6.32.24",
+  "packageManager": "pnpm@7.12.2",
   "prettier": {
     "singleQuote": true,
     "printWidth": 100
-  },
-  "eslintConfig": {
-    "root": true,
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended",
-      "prettier"
-    ],
-    "rules": {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-redeclare": "off"
-    },
-    "overrides": [
-      {
-        "files": [
-          "vite.config.js",
-          "vitest.config.ts"
-        ],
-        "env": {
-          "node": true
-        }
-      }
-    ]
   },
   "publishConfig": {
     "access": "public",

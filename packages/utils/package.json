@@ -1,0 +1,81 @@
+{
+  "name": "@coldwired/utils",
+  "description": "Utils for use with @coldwired",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    }
+  },
+  "version": "0.0.1",
+  "scripts": {
+    "build": "run-s clean build:*",
+    "build:vite": "vite build",
+    "build:tsc": "tsc --emitDeclarationOnly",
+    "dev": "vitest",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "lint": "run-s lint:*",
+    "lint:types": "tsc --noEmit",
+    "lint:js": "eslint . --ext .ts,.tsx",
+    "clean": "del dist coverage node_modules/.vite"
+  },
+  "dependencies": {
+    "just-debounce-it": "^3.2.0",
+    "just-throttle": "^4.2.0"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@7.12.2",
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 100
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "prettier"
+    ],
+    "rules": {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-redeclare": "off"
+    },
+    "overrides": [
+      {
+        "files": [
+          "vite.config.js",
+          "vitest.config.ts"
+        ],
+        "env": {
+          "node": true
+        }
+      }
+    ]
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "release-it": {
+    "npm": {
+      "skipChecks": true
+    },
+    "github": {
+      "release": true
+    }
+  }
+}

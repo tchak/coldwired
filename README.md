@@ -1,4 +1,4 @@
-# Remix Router Turbo [![npm package][npm-badge]][npm] [![build][build-badge]][build]
+# Coldwired [![npm package][npm-badge]][npm] [![build][build-badge]][build]
 
 [npm-badge]: https://img.shields.io/npm/v/remix-router-turbo.svg
 [npm]: https://www.npmjs.org/package/remix-router-turbo
@@ -28,20 +28,26 @@ This is a first attempt to replace [turbo-drive](https://turbo.hotwired.dev/hand
 
 ## Demo
 
-[remix rails demo](https://github.com/tchak/rails-remix-demo)
+[@coldwired rails demo](https://github.com/tchak/rails-remix-demo)
 
 ## Install
+
+With `pnpm`
+
+```bash
+pnpm add @coldwired/router
+```
 
 With `yarn`
 
 ```bash
-yarn add remix-router-turbo
+yarn add @coldwired/router
 ```
 
 With `npm`
 
 ```bash
-npm install remix-router-turbo
+npm install @coldwired/router
 ```
 
 ## Usage
@@ -49,7 +55,7 @@ npm install remix-router-turbo
 In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-requested-with: remix`. In order for redirects to work properly you must respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
 
 ```ts
-import { Application, type RouteObject } from 'remix-router-turbo';
+import { Application, type RouteObject } from '@coldwired/router';
 
 const routes: RouteObject[] = [
   {

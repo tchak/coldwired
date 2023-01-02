@@ -28,7 +28,7 @@ This project is an almost "drop in" replacement of [turbo-drive](https://turbo.h
 
 ## Demo
 
-[@coldwired rails demo](https://github.com/tchak/rails-remix-demo)
+[@coldwired rails demo](https://github.com/tchak/coldwired-rails-demo)
 
 ## Install
 

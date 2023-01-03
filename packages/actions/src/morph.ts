@@ -100,6 +100,14 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         toElement.classList.add(...metadata.addedClassNames);
         toElement.classList.remove(...metadata.removedClassNames);
 
+        for (const [name, value] of Object.entries(metadata.attributes)) {
+          if (value == null) {
+            toElement.removeAttribute(name);
+          } else {
+            toElement.setAttribute(name, value);
+          }
+        }
+
         if (metadata.touched) {
           if (
             isInputElement(fromElement) &&

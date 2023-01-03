@@ -2,6 +2,7 @@ type MetadataValue = {
   addedClassNames: Set<string>;
   removedClassNames: Set<string>;
   touched: boolean;
+  attributes: Record<string, string | null>;
 };
 
 export class Metadata {
@@ -18,9 +19,10 @@ export class Metadata {
         addedClassNames: new Set(),
         removedClassNames: new Set(),
         touched: false,
+        attributes: {},
       };
       this.#registry.set(element, metadata);
     }
-    return metadata ?? null;
+    return metadata;
   }
 }

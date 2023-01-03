@@ -190,4 +190,27 @@ describe('@coldwired/actions', () => {
     );
     expect(input.value).toEqual('test');
   });
+
+  it('should preserve aria attributes', async () => {
+    actions.morph(document, parseHTMLDocument('<div>Menu</div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    from.setAttribute('aria-expanded', 'true');
+    await Promise.resolve();
+
+    actions.morph(document, parseHTMLDocument('<div>New Menu</div>'));
+    expect(from.getAttribute('aria-expanded')).toEqual('true');
+
+    from.removeAttribute('aria-expanded');
+    await Promise.resolve();
+
+    actions.morph(document, parseHTMLDocument('<div aria-expanded>New Menu</div>'));
+    expect(from.hasAttribute('aria-expanded')).toBeFalsy();
+
+    actions.morph(
+      document,
+      parseHTMLDocument('<div aria-expanded data-turbo-force>New Menu</div>')
+    );
+    expect(from.getAttribute('aria-expanded')).toEqual('');
+  });
 });

@@ -3,6 +3,7 @@ import invariant from 'tiny-invariant';
 import { dispatch, isFormInputElement, focusElement } from '@coldwired/utils';
 
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
+import { AttributeObserver, AttributeObserverDelegate } from './attribute-observer';
 import { Metadata } from './metadata';
 import { morph } from './morph';
 import { Schema, defaultSchema } from './schema';
@@ -34,7 +35,8 @@ export class Actions {
   #schema: Schema;
   #metadata = new Metadata();
   #classListObserver: ClassListObserver;
-  #delegate: EventListenerObject & ClassListObserverDelegate;
+  #attributeObserver: AttributeObserver;
+  #delegate: EventListenerObject & ClassListObserverDelegate & AttributeObserverDelegate;
 
   constructor({ element, schema }: { element: Element; schema?: Schema }) {
     this.#element = element;
@@ -42,8 +44,10 @@ export class Actions {
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       classListChanged: this.classListChanged.bind(this),
+      attributeChanged: this.attributeChanged.bind(this),
     };
     this.#classListObserver = new ClassListObserver(this.#element, this.#delegate);
+    this.#attributeObserver = new AttributeObserver(this.#element, this.#delegate);
   }
 
   get element() {
@@ -52,11 +56,13 @@ export class Actions {
 
   start() {
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
     this.#element.addEventListener('input', this.#delegate);
   }
 
   stop() {
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     this.#element.removeEventListener('input', this.#delegate);
   }
 
@@ -68,52 +74,63 @@ export class Actions {
   after({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     for (const element of targets) {
       element.after(fragment.cloneNode(true));
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   before({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     for (const element of targets) {
       element.before(fragment.cloneNode(true));
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   append({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
       element.append(fragment.cloneNode(true));
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   prepend({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
       element.prepend(fragment.cloneNode(true));
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   remove({ targets }: ActionParams) {
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     for (const element of targets) {
       element.remove();
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   replace({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {
         forceAttribute: this.#schema.forceAttribute,
@@ -121,11 +138,13 @@ export class Actions {
       });
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   update({ targets, fragment }: ActionParams) {
     invariant(fragment, '[actions] fragment is required');
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {
         forceAttribute: this.#schema.forceAttribute,
@@ -134,6 +153,7 @@ export class Actions {
       });
     }
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   focus({ targets }: ActionParams) {
@@ -176,12 +196,14 @@ export class Actions {
     options?: { childrenOnly?: boolean }
   ) {
     this.#classListObserver.disconnect();
+    this.#attributeObserver.disconnect();
     morph(from, to, {
       forceAttribute: this.#schema.forceAttribute,
       metadata: this.#metadata,
       ...options,
     });
     this.#classListObserver.observe();
+    this.#attributeObserver.observe();
   }
 
   private handleEvent(event: Event) {
@@ -207,6 +229,10 @@ export class Actions {
       metadata.removedClassNames.add(className);
       metadata.addedClassNames.delete(className);
     }
+  }
+
+  private attributeChanged(element: Element, attributeName: string, value: string | null) {
+    this.#metadata.getOrCreate(element).attributes[attributeName] = value;
   }
 }
 

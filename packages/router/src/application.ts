@@ -43,6 +43,7 @@ export type ApplicationOptions = {
   schema?: Partial<Schema>;
   debug?: boolean;
   fetchOptions?: RequestInit;
+  httpMethodOverride?: boolean;
   adapter?: 'memory' | 'browser';
 };
 
@@ -52,12 +53,13 @@ export class Application {
   #actions: Actions;
   #turboStream: TurboStream;
 
+  #httpMethodOverride = false;
   #controllers = new Set<DirectiveController>();
   #delegate: EventListenerObject & NavigationContextDelegate;
   #navigationContext: NavigationContext;
   #navigationController = new AbortController();
 
-  constructor({ schema, debug, adapter, ...options }: ApplicationOptions) {
+  constructor({ schema, debug, adapter, httpMethodOverride, ...options }: ApplicationOptions) {
     const element = options.element ?? document.documentElement;
     this.#router =
       adapter == 'memory'
@@ -75,6 +77,10 @@ export class Application {
       fetcherDone: this.fetcherDone.bind(this),
     };
     this.#navigationContext = new NavigationContext(element, this.#schema, this.#delegate, debug);
+
+    if (httpMethodOverride) {
+      this.#httpMethodOverride = httpMethodOverride;
+    }
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);
     this.register(this.#schema.revalidateAttribute, Directives.Revalidate);
@@ -241,21 +247,32 @@ export class Application {
   }
 
   private submitForm(form: HTMLFormElement, submitter?: HTMLSubmitterElement) {
-    const { url, method, formData } = getFormSubmissionInfo(form, location.pathname, { submitter });
+    const { url, method, formData, encType } = getFormSubmissionInfo(
+      form,
+      this.state.location.pathname,
+      {
+        submitter,
+        httpMethodOverride: this.#httpMethodOverride,
+      }
+    );
     const replace =
       submitter?.hasAttribute(this.#schema.replaceAttribute) ||
       form.hasAttribute(this.#schema.replaceAttribute);
     const href = relativeURL(url);
-    const options = { formMethod: method, formData, replace };
     const fetcherKey = getFetcherKey(form);
 
     if (fetcherKey) {
       const match = this.#router.state.matches.at(-1);
       invariant(match, 'No route matches the current URL');
 
-      this.#router.fetch(fetcherKey, match.route.id, href, options);
+      this.#router.fetch(fetcherKey, match.route.id, href, {
+        formMethod: method,
+        formData,
+        replace,
+        formEncType: encType,
+      });
     } else {
-      this.#router.navigate(href, options);
+      this.#router.navigate(href, { formMethod: method, formData, replace, formEncType: encType });
     }
   }
 
@@ -265,13 +282,18 @@ export class Application {
     const replace = link.hasAttribute(this.#schema.replaceAttribute);
 
     if (turboMethod && turboMethod !== 'get') {
-      const { url, method, formData } = getFormSubmissionInfo(
+      const { url, method, formData, encType } = getFormSubmissionInfo(
         href.searchParams,
         location.pathname,
         { method: turboMethod as FormMethod, action: href.pathname }
       );
 
-      this.#router.navigate(relativeURL(url), { formMethod: method, formData, replace });
+      this.#router.navigate(relativeURL(url), {
+        formMethod: method,
+        formData,
+        formEncType: encType,
+        replace,
+      });
     } else {
       this.#router.navigate(relativeURL(href), { replace });
     }

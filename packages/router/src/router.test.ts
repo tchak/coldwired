@@ -35,7 +35,7 @@ export const handlers = [
       ctx.body(
         html(
           `<h1>Form</h1>
-          <form method="post" action="/forms">
+          <form method="post">
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>`,
@@ -67,7 +67,7 @@ export const handlers = [
       ctx.body(
         html(
           `<h1>Form ${Date.now()}</h1>
-          <form method="post" action="/forms/redirect-to-self">
+          <form method="post">
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>`,
@@ -125,6 +125,21 @@ export const handlers = [
           Fetcher!
         </template>
       </turbo-stream>`)
+    );
+  }),
+  rest.get('/http-override', (_, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(html('<form method="patch"><button type="submit">Send</button></form>'))
+    );
+  }),
+  rest.post('/http-override', async (req, res, ctx) => {
+    const body = await req.text();
+    return res(
+      ctx.status(200),
+      ctx.set('content-type', ContentType.HTML),
+      ctx.body(html(`<code>${body}</code>`))
     );
   }),
 ];
@@ -351,6 +366,23 @@ describe('@coldwired/router', () => {
     expect(newBody).toMatch('Fetcher!');
     expect(newBody).toMatch('<p>A message after</p>');
     expect(newBody).toMatch('<p>A message before</p>');
+  });
+
+  it('should use http method override', async () => {
+    application.stop();
+    application = await Application.start({
+      routes: routes(),
+      adapter: 'memory',
+      httpMethodOverride: true,
+    });
+    application.navigate('/http-override');
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(application.state.location.pathname).toEqual('/http-override');
+    await waitForNextAnimationFrame();
+    click(getByText(document.body, 'Send'));
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    await waitForEvent(defaultSchema.navigationStateChangeEvent);
+    expect(document.body.firstChild?.textContent).toEqual('_method=patch');
   });
 });
 

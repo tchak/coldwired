@@ -50,10 +50,12 @@ type SubmitOptions = {
   /**
    */
   submitter?: HTMLSubmitterElement;
+
+  httpMethodOverride?: boolean;
 };
 
-const defaultMethod = 'get';
-const defaultEncType = 'application/x-www-form-urlencoded';
+const defaultMethod: FormMethod = 'get';
+const defaultEncType: FormEncType = 'application/x-www-form-urlencoded';
 
 export function getFormSubmissionInfo(
   target:
@@ -69,12 +71,12 @@ export function getFormSubmissionInfo(
 ): {
   url: URL;
   method: FormMethod;
-  encType: string;
+  encType: FormEncType;
   formData: FormData;
 } {
   let method: FormMethod;
   let action: string;
-  let encType: string;
+  let encType: FormEncType;
   let formData: FormData;
 
   if (isFormElement(target)) {
@@ -82,7 +84,7 @@ export function getFormSubmissionInfo(
 
     method = (options.method || target.getAttribute('method') || defaultMethod) as FormMethod;
     action = options.action || target.getAttribute('action') || defaultAction;
-    encType = options.encType || target.getAttribute('enctype') || defaultEncType;
+    encType = (options.encType || target.getAttribute('enctype') || defaultEncType) as FormEncType;
 
     formData = new FormData(target);
 
@@ -108,11 +110,10 @@ export function getFormSubmissionInfo(
       target.getAttribute('formaction') ||
       form.getAttribute('action') ||
       defaultAction;
-    encType =
-      options.encType ||
+    encType = (options.encType ||
       target.getAttribute('formenctype') ||
       form.getAttribute('enctype') ||
-      defaultEncType;
+      defaultEncType) as FormEncType;
 
     formData = new FormData(form);
 
@@ -147,6 +148,11 @@ export function getFormSubmissionInfo(
 
   const { protocol, host } = window.location;
   const url = new URL(action, `${protocol}//${host}`);
+
+  if (options.httpMethodOverride && !(method == 'get' || method == 'post')) {
+    formData.append('_method', method);
+    method = 'post';
+  }
 
   return { url, method, encType, formData };
 }

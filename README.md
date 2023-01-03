@@ -23,8 +23,10 @@ This project is an almost "drop in" replacement of [turbo-drive](https://turbo.h
  - if `data-turbo-disabled` is used on `<input>`, `<select>` or `<button>` it will atomatically disable them during submission
  - if `data-turbo-confirm` is used on `<a>` or `<form>` it will ask for confirmation before submitting/navigating
  - preserve `class` attribute changes between renders unless `data-turbo-force` directive is used
+ - preserve `aria-` and related attributes changes between renders unless `data-turbo-force` directive is used
  - preserve `value` on touched `<input>` and `<select>` between renders unless `data-turbo-force` directive is used
- - extends [turbo-stream](https://turbo.hotwired.dev/handbook/streams) with ability to delay actions, to dispatch events and to pin actions between renders
+ - extends [turbo-stream](https://turbo.hotwired.dev/handbook/streams) with ability to delay actions
+ - extends [turbo-stream](https://turbo.hotwired.dev/handbook/streams) with ability to pin actions between renders
 
 ## Demo
 

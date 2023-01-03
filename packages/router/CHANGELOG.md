@@ -1,5 +1,18 @@
 # @coldwired/router
 
+## 0.2.0
+
+### Minor Changes
+
+- Update headers name to "coldwire"
+- Implement httpMethodOverride
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/turbo-stream@0.2.0
+  - @coldwired/actions@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

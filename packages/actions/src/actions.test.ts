@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getByLabelText, fireEvent } from '@testing-library/dom';
 
-import { parseHTMLDocument, isFocused } from '@coldwired/utils';
+import { parseHTMLDocument, parseHTMLFragment, isFocused } from '@coldwired/utils';
 
 import { Actions } from '.';
 
@@ -212,5 +212,28 @@ describe('@coldwired/actions', () => {
       parseHTMLDocument('<div aria-expanded data-turbo-force>New Menu</div>')
     );
     expect(from.getAttribute('aria-expanded')).toEqual('');
+  });
+
+  it('should dispatch event', () => {
+    expect.assertions(3);
+    actions.morph(document, parseHTMLDocument('<div></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    document.documentElement.addEventListener('toto', () => {
+      expect(true).toBeTruthy();
+    });
+    from.addEventListener('tata', () => {
+      expect(true).toBeTruthy();
+    });
+
+    actions.append({
+      targets: [document.head],
+      fragment: parseHTMLFragment('<dispatch-event type="toto" />', document),
+    });
+    actions.after({
+      targets: [from],
+      fragment: parseHTMLFragment('<dispatch-event type="tata" />', document),
+    });
+    expect(document.body.innerHTML).toEqual('<div></div>');
   });
 });

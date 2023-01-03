@@ -1,6 +1,6 @@
 import invariant from 'tiny-invariant';
 
-import { Actions } from '@coldwired/actions';
+import { Actions, parseActionName } from '@coldwired/actions';
 import { parseHTMLFragment, nextAnimationFrame, wait, AbortError } from '@coldwired/utils';
 
 export class TurboStream {
@@ -12,69 +12,79 @@ export class TurboStream {
   }
 
   async render(stream: string, signal?: AbortSignal) {
-    await Promise.all(
-      [...parseHTMLFragment(stream, this.#actions.element.ownerDocument).children].map((stream) =>
-        this.renderStream(stream, signal)
-      )
-    );
+    const actions = [
+      ...parseHTMLFragment(stream, this.#actions.element.ownerDocument).children,
+    ].map((stream) => this.parseStream(stream));
+
+    const immediateActions = actions.filter((action) => action.delay == 0);
+    const delayedActions = actions.filter((action) => action.delay > 0);
+
+    const immediateApply = async () => {
+      await nextAnimationFrame();
+      this.#actions.render(immediateActions);
+    };
+
+    await Promise.all([
+      immediateApply(),
+      ...delayedActions.map(async ({ delay, ...action }) => {
+        try {
+          await wait(delay, signal);
+        } catch (error) {
+          if (error instanceof AbortError) return;
+          throw error;
+        }
+        if (signal?.aborted) return;
+        this.#actions.render([action]);
+      }),
+    ]);
   }
 
   applyPinned(element: Element) {
-    for (const stream of [...this.#pinnedStreams].flatMap(([, streams]) => streams)) {
-      this.getTurboStreamAction(stream)({
-        targets: getTargetElements(stream, element),
-        fragment: getTemplateContent(stream) ?? undefined,
-      });
-    }
+    const actions = [...this.#pinnedStreams]
+      .flatMap(([, streams]) => streams)
+      .map((stream) => this.parseStream(stream, element));
+    this.#actions.render(actions);
   }
 
   resetPinned() {
     this.#pinnedStreams.clear();
   }
 
-  private getTurboStreamAction(stream: Element) {
-    const action = stream.getAttribute('action');
-    invariant(action, '[turbo-stream] action must be present');
-    return this.#actions.getAction(action);
-  }
-
-  private async renderStream(stream: Element, signal?: AbortSignal): Promise<void> {
+  private parseStream(stream: Element, element?: Element) {
     invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
 
-    const action = this.getTurboStreamAction(stream);
+    const action = parseActionName(stream.getAttribute('action') ?? '');
     const delay = parseInt(stream.getAttribute('delay') ?? '0');
+    const pin = stream.getAttribute('pin');
 
-    if (delay > 0) {
-      try {
-        await wait(delay, signal);
-      } catch (error) {
-        if (error instanceof AbortError) return;
-        throw error;
-      }
-    } else {
-      await nextAnimationFrame();
+    invariant(
+      !pin || pin == 'last' || pin == 'all',
+      '[turbo-stream] pin attribute value must be "last" or "all"'
+    );
+    invariant(!pin || delay == 0, '[turbo-stream] pin attribute cannot be used with delay');
+
+    if (pin) {
+      this.pinStream(pin, stream);
     }
 
-    if (signal?.aborted) return;
-
-    this.pinStream(stream);
-
-    action({
-      targets: getTargetElements(stream, this.#actions.element),
+    return {
+      action,
+      delay,
+      targets: getTargetElements(stream, element ?? this.#actions.element),
       fragment: getTemplateContent(stream) ?? undefined,
-    });
+    };
   }
 
-  private pinStream(stream: Element) {
-    const pinned = stream.getAttribute('pinned') ?? false;
-    if (!pinned) return;
-
-    stream.removeAttribute('pinned');
-    invariant(['last', 'all'].includes(pinned), '[turbo-stream] pinned must be "last" or "all"');
+  private pinStream(pin: string, stream: Element) {
+    stream.removeAttribute('pin');
+    invariant(
+      ['last', 'all'].includes(pin),
+      '[turbo-stream] pin attribute value must be "last" or "all"'
+    );
 
     const key = getTurboStreamKey(stream);
 
-    if (pinned == 'all') {
+    if (pin == 'all') {
       let streams = this.#pinnedStreams.get(key);
       if (!streams) {
         streams = [];

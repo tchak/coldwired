@@ -13,8 +13,6 @@ type ActionParams = {
   fragment?: DocumentFragment;
 };
 
-type Action = (params: ActionParams) => void;
-
 const ActionNames = [
   'after',
   'before',
@@ -29,6 +27,8 @@ const ActionNames = [
   'hide',
   'show',
 ] as const;
+
+type ActionName = typeof ActionNames[number];
 
 export class Actions {
   #element: Element;
@@ -66,94 +66,40 @@ export class Actions {
     this.#element.removeEventListener('input', this.#delegate);
   }
 
-  getAction(actionName: string): Action {
-    invariant(isActionName(actionName), `[actions] action "${actionName}" is not supported`);
-    return (params) => this[actionName](params);
+  render(params: ({ action: ActionName } & ActionParams)[]) {
+    this.withoutObservers(() => {
+      for (const { action: actionName, ...actionParams } of params) {
+        this[actionName](actionParams);
+      }
+    });
   }
 
-  after({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    for (const element of targets) {
-      element.after(fragment.cloneNode(true));
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  after(params: ActionParams) {
+    this.withoutObservers(() => this._after(params));
   }
 
-  before({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    for (const element of targets) {
-      element.before(fragment.cloneNode(true));
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  before(params: ActionParams) {
+    this.withoutObservers(() => this._before(params));
   }
 
-  append({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    removeDuplicateTargetChildren(targets, fragment);
-    for (const element of targets) {
-      element.append(fragment.cloneNode(true));
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  append(params: ActionParams) {
+    this.withoutObservers(() => this._append(params));
   }
 
-  prepend({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    removeDuplicateTargetChildren(targets, fragment);
-    for (const element of targets) {
-      element.prepend(fragment.cloneNode(true));
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  prepend(params: ActionParams) {
+    this.withoutObservers(() => this._prepend(params));
   }
 
-  remove({ targets }: ActionParams) {
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    for (const element of targets) {
-      element.remove();
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  remove(params: ActionParams) {
+    this.withoutObservers(() => this._remove(params));
   }
 
-  replace({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
-      });
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  replace(params: ActionParams) {
+    this.withoutObservers(() => this._replace(params));
   }
 
-  update({ targets, fragment }: ActionParams) {
-    invariant(fragment, '[actions] fragment is required');
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
-        childrenOnly: true,
-      });
-    }
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+  update(params: ActionParams) {
+    this.withoutObservers(() => this._update(params));
   }
 
   focus({ targets }: ActionParams) {
@@ -195,15 +141,78 @@ export class Actions {
     to: string | Element | Document | DocumentFragment,
     options?: { childrenOnly?: boolean }
   ) {
+    this.withoutObservers(() => {
+      morph(from, to, {
+        forceAttribute: this.#schema.forceAttribute,
+        metadata: this.#metadata,
+        ...options,
+      });
+    });
+  }
+
+  private withoutObservers(callback: () => void) {
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
-    morph(from, to, {
-      forceAttribute: this.#schema.forceAttribute,
-      metadata: this.#metadata,
-      ...options,
-    });
+    callback();
     this.#classListObserver.observe();
     this.#attributeObserver.observe();
+  }
+
+  private _after({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    for (const element of targets) {
+      element.after(fragment.cloneNode(true));
+    }
+  }
+
+  private _before({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    for (const element of targets) {
+      element.before(fragment.cloneNode(true));
+    }
+  }
+
+  private _append({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    removeDuplicateTargetChildren(targets, fragment);
+    for (const element of targets) {
+      element.append(fragment.cloneNode(true));
+    }
+  }
+
+  private _prepend({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    removeDuplicateTargetChildren(targets, fragment);
+    for (const element of targets) {
+      element.prepend(fragment.cloneNode(true));
+    }
+  }
+
+  private _remove({ targets }: ActionParams) {
+    for (const element of targets) {
+      element.remove();
+    }
+  }
+
+  private _replace({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    for (const element of targets) {
+      morph(element, fragment.cloneNode(true) as DocumentFragment, {
+        forceAttribute: this.#schema.forceAttribute,
+        metadata: this.#metadata,
+      });
+    }
+  }
+
+  private _update({ targets, fragment }: ActionParams) {
+    invariant(fragment, '[actions] fragment is required');
+    for (const element of targets) {
+      morph(element, fragment.cloneNode(true) as DocumentFragment, {
+        forceAttribute: this.#schema.forceAttribute,
+        metadata: this.#metadata,
+        childrenOnly: true,
+      });
+    }
   }
 
   private handleEvent(event: Event) {
@@ -257,20 +266,25 @@ function difference<T>(a: Set<T>, b: Set<T>) {
   return new Set([...a].filter((x) => !b.has(x)));
 }
 
-function isActionName(actionName: unknown): actionName is typeof ActionNames[number] {
+function isActionName(actionName: unknown): actionName is ActionName {
   return ActionNames.includes(actionName as any);
 }
 
 class DispatchEventElement extends HTMLElement {
+  constructor() {
+    super();
+    this.style.display = 'none';
+  }
+
   connectedCallback() {
     const type = this.getAttribute('type');
     const target =
-      this.parentElement?.tagName == 'BODY'
+      this.parentElement?.tagName == 'HEAD'
         ? this.ownerDocument.documentElement
-        : this.parentElement;
+        : this.previousElementSibling;
 
     invariant(type, '[dispatch-event] must have "type" attribute');
-    invariant(target, '[dispatch-event] must be connected to a document');
+    invariant(target, '[dispatch-event] must have a target element');
 
     dispatch(type, { target });
 
@@ -280,4 +294,9 @@ class DispatchEventElement extends HTMLElement {
 
 if (!customElements.get('dispatch-event')) {
   customElements.define('dispatch-event', DispatchEventElement);
+}
+
+export function parseActionName(actionName: string): ActionName {
+  invariant(isActionName(actionName), `[actions] action "${actionName}" is not supported`);
+  return actionName;
 }

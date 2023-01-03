@@ -1,7 +1,7 @@
 # Coldwired [![npm package][npm-badge]][npm] [![build][build-badge]][build]
 
-[npm-badge]: https://img.shields.io/npm/v/remix-router-turbo.svg
-[npm]: https://www.npmjs.org/package/remix-router-turbo
+[npm-badge]: https://img.shields.io/npm/v/@coldwired/router.svg
+[npm]: https://www.npmjs.com/package/@coldwired/router
 [build-badge]: https://github.com/tchak/coldwired/workflows/CI/badge.svg
 [build]: https://github.com/tchak/coldwired/actions
 
@@ -54,7 +54,7 @@ npm install @coldwired/router
 
 ## Usage
 
-In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-requested-with: remix`. In order for redirects to work properly you must respond with a `204` and a `x-remix-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
+In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add `method` to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header `x-requested-with: coldwire`. In order for redirects to work properly you must respond with a `204` and a `x-coldwire-redirect: <url>` header instead of the usual `30*` and a `location: <url>` header.
 
 ```ts
 import { Application, type RouteObject } from '@coldwired/router';

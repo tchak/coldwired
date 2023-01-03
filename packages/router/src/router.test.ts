@@ -77,10 +77,10 @@ export const handlers = [
     );
   }),
   rest.post('/forms', (_, res, ctx) => {
-    return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
+    return res(ctx.status(204), ctx.set('x-coldwire-redirect', '/about'));
   }),
   rest.post('/forms/redirect-to-self', (_, res, ctx) => {
-    return res(ctx.status(204), ctx.set('x-remix-redirect', '/forms/redirect-to-self'));
+    return res(ctx.status(204), ctx.set('x-coldwire-redirect', '/forms/redirect-to-self'));
   }),
   rest.get('/forms/fetcher', (_, res, ctx) => {
     return res(
@@ -103,7 +103,7 @@ export const handlers = [
     );
   }),
   rest.post('/forms/fetcher', (_, res, ctx) => {
-    return res(ctx.status(204), ctx.set('x-remix-redirect', '/about'));
+    return res(ctx.status(204), ctx.set('x-coldwire-redirect', '/about'));
   }),
   rest.post('/turbo-stream', (_, res, ctx) => {
     return res(

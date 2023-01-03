@@ -112,14 +112,14 @@ const dataFunctionHandler = (response: Response) => onFetchResponse(response);
 const makeDataFunction: (fetchOptions?: RequestInit) => DataFunction =
   (fetchOptions) =>
   ({ request }) => {
-    request.headers.set('x-requested-with', 'remix');
+    request.headers.set('x-requested-with', 'coldwire');
     request.headers.set('accept', [ContentType.TurboStream, ContentType.HTML].join(', '));
     return fetch(request, { ...fetchOptions }).then(dataFunctionHandler);
   };
 
 function onFetchResponse(response: Response) {
   if (response.ok) {
-    const url = response.headers.get('x-remix-redirect');
+    const url = response.headers.get('x-coldwire-redirect');
     if (url) {
       const pathname = expandURL(url).pathname;
       return redirect(pathname);

@@ -196,3 +196,30 @@ export function wait(delay: number, signal?: AbortSignal) {
     );
   });
 }
+
+export function groupBy<T, K>(array: T[], predicat: (entry: T) => K): Map<K, T[]> {
+  return array.reduce<Map<K, T[]>>((map, entry) => {
+    const key = predicat(entry);
+    const entries = map.get(key);
+    if (!entries) {
+      map.set(key, [entry]);
+    } else {
+      entries.push(entry);
+    }
+    return map;
+  }, new Map());
+}
+
+export function partition<T>(array: T[], predicat: (entry: T) => boolean): [yes: T[], no: T[]] {
+  return array.reduce<[yes: T[], no: T[]]>(
+    (parts, entry) => {
+      if (predicat(entry)) {
+        parts[0].push(entry);
+      } else {
+        parts[1].push(entry);
+      }
+      return parts;
+    },
+    [[], []]
+  );
+}

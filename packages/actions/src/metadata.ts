@@ -25,4 +25,8 @@ export class Metadata {
     }
     return metadata;
   }
+
+  clear() {
+    this.#registry = new WeakMap();
+  }
 }

@@ -133,31 +133,36 @@ describe('@coldwired/actions', () => {
     expect(document.body.firstElementChild?.firstChild?.textContent).toEqual('Hello');
   });
 
-  it('should show/hide element', () => {
+  it('should show/hide element', async () => {
     actions.morph(document, parseHTMLDocument('<div class="bar"></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
 
-    actions.hide({ targets: [from] });
+    actions.hide({ targets: '.bar' });
+    await actions.ready();
     expect(from.classList.contains('hidden')).toBeTruthy();
 
-    actions.show({ targets: [from] });
+    actions.show({ targets: '.bar' });
+    await actions.ready();
     expect(from.classList.contains('hidden')).toBeFalsy();
   });
 
-  it('should focus/disable/enable element', () => {
+  it('should focus/disable/enable element', async () => {
     actions.morph(document, parseHTMLDocument('<button>Click me</button>'));
     const from = document.body.firstElementChild as HTMLButtonElement;
 
     expect(isFocused(from)).toBeFalsy();
     expect(from.disabled).toBeFalsy();
 
-    actions.focus({ targets: [from] });
+    actions.focus({ targets: 'button' });
+    await actions.ready();
     expect(isFocused(from)).toBeTruthy();
 
-    actions.disable({ targets: [from] });
+    actions.disable({ targets: 'button' });
+    await actions.ready();
     expect(from.disabled).toBeTruthy();
 
-    actions.enable({ targets: [from] });
+    actions.enable({ targets: 'button' });
+    await actions.ready();
     expect(from.disabled).toBeFalsy();
     expect(isFocused(from)).toBeTruthy();
   });
@@ -214,7 +219,7 @@ describe('@coldwired/actions', () => {
     expect(from.getAttribute('aria-expanded')).toEqual('');
   });
 
-  it('should dispatch event', () => {
+  it('should dispatch event', async () => {
     expect.assertions(3);
     actions.morph(document, parseHTMLDocument('<div></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
@@ -227,13 +232,14 @@ describe('@coldwired/actions', () => {
     });
 
     actions.append({
-      targets: [document.head],
+      targets: 'head',
       fragment: parseHTMLFragment('<dispatch-event type="toto" />', document),
     });
     actions.after({
-      targets: [from],
+      targets: 'body > div',
       fragment: parseHTMLFragment('<dispatch-event type="tata" />', document),
     });
+    await actions.ready();
     expect(document.body.innerHTML).toEqual('<div></div>');
   });
 });

@@ -258,10 +258,10 @@ describe('@coldwired/router', () => {
     );
 
     await application.render(
-      '<turbo-stream action="append" targets="form" pin="all"><template><p class="e">error1</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error1</p></template></turbo-stream>'
     );
     await application.render(
-      '<turbo-stream action="append" targets="form" pin="all"><template><p class="e">error2</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error2</p></template></turbo-stream>'
     );
 
     await application.render(
@@ -281,6 +281,7 @@ describe('@coldwired/router', () => {
 
     application.revalidate();
     await waitForEvent(defaultSchema.revalidationStateChangeEvent);
+
     text = document.querySelector('h1')?.textContent;
     expect(text).toEqual('New Form');
 
@@ -338,9 +339,7 @@ describe('@coldwired/router', () => {
     expect(submit.value).toEqual('Submit');
 
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
-    document.querySelector('h1')?.classList.remove('active');
-    expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
+    expect(document.body.innerHTML).toMatch('<h1>About</h1>');
     expect(application.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });

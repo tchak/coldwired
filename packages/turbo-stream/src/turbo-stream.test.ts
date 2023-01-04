@@ -120,19 +120,15 @@ describe('@coldwired/turbo-stream', () => {
 
     expect.assertions(2);
 
-    const controller = new AbortController();
     const start = performance.now();
     const done = turboStream
-      .render(
-        '<turbo-stream action="remove" target="test1" delay="20"></turbo-stream>',
-        controller.signal
-      )
+      .render('<turbo-stream action="remove" target="test1" delay="20"></turbo-stream>')
       .then(() => {
         const end = performance.now();
         expect(end - start).toBeLessThan(20);
         expect(document.body.innerHTML).toBe('<div id="test1"></div><div id="test2"></div>');
       });
-    controller.abort();
+    actions.reset();
     return done;
   });
 });

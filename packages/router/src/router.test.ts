@@ -258,10 +258,10 @@ describe('@coldwired/router', () => {
     );
 
     await application.render(
-      '<turbo-stream action="append" targets="form" pin="all"><template><p class="e">error1</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error1</p></template></turbo-stream>'
     );
     await application.render(
-      '<turbo-stream action="append" targets="form" pin="all"><template><p class="e">error2</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error2</p></template></turbo-stream>'
     );
 
     await application.render(
@@ -281,6 +281,7 @@ describe('@coldwired/router', () => {
 
     application.revalidate();
     await waitForEvent(defaultSchema.revalidationStateChangeEvent);
+
     text = document.querySelector('h1')?.textContent;
     expect(text).toEqual('New Form');
 

@@ -57,7 +57,6 @@ export class Application {
   #controllers = new Set<DirectiveController>();
   #delegate: EventListenerObject & NavigationContextDelegate;
   #navigationContext: NavigationContext;
-  #navigationController = new AbortController();
 
   constructor({ schema, debug, adapter, httpMethodOverride, ...options }: ApplicationOptions) {
     const element = options.element ?? document.documentElement;
@@ -110,7 +109,6 @@ export class Application {
   }
 
   stop(): this {
-    this.reset();
     this.#router.dispose();
     this.#actions.stop();
 
@@ -136,14 +134,16 @@ export class Application {
     return this.#router.revalidate();
   }
 
+  async ready() {
+    await this.#actions.ready();
+  }
+
   async render(stream: string) {
-    await this.#turboStream.render(stream, this.#navigationController.signal);
+    await this.#turboStream.render(stream);
   }
 
   private reset() {
-    this.#navigationController.abort();
-    this.#navigationController = new AbortController();
-    this.#turboStream.resetPinned();
+    this.#actions.reset();
   }
 
   private register(directiveAttributeName: string, DirectiveClass: DirectiveConstructor) {
@@ -228,13 +228,13 @@ export class Application {
   }
 
   private handleTurboStream(_: Element, content: string) {
-    this.#turboStream.render(content, this.#navigationController.signal);
+    this.#turboStream.render(content);
   }
 
   private handleHTML(content: string, detail: RenderDetail) {
     const newDocument = parseHTMLDocument(content);
     if (detail.revalidation) {
-      this.#turboStream.applyPinned(newDocument.body);
+      this.#actions.applyPinnedActions(newDocument.body);
     } else {
       this.reset();
     }

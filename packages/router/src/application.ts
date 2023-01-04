@@ -38,7 +38,7 @@ type RenderDetail = {
 };
 
 export type ApplicationOptions = {
-  routes: RouteObject[];
+  routes?: RouteObject[];
   element?: Element;
   schema?: Partial<Schema>;
   debug?: boolean;

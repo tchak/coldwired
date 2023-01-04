@@ -7,16 +7,16 @@ import {
   History,
 } from '@remix-run/router';
 
-import { setupDataFunctions } from './data';
+import { type SetupRequest, setupDataFunctions } from './data';
 
 interface RouteData {
   [routeId: string]: any;
 }
 
 export type RouterOptions = {
-  routes: RouteObject[];
+  routes?: RouteObject[];
   element?: Element;
-  fetchOptions?: RequestInit;
+  setup?: SetupRequest;
 };
 
 export type { RouteObject };
@@ -31,11 +31,10 @@ export function createMemoryRouter(init: RouterOptions): Router {
 
 function createRouterWithHistroy({
   history,
-  routes,
   element,
-  fetchOptions,
+  ...options
 }: RouterOptions & { history: History }): Router {
-  setupDataFunctions(routes, fetchOptions);
+  const routes = setupDataFunctions(options);
 
   const matches = matchRoutes(routes, location);
   const routeId = matches && matches[0].route.id;

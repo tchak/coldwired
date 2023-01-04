@@ -25,6 +25,8 @@ type RouteHandle = {
   method?: string | string[];
 };
 
+export type SetupRequest = (request: Request) => Request;
+
 export function getRouteData(state: RouterState): {
   loaderData?: RouteData;
   actionData?: RouteData;
@@ -75,11 +77,12 @@ function isAction(handle: RouteHandle) {
   return false;
 }
 
-export function setupDataFunctions(
-  routes: AgnosticRouteObject[],
-  fetchOptions?: RequestInit
-): void {
-  const dataFunction = makeDataFunction(fetchOptions);
+export function setupDataFunctions(options?: {
+  routes?: AgnosticRouteObject[];
+  setup?: SetupRequest;
+}): AgnosticRouteObject[] {
+  const dataFunction = makeDataFunction(options?.setup);
+  const routes = options?.routes ?? [];
 
   for (const route of routes) {
     if (isLoader(route.handle)) {
@@ -97,6 +100,7 @@ export function setupDataFunctions(
     loader: dataFunction,
     action: dataFunction,
   });
+  return routes;
 }
 
 const shouldRevalidate: ShouldRevalidateFunction = (args) => {
@@ -109,12 +113,12 @@ const shouldRevalidate: ShouldRevalidateFunction = (args) => {
 };
 
 const dataFunctionHandler = (response: Response) => onFetchResponse(response);
-const makeDataFunction: (fetchOptions?: RequestInit) => DataFunction =
-  (fetchOptions) =>
+const makeDataFunction: (setup?: SetupRequest) => DataFunction =
+  (setup) =>
   ({ request }) => {
     request.headers.set('x-requested-with', 'coldwire');
     request.headers.set('accept', [ContentType.TurboStream, ContentType.HTML].join(', '));
-    return fetch(request, { ...fetchOptions }).then(dataFunctionHandler);
+    return fetch(setup?.(request) ?? request).then(dataFunctionHandler);
   };
 
 function onFetchResponse(response: Response) {

@@ -15,7 +15,7 @@ import { TurboStream } from '@coldwired/turbo-stream';
 
 import { type RouteObject, createBrowserRouter, createMemoryRouter } from './router';
 import { type Schema, defaultSchema } from './schema';
-import type { RouteData } from './data';
+import { type RouteData } from './data';
 import {
   type HTMLSubmitterElement,
   getFormSubmissionInfo,

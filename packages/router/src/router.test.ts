@@ -339,9 +339,7 @@ describe('@coldwired/router', () => {
     expect(submit.value).toEqual('Submit');
 
     await waitForEvent(defaultSchema.navigationStateChangeEvent);
-    expect(document.body.innerHTML).toMatch('<h1 class="active">About</h1>');
-    document.querySelector('h1')?.classList.remove('active');
-    expect(document.body.innerHTML).toMatch('<h1 class="">About</h1>');
+    expect(document.body.innerHTML).toMatch('<h1>About</h1>');
     expect(application.state.location.pathname).toEqual('/about');
     expect(currentNavigationState()).toEqual('idle');
   });

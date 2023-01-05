@@ -1,5 +1,14 @@
 # @coldwired/turbo-stream
 
+## 0.3.1
+
+### Patch Changes
+
+- Make routes optional
+- Updated dependencies
+  - @coldwired/actions@0.3.1
+  - @coldwired/utils@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

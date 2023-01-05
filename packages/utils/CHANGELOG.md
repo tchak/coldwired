@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.3.1
+
+### Patch Changes
+
+- Make routes optional
+
 ## 0.3.0
 
 ### Minor Changes

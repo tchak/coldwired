@@ -14,7 +14,7 @@
       "require": "./dist/index.cjs.js"
     }
   },
-  "version": "0.3.1",
+  "version": "0.4.1",
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",
@@ -27,7 +27,7 @@
     "lint:js": "eslint . --ext .ts,.tsx",
     "clean": "del dist coverage node_modules/.vite"
   },
-  "dependencies": {
+  "devDependencies": {
     "just-debounce-it": "^3.2.0",
     "just-throttle": "^4.2.0"
   },

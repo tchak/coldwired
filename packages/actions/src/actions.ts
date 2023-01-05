@@ -422,7 +422,12 @@ class DispatchEventElement extends HTMLElement {
     invariant(type, '[dispatch-event] must have "type" attribute');
     invariant(target, '[dispatch-event] must have a target element');
 
-    dispatch(type, { target });
+    const content = this.querySelector<HTMLScriptElement>(
+      'script[type="application/json"]'
+    )?.textContent;
+    const detail = content ? parseEventDetail(content) : null;
+
+    dispatch(type, { target, detail });
 
     this.remove();
   }
@@ -430,4 +435,18 @@ class DispatchEventElement extends HTMLElement {
 
 if (!customElements.get('dispatch-event')) {
   customElements.define('dispatch-event', DispatchEventElement);
+}
+
+function parseEventDetail(content: string) {
+  const maybeJSON = content
+    .trim()
+    .replace(/^<!\[CDATA\[/, '')
+    .replace(/\]\]>$/, '')
+    .trim();
+  if (!maybeJSON) return null;
+  try {
+    return JSON.parse(maybeJSON);
+  } catch {
+    return null;
+  }
 }

@@ -1,5 +1,16 @@
 # @coldwired/router
 
+## 0.4.0
+
+### Minor Changes
+
+- rename `render` to `renderTurboStream`
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/turbo-stream@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes

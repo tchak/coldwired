@@ -11,7 +11,7 @@ import {
   domReady,
 } from '@coldwired/utils';
 import { Actions } from '@coldwired/actions';
-import { TurboStream } from '@coldwired/turbo-stream';
+import { renderTurboStream } from '@coldwired/turbo-stream';
 
 import { type RouteObject, createBrowserRouter, createMemoryRouter } from './router';
 import { type Schema, defaultSchema } from './schema';
@@ -51,7 +51,6 @@ export class Application {
   #schema: Schema;
   #router: Router;
   #actions: Actions;
-  #turboStream: TurboStream;
 
   #httpMethodOverride = false;
   #controllers = new Set<DirectiveController>();
@@ -69,7 +68,6 @@ export class Application {
       element,
       schema: this.#schema,
     });
-    this.#turboStream = new TurboStream({ actions: this.#actions });
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       navigationDone: this.navigationDone.bind(this),
@@ -138,8 +136,8 @@ export class Application {
     await this.#actions.ready();
   }
 
-  async render(stream: string) {
-    await this.#turboStream.render(stream);
+  renderTurboStream(stream: string) {
+    return renderTurboStream(this.#actions, stream);
   }
 
   private reset() {
@@ -170,7 +168,7 @@ export class Application {
   private fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element, data?: RouteData) {
     switch (data?.format) {
       case 'turbo-stream':
-        this.handleTurboStream(form, data.content);
+        this.renderTurboStream(data.content);
         break;
       case 'json':
         this.handleJSON(form, { fetcherKey, data: data.content });
@@ -225,10 +223,6 @@ export class Application {
         }
       }
     }
-  }
-
-  private handleTurboStream(_: Element, content: string) {
-    this.#turboStream.render(content);
   }
 
   private handleHTML(content: string, detail: RenderDetail) {

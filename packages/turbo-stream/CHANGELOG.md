@@ -1,5 +1,11 @@
 # @coldwired/turbo-stream
 
+## 0.4.0
+
+### Minor Changes
+
+- Expose `parseTurboStream`
+
 ## 0.3.1
 
 ### Patch Changes

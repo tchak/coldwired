@@ -14,7 +14,7 @@
       "require": "./dist/index.cjs.js"
     }
   },
-  "version": "0.3.1",
+  "version": "0.4.0",
   "keywords": [
     "remix",
     "router",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@coldwired/actions": "^0.3.1",
-    "@coldwired/turbo-stream": "^0.3.1",
+    "@coldwired/turbo-stream": "^0.4.0",
     "@coldwired/utils": "^0.3.1",
     "@remix-run/router": "1.2.1",
     "nanoid": "^4.0.0",

@@ -1,5 +1,13 @@
 # @coldwired/actions
 
+## 0.4.1
+
+### Patch Changes
+
+- Dispatch events with detail
+- Updated dependencies
+  - @coldwired/utils@0.4.1
+
 ## 0.3.1
 
 ### Patch Changes

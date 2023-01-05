@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.4.1
+
+### Minor Changes
+
+- Fix external dependencies
+
 ## 0.3.1
 
 ### Patch Changes

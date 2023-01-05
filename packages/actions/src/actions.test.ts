@@ -220,12 +220,16 @@ describe('@coldwired/actions', () => {
   });
 
   it('should dispatch event', async () => {
-    expect.assertions(3);
+    expect.assertions(5);
     actions.morph(document, parseHTMLDocument('<div></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
 
     document.documentElement.addEventListener('toto', () => {
       expect(true).toBeTruthy();
+    });
+    document.documentElement.addEventListener('data', (event) => {
+      expect(true).toBeTruthy();
+      expect((event as CustomEvent).detail).toEqual({ 'the answer': 42, 'more >': '&<t>' });
     });
     from.addEventListener('tata', () => {
       expect(true).toBeTruthy();
@@ -238,6 +242,13 @@ describe('@coldwired/actions', () => {
     actions.after({
       targets: 'body > div',
       fragment: parseHTMLFragment('<dispatch-event type="tata" />', document),
+    });
+    actions.append({
+      targets: 'head',
+      fragment: parseHTMLFragment(
+        '<dispatch-event type="data"><script type="application/json"><![CDATA[{ "the answer": 42, "more >": "&<t>" }]]></script></dispatch-event>',
+        document
+      ),
     });
     await actions.ready();
     expect(document.body.innerHTML).toEqual('<div></div>');

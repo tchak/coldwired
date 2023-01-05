@@ -253,21 +253,21 @@ describe('@coldwired/router', () => {
     expect(newText?.startsWith('Form')).toBeTruthy();
     expect(text).not.toEqual(newText);
 
-    await application.render(
+    await application.renderTurboStream(
       '<turbo-stream action="update" targets="h1" pin="last"><template>New Form</template></turbo-stream>'
     );
 
-    await application.render(
+    await application.renderTurboStream(
       '<turbo-stream action="append" targets="form" pin><template><p class="e">error1</p></template></turbo-stream>'
     );
-    await application.render(
+    await application.renderTurboStream(
       '<turbo-stream action="append" targets="form" pin><template><p class="e">error2</p></template></turbo-stream>'
     );
 
-    await application.render(
+    await application.renderTurboStream(
       '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning1</p></template></turbo-stream>'
     );
-    await application.render(
+    await application.renderTurboStream(
       '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning2</p></template></turbo-stream>'
     );
 

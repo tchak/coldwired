@@ -3,24 +3,14 @@ import invariant from 'tiny-invariant';
 import { type Action, Actions, isValidActionName } from '@coldwired/actions';
 import { parseHTMLFragment } from '@coldwired/utils';
 
-export class TurboStream {
-  #actions: Actions;
-
-  constructor({ actions }: { actions: Actions }) {
-    this.#actions = actions;
-  }
-
-  async render(stream: string) {
-    const actions = [
-      ...parseHTMLFragment(stream, this.#actions.element.ownerDocument).children,
-    ].map(parseStream);
-
-    this.#actions.applyActions(actions);
-    await this.#actions.ready();
-  }
+export async function renderTurboStream(actions: Actions, stream: string) {
+  actions.applyActions(
+    [...parseHTMLFragment(stream, actions.element.ownerDocument).children].map(parseTurboStream)
+  );
+  await actions.ready();
 }
 
-function parseStream(stream: Element): Action {
+export function parseTurboStream(stream: Element): Action {
   invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
 
   const action = parseActionName(stream);

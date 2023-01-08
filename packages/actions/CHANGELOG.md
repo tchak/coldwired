@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.5.0
+
+### Minor Changes
+
+  fix(actions): cleanup pending actions
+
 ## 0.4.1
 
 ### Patch Changes

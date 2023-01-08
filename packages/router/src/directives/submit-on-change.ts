@@ -4,8 +4,9 @@ import {
   isFormInputElement,
   isTextInputElement,
 } from '@coldwired/utils';
-
 import { Directive } from '../directive-controller';
+
+const DEFAULT_INTERVAL = 500; // 0.5 second
 
 export class SubmitOnChange extends Directive implements EventListenerObject {
   connect() {
@@ -48,6 +49,6 @@ export class SubmitOnChange extends Directive implements EventListenerObject {
 
   private get interval() {
     const value = this.element.getAttribute(this.schema.debounceIntervalAttribute);
-    return parseIntWithDefault(value);
+    return parseIntWithDefault(value, DEFAULT_INTERVAL);
   }
 }

@@ -30,7 +30,7 @@ function parseActionName(stream: Element): Action['action'] {
 
 function parsePin(stream: Element): Action['pin'] {
   const pin = stream.getAttribute('pin');
-  if (pin == '') {
+  if (pin == '' || pin == 'true') {
     return true;
   } else if (pin == 'last') {
     return 'last';

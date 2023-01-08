@@ -1,5 +1,5 @@
-import { Directive } from '../directive-controller';
 import { throttle, parseIntWithDefault } from '@coldwired/utils';
+import { Directive } from '../directive-controller';
 
 const DEFAULT_INTERVAL = 5_000; // 5 seconds
 

@@ -61,7 +61,7 @@ export class Actions {
   #metadata = new Metadata();
   #controller = new AbortController();
 
-  #pending: Promise<void>[] = [];
+  #pending = new Set<Promise<void>>();
   #pinned = new Map<string, PinnedAction[]>();
 
   constructor({ element, schema }: { element: Element; schema?: Schema }) {
@@ -100,6 +100,7 @@ export class Actions {
   reset() {
     this.#controller.abort();
     this.#controller = new AbortController();
+    this.#pending.clear();
     this.#pinned.clear();
     this.#metadata.clear();
   }
@@ -184,7 +185,9 @@ export class Actions {
   }
 
   private scheduleActions(actions: Action[], delay?: number) {
-    this.#pending.push(this._scheduleActions(actions, delay));
+    const promise = this._scheduleActions(actions, delay);
+    this.#pending.add(promise);
+    promise.finally(() => this.#pending.delete(promise));
   }
 
   private async _scheduleActions(actions: Action[], delay?: number) {

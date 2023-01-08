@@ -1,5 +1,17 @@
 # @coldwired/router
 
+## 0.5.0
+
+### Minor Changes
+
+- fix(router): add default invalidate interval to submit
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/turbo-stream@0.5.0
+  - @coldwired/actions@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

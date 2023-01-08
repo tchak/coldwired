@@ -1,5 +1,16 @@
 # @coldwired/turbo-stream
 
+## 0.5.0
+
+### Minor Changes
+
+  fix(turbo-stream): improuve pin parsing
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/actions@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

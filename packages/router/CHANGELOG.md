@@ -1,5 +1,11 @@
 # @coldwired/router
 
+## 0.6.0
+
+### Minor Changes
+
+- fix(router): only run fetchers on state change
+
 ## 0.5.0
 
 ### Minor Changes

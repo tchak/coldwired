@@ -67,10 +67,10 @@ export class NavigationContext {
 
     for (const [fetcherKey, fetcher] of state.fetchers) {
       const previousState = this.#fetchers.get(fetcherKey)?.state;
-      const element = getFetcherElement(fetcherKey);
 
       if (previousState != fetcher.state) {
-        this.fetcherStateChange(fetcherKey, fetcher, element);
+        this.#fetchers.set(fetcherKey, fetcher);
+        const element = getFetcherElement(fetcherKey);
 
         if (fetcher.state == 'submitting') {
           disableFormInputs(element, {
@@ -84,19 +84,19 @@ export class NavigationContext {
           });
         }
 
-        this.#fetchers.set(fetcherKey, fetcher);
-      }
-
-      if (fetcher.state == 'idle') {
-        const data = getFetcherData(fetcher);
-        if (data?.format == 'html') {
-          if (data.content != this.#snapshot) {
+        if (fetcher.state == 'idle') {
+          const data = getFetcherData(fetcher);
+          if (data?.format == 'html') {
+            if (data.content != this.#snapshot) {
+              this.#delegate.fetcherDone(fetcherKey, fetcher, element, data);
+              this.#snapshot = data.content;
+            }
+          } else {
             this.#delegate.fetcherDone(fetcherKey, fetcher, element, data);
-            this.#snapshot = data.content;
           }
-        } else {
-          this.#delegate.fetcherDone(fetcherKey, fetcher, element, data);
         }
+
+        this.fetcherStateChange(fetcherKey, fetcher, element);
       }
     }
 

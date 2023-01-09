@@ -253,4 +253,16 @@ describe('@coldwired/actions', () => {
     await actions.ready();
     expect(document.body.innerHTML).toEqual('<div></div>');
   });
+
+  it('#applyActions with meterialized action', async () => {
+    actions.morph(document, parseHTMLDocument('<div></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    expect(from.outerHTML).toEqual('<div></div>');
+    actions.applyActions([
+      { action: 'update', targets: [from], fragment: parseHTMLFragment('World', document) },
+    ]);
+    await actions.ready();
+    expect(from.outerHTML).toEqual('<div>World</div>');
+  });
 });

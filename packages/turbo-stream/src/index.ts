@@ -19,7 +19,18 @@ export function parseTurboStream(stream: Element): Action {
   const targets = parseTargets(stream);
   const fragment = parseTemplate(stream);
 
-  return { action, delay, pin, targets, fragment };
+  switch (action) {
+    case 'after':
+    case 'before':
+    case 'update':
+    case 'replace':
+    case 'append':
+    case 'prepend':
+      invariant(fragment, '[turbo-stream] template is required');
+      return { action, delay, pin, targets, fragment };
+    default:
+      return { action, delay, pin, targets };
+  }
 }
 
 function parseActionName(stream: Element): Action['action'] {
@@ -57,7 +68,7 @@ function parseTargets(stream: Element): Action['targets'] {
   return `#${target}`;
 }
 
-function parseTemplate(stream: Element): Action['fragment'] {
+function parseTemplate(stream: Element): DocumentFragment | undefined {
   const templateElement = stream.firstElementChild;
   if (!templateElement) {
     return;

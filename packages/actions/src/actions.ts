@@ -17,39 +17,38 @@ import { Metadata } from './metadata';
 import { morph } from './morph';
 import { Schema, defaultSchema } from './schema';
 
-const actionNames = [
-  'after',
-  'before',
-  'append',
-  'prepend',
-  'remove',
-  'replace',
-  'update',
-  'focus',
-  'enable',
-  'disable',
-  'hide',
-  'show',
-] as const;
+const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show'] as const;
+const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;
+const actionNames = [...voidActionNames, ...fragmentActionNames];
 
-const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'];
+type VoidActionName = typeof voidActionNames[number];
+type FragmentActionName = typeof fragmentActionNames[number];
+export type ActionName = VoidActionName | FragmentActionName;
 
-export type ActionName = typeof actionNames[number];
-
-type ActionParams = {
-  targets: Element[];
-  fragment?: DocumentFragment;
-};
-
-export type Action = {
-  action: ActionName;
+type VoidAction = {
+  action: VoidActionName;
   delay?: number;
   pin?: boolean | 'last';
   targets: string;
-  fragment?: DocumentFragment;
+};
+type FragmentAction = {
+  action: FragmentActionName;
+  delay?: number;
+  pin?: boolean | 'last';
+  targets: string;
+  fragment: DocumentFragment;
+};
+type MaterializedVoidAction = Pick<VoidAction, 'action'> & { targets: Element[] };
+type MaterializedFragmentAction = Pick<FragmentAction, 'action' | 'fragment'> & {
+  targets: Element[];
 };
 
-type PinnedAction = Pick<Action, 'action' | 'targets' | 'fragment'>;
+export type Action = VoidAction | FragmentAction;
+export type MaterializedAction = MaterializedVoidAction | MaterializedFragmentAction;
+
+type PinnedAction =
+  | Pick<VoidAction, 'action' | 'targets'>
+  | Pick<FragmentAction, 'action' | 'targets' | 'fragment'>;
 
 export class Actions {
   #element: Element;
@@ -105,9 +104,23 @@ export class Actions {
     this.#metadata.clear();
   }
 
-  applyActions(actions: Action[]) {
-    const immediateActions = actions.filter(isImmediateAction);
-    const delayedActions = groupBy(actions.filter(isDelayedAction), ({ delay }) => delay);
+  applyActions(actions: (Action | MaterializedAction)[]) {
+    const materializedActions: MaterializedAction[] = [];
+    const unmaterializedActions: Action[] = [];
+    for (const action of actions) {
+      if (isMaterializedAction(action)) {
+        materializedActions.push(action);
+      } else {
+        unmaterializedActions.push(action);
+      }
+    }
+    this.scheduleMaterializedActions(materializedActions);
+
+    const immediateActions = unmaterializedActions.filter(isImmediateAction);
+    const delayedActions = groupBy(
+      unmaterializedActions.filter(isDelayedAction),
+      ({ delay }) => delay
+    );
 
     this.scheduleActions(immediateActions);
     for (const [delay, actions] of delayedActions) {
@@ -117,54 +130,54 @@ export class Actions {
 
   applyPinnedActions(element: Element) {
     const actions = [...this.#pinned].flatMap(([, actions]) => actions);
-    this._applyActionsInContext(actions, element);
+    this._applyActionsInContext(this.materializeActions(actions, element));
   }
 
-  after(params: Omit<Action, 'action'>) {
+  after(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'after', ...params }]);
   }
 
-  before(params: Omit<Action, 'action'>) {
+  before(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'before', ...params }]);
   }
 
-  append(params: Omit<Action, 'action'>) {
+  append(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'append', ...params }]);
   }
 
-  prepend(params: Omit<Action, 'action'>) {
+  prepend(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'prepend', ...params }]);
   }
 
-  remove(params: Omit<Action, 'action'>) {
-    this.applyActions([{ action: 'remove', ...params }]);
-  }
-
-  replace(params: Omit<Action, 'action'>) {
+  replace(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'replace', ...params }]);
   }
 
-  update(params: Omit<Action, 'action'>) {
+  update(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
     this.applyActions([{ action: 'update', ...params }]);
   }
 
-  focus(params: Omit<Action, 'action'>) {
+  remove(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
+    this.applyActions([{ action: 'remove', ...params }]);
+  }
+
+  focus(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'focus', ...params }]);
   }
 
-  disable(params: Omit<Action, 'action'>) {
+  disable(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'disable', ...params }]);
   }
 
-  enable(params: Omit<Action, 'action'>) {
+  enable(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'enable', ...params }]);
   }
 
-  hide(params: Omit<Action, 'action'>) {
+  hide(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'hide', ...params }]);
   }
 
-  show(params: Omit<Action, 'action'>) {
+  show(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'show', ...params }]);
   }
 
@@ -184,13 +197,26 @@ export class Actions {
     this.#attributeObserver.observe();
   }
 
-  private scheduleActions(actions: Action[], delay?: number) {
+  private scheduleActions(actions: Action[], delay?: number): void {
     const promise = this._scheduleActions(actions, delay);
     this.#pending.add(promise);
     promise.finally(() => this.#pending.delete(promise));
   }
 
-  private async _scheduleActions(actions: Action[], delay?: number) {
+  private scheduleMaterializedActions(actions: MaterializedAction[]): void {
+    const promise = nextAnimationFrame().then(() => this._applyActionsInContext(actions));
+    this.#pending.add(promise);
+    promise.finally(() => this.#pending.delete(promise));
+  }
+
+  private materializeActions(actions: Action[], element: Element): MaterializedAction[] {
+    return actions.map((action) => ({
+      ...action,
+      targets: getTargetElements(element, action.targets),
+    }));
+  }
+
+  private async _scheduleActions(actions: Action[], delay?: number): Promise<void> {
     if (!delay) {
       await nextAnimationFrame();
     } else {
@@ -206,27 +232,30 @@ export class Actions {
       validateAction(action);
       this.pinAction(action);
     }
-    this._applyActionsInContext(actions, this.#element);
+    this._applyActionsInContext(this.materializeActions(actions, this.#element));
   }
 
-  private _applyActionsInContext(actions: Action[], element: Element) {
+  private _applyActionsInContext(actions: MaterializedAction[]): void {
     const [observableActions, unobservableActions] = partition(actions, isFragmentAction);
-    this._applyActions(unobservableActions, element);
+    this._applyActions(unobservableActions);
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
-    this._applyActions(observableActions, element);
+    this._applyActions(observableActions);
     this.#classListObserver.observe();
     this.#attributeObserver.observe();
   }
 
-  private _applyActions(actions: Action[], element: Element) {
+  private _applyActions(actions: MaterializedAction[]) {
     for (const action of actions) {
-      const targets = getTargetElements(element, action.targets);
-      this[`_${action.action}`]({ ...action, targets });
+      if (isFragmentAction(action)) {
+        this[`_${action.action}`](action);
+      } else {
+        this[`_${action.action}`](action);
+      }
     }
   }
 
-  private pinAction({ delay, pin, ...params }: Action) {
+  private pinAction({ delay, pin, ...params }: Action): void {
     if (pin && !delay) {
       const key = `${params.action}--${params.targets}`;
       if (pin == 'last') {
@@ -242,38 +271,39 @@ export class Actions {
     }
   }
 
-  private _after({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _after({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.after(fragment.cloneNode(true));
     }
   }
 
-  private _before({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _before({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.before(fragment.cloneNode(true));
     }
   }
 
-  private _append({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _append({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
       element.append(fragment.cloneNode(true));
     }
   }
 
-  private _prepend({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _prepend({
+    targets,
+    fragment,
+  }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
       element.prepend(fragment.cloneNode(true));
     }
   }
 
-  private _replace({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _replace({
+    targets,
+    fragment,
+  }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {
         forceAttribute: this.#schema.forceAttribute,
@@ -282,8 +312,7 @@ export class Actions {
     }
   }
 
-  private _update({ targets, fragment }: ActionParams) {
-    if (!fragment) return;
+  private _update({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       morph(element, fragment.cloneNode(true) as DocumentFragment, {
         forceAttribute: this.#schema.forceAttribute,
@@ -293,31 +322,31 @@ export class Actions {
     }
   }
 
-  private _remove({ targets }: ActionParams) {
+  private _remove({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       element.remove();
     }
   }
 
-  private _focus({ targets }: ActionParams) {
+  private _focus({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       focusElement(element);
     }
   }
 
-  private _show({ targets }: ActionParams) {
+  private _show({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       element.classList.remove(this.#schema.hiddenClassName);
     }
   }
 
-  private _hide({ targets }: ActionParams) {
+  private _hide({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       element.classList.add(this.#schema.hiddenClassName);
     }
   }
 
-  private _enable({ targets }: ActionParams) {
+  private _enable({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       if ('disabled' in element) {
         element.disabled = false;
@@ -325,7 +354,7 @@ export class Actions {
     }
   }
 
-  private _disable({ targets }: ActionParams) {
+  private _disable({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       if ('disabled' in element) {
         element.disabled = true;
@@ -385,7 +414,7 @@ function difference<T>(a: Set<T>, b: Set<T>) {
 }
 
 export function isValidActionName(actionName: unknown): actionName is ActionName {
-  return !!actionName && actionNames.includes(actionName as any);
+  return !!actionName && actionNames.includes(actionName as ActionName);
 }
 
 function isImmediateAction(action: Action): action is Action & { delay: undefined } {
@@ -396,8 +425,14 @@ function isDelayedAction(action: Action): action is Action & { delay: number } {
   return !!action.delay;
 }
 
-function isFragmentAction(action: Action): boolean {
-  return fragmentActionNames.includes(action.action);
+function isFragmentAction(
+  action: Action | MaterializedAction
+): action is FragmentAction | MaterializedFragmentAction {
+  return 'fragment' in action;
+}
+
+function isMaterializedAction(action: Action | MaterializedAction): action is MaterializedAction {
+  return !(typeof action.targets == 'string');
 }
 
 function getTargetElements(element: Element, selector: string) {
@@ -406,7 +441,6 @@ function getTargetElements(element: Element, selector: string) {
 
 function validateAction(action: Action) {
   invariant(!(action.delay && action.pin), '[actions] a delayed action cannot be pinned');
-  invariant(!isFragmentAction(action) || action.fragment, '[actions] fragment is required');
 }
 
 class DispatchEventElement extends HTMLElement {

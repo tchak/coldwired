@@ -1,5 +1,17 @@
 # @coldwired/router
 
+## 0.7.0
+
+### Minor Changes
+
+- feat(directive): add changed callback to directives
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/turbo-stream@0.7.0
+  - @coldwired/actions@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes

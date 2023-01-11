@@ -32,8 +32,9 @@ export abstract class Directive {
     return this.#schema;
   }
 
-  abstract connect?(): void;
-  abstract disconnect?(): void;
+  abstract connect(): void;
+  abstract disconnect(): void;
+  changed?(value: string): void;
 }
 
 export type DirectiveFactory = (element: Element) => Directive;
@@ -67,14 +68,18 @@ export class DirectiveController implements DirectiveObserverDelegate {
     }
   }
 
+  directiveAttributeValueChanged(element: Element, value: string) {
+    this.#registry.get(element)?.changed?.(value);
+  }
+
   directiveMatched(element: Element) {
     const directive = this.#factory(element);
-    directive.connect?.();
+    directive.connect();
     this.#registry.set(element, directive);
   }
 
   directiveUnmatched(element: Element) {
-    this.#registry.get(element)?.disconnect?.();
+    this.#registry.get(element)?.disconnect();
     this.#registry.delete(element);
   }
 }

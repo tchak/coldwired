@@ -1,7 +1,7 @@
 export interface DirectiveObserverDelegate {
   directiveMatched?(element: Element): void;
   directiveUnmatched?(element: Element): void;
-  directiveAttributeValueChanged?(element: Element): void;
+  directiveAttributeValueChanged?(element: Element, value: string): void;
 }
 
 export class DirectiveObserver {
@@ -98,7 +98,8 @@ export class DirectiveObserver {
     const element = node as Element;
     if (this.#elements.has(element)) {
       if (this.matchElement(element)) {
-        this.#delegate.directiveAttributeValueChanged?.(element);
+        const value = element.getAttribute(this.attributeName) as string;
+        this.#delegate.directiveAttributeValueChanged?.(element, value);
       } else {
         this.removeElement(element);
       }

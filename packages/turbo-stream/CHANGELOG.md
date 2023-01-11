@@ -1,10 +1,21 @@
 # @coldwired/turbo-stream
 
+## 0.7.0
+
+### Minor Changes
+
+- feat(actions): expose materialized actions
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/actions@0.7.0
+
 ## 0.5.0
 
 ### Minor Changes
 
-  fix(turbo-stream): improuve pin parsing
+- fix(turbo-stream): improuve pin parsing
 
 ### Patch Changes
 

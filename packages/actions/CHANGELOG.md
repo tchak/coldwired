@@ -1,10 +1,16 @@
 # @coldwired/actions
 
+## 0.7.0
+
+### Minor Changes
+
+- feat(actions): expose materialized actions
+
 ## 0.5.0
 
 ### Minor Changes
 
-  fix(actions): cleanup pending actions
+- fix(actions): cleanup pending actions
 
 ## 0.4.1
 

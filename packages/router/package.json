@@ -14,7 +14,7 @@
       "require": "./dist/index.cjs.js"
     }
   },
-  "version": "0.6.0",
+  "version": "0.7.0",
   "keywords": [
     "remix",
     "router",
@@ -33,8 +33,8 @@
     "clean": "del dist coverage node_modules/.vite"
   },
   "dependencies": {
-    "@coldwired/actions": "^0.5.0",
-    "@coldwired/turbo-stream": "^0.5.0",
+    "@coldwired/actions": "^0.7.0",
+    "@coldwired/turbo-stream": "^0.7.0",
     "@coldwired/utils": "^0.4.1",
     "@remix-run/router": "1.2.1",
     "nanoid": "^4.0.0",

@@ -21,8 +21,8 @@ const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show']
 const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;
 const actionNames = [...voidActionNames, ...fragmentActionNames];
 
-type VoidActionName = typeof voidActionNames[number];
-type FragmentActionName = typeof fragmentActionNames[number];
+type VoidActionName = (typeof voidActionNames)[number];
+type FragmentActionName = (typeof fragmentActionNames)[number];
 export type ActionName = VoidActionName | FragmentActionName;
 
 type VoidAction = {
@@ -83,17 +83,19 @@ export class Actions {
     return this.#element;
   }
 
-  start() {
+  observe() {
     this.#classListObserver.observe();
     this.#attributeObserver.observe();
     this.#element.addEventListener('input', this.#delegate);
+    this.#element.addEventListener('change', this.#delegate);
   }
 
-  stop() {
+  disconnect() {
     this.reset();
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
     this.#element.removeEventListener('input', this.#delegate);
+    this.#element.removeEventListener('change', this.#delegate);
   }
 
   reset() {
@@ -365,7 +367,7 @@ export class Actions {
   private handleEvent(event: Event) {
     const target = (event.composedPath && event.composedPath()[0]) || event.target;
 
-    if (event.type == 'input' && isFormInputElement(target)) {
+    if (isFormInputElement(target)) {
       this.#metadata.getOrCreate(target).touched = true;
     }
   }

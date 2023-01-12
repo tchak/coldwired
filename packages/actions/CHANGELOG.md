@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.8.0
+
+### Minor Changes
+
+- refactor(actions): start/stop -> observe/disconnect
+
 ## 0.7.0
 
 ### Minor Changes

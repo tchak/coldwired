@@ -9,10 +9,10 @@ describe('@coldwired/turbo-stream', () => {
   let actions: Actions;
 
   beforeEach(async () => {
-    actions?.stop();
+    actions?.observe();
     actions = new Actions({ element: document.documentElement });
     document.body.innerHTML = '';
-    actions.start();
+    actions.disconnect();
   });
 
   it('should append', async () => {

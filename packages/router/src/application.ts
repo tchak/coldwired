@@ -92,7 +92,7 @@ export class Application {
   async start(): Promise<this> {
     this.#router.subscribe(this.#navigationContext.to.bind(this.#navigationContext));
     this.#router.initialize();
-    this.#actions.start();
+    this.#actions.observe();
 
     this.#actions.element.addEventListener('click', this.#delegate);
     this.#actions.element.addEventListener('submit', this.#delegate);
@@ -108,7 +108,7 @@ export class Application {
 
   stop(): this {
     this.#router.dispose();
-    this.#actions.stop();
+    this.#actions.disconnect();
 
     for (const controller of this.#controllers) {
       controller.stop();

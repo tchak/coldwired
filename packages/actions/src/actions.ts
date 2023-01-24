@@ -50,6 +50,12 @@ type PinnedAction =
   | Pick<VoidAction, 'action' | 'targets'>
   | Pick<FragmentAction, 'action' | 'targets' | 'fragment'>;
 
+export type ActionsOptions = {
+  element?: Element;
+  schema?: Schema;
+  debug?: boolean;
+};
+
 export class Actions {
   #element: Element;
   #schema: Schema;
@@ -63,9 +69,12 @@ export class Actions {
   #pending = new Set<Promise<void>>();
   #pinned = new Map<string, PinnedAction[]>();
 
-  constructor({ element, schema }: { element: Element; schema?: Schema }) {
-    this.#element = element;
-    this.#schema = { ...defaultSchema, ...schema };
+  #debug: boolean;
+
+  constructor(options?: ActionsOptions) {
+    this.#element = options?.element ?? document.documentElement;
+    this.#schema = { ...defaultSchema, ...options?.schema };
+    this.#debug = options?.debug ?? false;
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       classListChanged: this.classListChanged.bind(this),
@@ -212,6 +221,7 @@ export class Actions {
   }
 
   private materializeActions(actions: Action[], element: Element): MaterializedAction[] {
+    this._debugMaterializeActions(actions, element);
     return actions.map((action) => ({
       ...action,
       targets: getTargetElements(element, action.targets),
@@ -248,12 +258,41 @@ export class Actions {
   }
 
   private _applyActions(actions: MaterializedAction[]) {
+    this._debugApplyActions(actions);
     for (const action of actions) {
       if (isFragmentAction(action)) {
         this[`_${action.action}`](action);
       } else {
         this[`_${action.action}`](action);
       }
+    }
+  }
+
+  private _debugMaterializeActions(actions: Action[], element: Element) {
+    if (this.#debug && actions.length > 0) {
+      if (actions.length == 1) {
+        console.groupCollapsed(`[actions] materialize one action:`);
+      } else {
+        console.groupCollapsed(`[actions] materialize ${actions.length} actions:`);
+      }
+      for (const action of actions) {
+        console.log(`"${action.action}"`, action.targets, element);
+      }
+      console.groupEnd();
+    }
+  }
+
+  private _debugApplyActions(actions: MaterializedAction[]) {
+    if (this.#debug && actions.length > 0) {
+      if (actions.length == 1) {
+        console.groupCollapsed(`[actions] apply one action:`);
+      } else {
+        console.groupCollapsed(`[actions] apply ${actions.length} actions:`);
+      }
+      for (const action of actions) {
+        console.dir(action);
+      }
+      console.groupEnd();
     }
   }
 

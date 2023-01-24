@@ -125,13 +125,8 @@ export function isFormOptionElement(node: unknown): node is HTMLOptionElement {
 export function isTextInputElement(node: unknown): node is HTMLInputElement | HTMLTextAreaElement {
   return (
     isElement(node) &&
-    (node.tagName == 'TEXTAREA' ||
-      (isInputElement(node) && !['checkbox', 'radio', 'range'].includes(node.type)))
+    (node.tagName == 'TEXTAREA' || (isInputElement(node) && isTextType(node.type)))
   );
-}
-
-export function isNonTextInputElement(node: unknown): node is HTMLInputElement | HTMLSelectElement {
-  return isFormInputElement(node) && !isTextInputElement(node);
 }
 
 export function isElementOrText(node: unknown): node is Element | Text {
@@ -222,4 +217,9 @@ export function partition<T>(array: T[], predicat: (entry: T) => boolean): [yes:
     },
     [[], []]
   );
+}
+
+const TEXT_TYPES = ['text', 'search', 'url', 'tel', 'password'];
+function isTextType(type: string) {
+  return TEXT_TYPES.includes(type);
 }

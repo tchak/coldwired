@@ -57,26 +57,32 @@ export class Application {
   #delegate: EventListenerObject & NavigationContextDelegate;
   #navigationContext: NavigationContext;
 
-  constructor({ schema, debug, adapter, httpMethodOverride, ...options }: ApplicationOptions) {
-    const element = options.element ?? document.documentElement;
+  constructor(options?: ApplicationOptions) {
+    const element = options?.element ?? document.documentElement;
     this.#router =
-      adapter == 'memory'
+      options?.adapter == 'memory'
         ? createMemoryRouter({ ...options, element })
         : createBrowserRouter({ ...options, element });
-    this.#schema = { ...defaultSchema, ...schema };
+    this.#schema = { ...defaultSchema, ...options?.schema };
     this.#actions = new Actions({
       element,
       schema: this.#schema,
+      debug: options?.debug,
     });
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       navigationDone: this.navigationDone.bind(this),
       fetcherDone: this.fetcherDone.bind(this),
     };
-    this.#navigationContext = new NavigationContext(element, this.#schema, this.#delegate, debug);
+    this.#navigationContext = new NavigationContext(
+      element,
+      this.#schema,
+      this.#delegate,
+      options?.debug
+    );
 
-    if (httpMethodOverride) {
-      this.#httpMethodOverride = httpMethodOverride;
+    if (options?.httpMethodOverride) {
+      this.#httpMethodOverride = options?.httpMethodOverride;
     }
 
     this.register(this.#schema.fetcherAttribute, Directives.Fetcher);

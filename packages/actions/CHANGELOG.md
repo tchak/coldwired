@@ -1,5 +1,14 @@
 # @coldwired/actions
 
+## 0.8.1
+
+### Patch Changes
+
+
+- feat(actions): add debug option
+- Updated dependencies
+  - @coldwired/utils@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes

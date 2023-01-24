@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.8.1
+
+### Patch Changes
+
+- fix(utils): more strict text input detection
+
 ## 0.4.1
 
 ### Minor Changes

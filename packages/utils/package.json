@@ -14,7 +14,7 @@
       "require": "./dist/index.cjs.js"
     }
   },
-  "version": "0.4.1",
+  "version": "0.8.1",
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",

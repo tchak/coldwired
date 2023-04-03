@@ -14,7 +14,6 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
-    "dev": "turbo run dev",
     "prepare": "pnpm run build"
   },
   "devDependencies": {
@@ -23,6 +22,7 @@
     "@testing-library/dom": "^9.0.1",
     "@typescript-eslint/eslint-plugin": "^5.56.0",
     "@typescript-eslint/parser": "^5.56.0",
+    "@vitest/browser": "^0.29.8",
     "@vitest/ui": "^0.29.7",
     "c8": "^7.13.0",
     "del-cli": "^5.0.0",
@@ -37,7 +37,8 @@
     "turbo": "^1.8.5",
     "typescript": "^5.0.2",
     "vite": "^4.2.1",
-    "vitest": "^0.29.7"
+    "vitest": "^0.29.7",
+    "webdriverio": "^8.6.9"
   },
   "engines": {
     "node": ">=16"

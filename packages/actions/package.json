@@ -22,8 +22,8 @@
     "build": "run-s clean build:*",
     "build:vite": "vite build",
     "build:tsc": "tsc --emitDeclarationOnly",
-    "dev": "vitest",
     "test": "vitest run",
+    "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
     "lint": "run-s lint:*",
     "lint:types": "tsc --noEmit",
@@ -81,5 +81,9 @@
     "github": {
       "release": true
     }
+  },
+  "devDependencies": {
+    "@hotwired/turbo": "^7.3.0",
+    "intersection-observer": "^0.12.2"
   }
 }

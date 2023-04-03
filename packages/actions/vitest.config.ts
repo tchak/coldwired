@@ -6,6 +6,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    //setupFiles: ['./test/setup-test-browser-env.ts'],
     setupFiles: ['./test/setup-test-env.ts'],
+    browser: {
+      enabled: false,
+      headless: true,
+      name: 'chrome',
+    },
   },
 });

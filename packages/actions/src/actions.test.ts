@@ -133,6 +133,25 @@ describe('@coldwired/actions', () => {
     expect(document.body.firstElementChild?.firstChild?.textContent).toEqual('Hello');
   });
 
+  it('should morph turbo-frame element', () => {
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<turbo-frame id="test-frame" data-turbo-action="advance">Hello World</turbo-frame>'
+      )
+    );
+    const frame = document.body.firstElementChild as HTMLElement;
+
+    actions.morph(
+      frame,
+      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>'
+    );
+
+    expect(document.body.innerHTML).toEqual(
+      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>'
+    );
+  });
+
   it('should show/hide element', async () => {
     actions.morph(document, parseHTMLDocument('<div class="bar"></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;

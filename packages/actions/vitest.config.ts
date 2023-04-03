@@ -10,8 +10,9 @@ export default defineConfig({
     setupFiles: ['./test/setup-test-env.ts'],
     browser: {
       enabled: false,
-      headless: true,
-      name: 'chrome',
+      headless: false,
+      name: 'firefox',
+      provider: 'playwright',
     },
   },
 });

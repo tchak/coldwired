@@ -152,6 +152,52 @@ describe('@coldwired/actions', () => {
     );
   });
 
+  it('should focus element after applying actions', async () => {
+    actions.morph(document, parseHTMLDocument('<div><button>Click me</button></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          '<button data-turbo-focus>First</button><button data-turbo-focus>Click me</button>',
+          document
+        ),
+      },
+    ]);
+    await actions.ready();
+    const firstButton = from.firstElementChild as HTMLButtonElement;
+    expect(isFocused(firstButton)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          '<button>First</button><button data-turbo-focus>Click me</button>',
+          document
+        ),
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(firstButton)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          '<button>First</button><button>Click me</button><button data-turbo-focus="force">Last</button>',
+          document
+        ),
+      },
+    ]);
+    await actions.ready();
+    const lastButton = from.lastElementChild as HTMLButtonElement;
+    expect(isFocused(lastButton)).toBeTruthy();
+  });
+
   it('should show/hide element', async () => {
     actions.morph(document, parseHTMLDocument('<div class="bar"></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;

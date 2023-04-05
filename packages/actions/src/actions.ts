@@ -254,6 +254,7 @@ export class Actions {
       this.#classListObserver.disconnect();
       this.#attributeObserver.disconnect();
       this._applyActions(observableActions);
+      this._applyFocus(observableActions);
       this.#classListObserver.observe();
       this.#attributeObserver.observe();
     }
@@ -266,6 +267,32 @@ export class Actions {
         this[`_${action.action}`](action);
       } else {
         this[`_${action.action}`](action);
+      }
+    }
+  }
+
+  private _applyFocus(actions: MaterializedAction[]) {
+    const attribute = this.#schema.focusAttribute;
+    const focusTargets = [...this.element.querySelectorAll(`[${attribute}]`)];
+
+    if (focusTargets.length) {
+      const activeElement = this.element.ownerDocument.activeElement;
+      const hasActiveElement = !activeElement || activeElement != this.element.ownerDocument.body;
+      const targets = actions
+        .flatMap(({ targets }) => targets.filter((target) => target.isConnected))
+        .reverse();
+      const target = focusTargets.find((focusTarget) =>
+        targets.some((target) =>
+          !hasActiveElement || focusTarget.getAttribute(attribute) == 'force'
+            ? target.contains(focusTarget)
+            : false
+        )
+      );
+      if (target) {
+        this._focus({ targets: [target] });
+      }
+      for (const target of focusTargets) {
+        target.removeAttribute(attribute);
       }
     }
   }
@@ -372,7 +399,8 @@ export class Actions {
   }
 
   private _focus({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
-    for (const element of targets) {
+    const element = targets.at(0);
+    if (element) {
       focusElement(element);
     }
   }

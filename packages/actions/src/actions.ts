@@ -250,11 +250,13 @@ export class Actions {
   private _applyActionsInContext(actions: MaterializedAction[]): void {
     const [observableActions, unobservableActions] = partition(actions, isFragmentAction);
     this._applyActions(unobservableActions);
-    this.#classListObserver.disconnect();
-    this.#attributeObserver.disconnect();
-    this._applyActions(observableActions);
-    this.#classListObserver.observe();
-    this.#attributeObserver.observe();
+    if (observableActions.length > 0) {
+      this.#classListObserver.disconnect();
+      this.#attributeObserver.disconnect();
+      this._applyActions(observableActions);
+      this.#classListObserver.observe();
+      this.#attributeObserver.observe();
+    }
   }
 
   private _applyActions(actions: MaterializedAction[]) {

@@ -1,5 +1,9 @@
 import { installGlobals } from '@remix-run/node';
+import 'intersection-observer';
+import * as Turbo from '@hotwired/turbo';
 
+Turbo.session.drive = false;
+Turbo.start();
 installGlobals();
 
 class PatchedFormData extends FormData {

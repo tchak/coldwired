@@ -1,9 +1,15 @@
 # @coldwired/actions
 
+## 0.9.0
+
+### Minor Changes
+
+- feat(actions): can specify next focused element in actions
+  fix(actions): only pause observer if there are actions to apply
+
 ## 0.8.1
 
 ### Patch Changes
-
 
 - feat(actions): add debug option
 - Updated dependencies

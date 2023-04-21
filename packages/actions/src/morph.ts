@@ -16,6 +16,7 @@ import { Metadata } from './metadata';
 type MorphOptions = {
   childrenOnly?: boolean;
   forceAttribute?: string;
+  permanentAttribute?: string;
   metadata?: Metadata;
 };
 
@@ -79,6 +80,7 @@ function morphToDocumentFragment(
 
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
+  const permanentAttribute = options?.permanentAttribute;
 
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
@@ -94,6 +96,13 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
 
       if (fromElement.isEqualNode(toElement)) {
         return false;
+      }
+
+      if (!force && permanentAttribute) {
+        const permanent = !!fromElement.closest(`[${permanentAttribute}]`);
+        if (permanent) {
+          return false;
+        }
       }
 
       if (!force && metadata) {

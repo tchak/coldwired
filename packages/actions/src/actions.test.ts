@@ -289,6 +289,20 @@ describe('@coldwired/actions', () => {
     expect(from.hidden).toBeTruthy();
   });
 
+  it('should preserve html if permanent attribute is set', async () => {
+    actions.morph(document, parseHTMLDocument('<div>Hello world</div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+    from.setAttribute('data-turbo-permanent', '');
+    actions.morph(document, parseHTMLDocument('<div>Bye world!</div>'));
+    expect(from.textContent).toEqual('Hello world');
+    actions.morph(document, parseHTMLDocument('<div>Encore !</div>'));
+    expect(from.textContent).toEqual('Hello world');
+    expect(from.hasAttribute('data-turbo-permanent')).toBeTruthy();
+    actions.morph(document, parseHTMLDocument('<div data-turbo-force>Bye world!</div>'));
+    expect(from.textContent).toEqual('Bye world!');
+    expect(from.hasAttribute('data-turbo-permanent')).toBeFalsy();
+  });
+
   it('should dispatch event', async () => {
     expect.assertions(5);
     actions.morph(document, parseHTMLDocument('<div></div>'));

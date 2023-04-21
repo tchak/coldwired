@@ -201,6 +201,7 @@ export class Actions {
     this.#attributeObserver.disconnect();
     morph(from, to, {
       forceAttribute: this.#schema.forceAttribute,
+      permanentAttribute: this.#schema.permanentAttribute,
       metadata: this.#metadata,
       ...options,
     });

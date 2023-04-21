@@ -262,26 +262,31 @@ describe('@coldwired/actions', () => {
   });
 
   it('should preserve aria attributes', async () => {
-    actions.morph(document, parseHTMLDocument('<div>Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden>Menu</div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
 
+    expect(from.hidden).toBeTruthy();
     from.setAttribute('aria-expanded', 'true');
+    from.hidden = false;
     await Promise.resolve();
 
-    actions.morph(document, parseHTMLDocument('<div>New Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden>New Menu</div>'));
     expect(from.getAttribute('aria-expanded')).toEqual('true');
+    expect(from.hidden).toBeFalsy();
 
     from.removeAttribute('aria-expanded');
     await Promise.resolve();
 
-    actions.morph(document, parseHTMLDocument('<div aria-expanded>New Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden aria-expanded>New Menu</div>'));
     expect(from.hasAttribute('aria-expanded')).toBeFalsy();
+    expect(from.hidden).toBeFalsy();
 
     actions.morph(
       document,
-      parseHTMLDocument('<div aria-expanded data-turbo-force>New Menu</div>')
+      parseHTMLDocument('<div hidden aria-expanded data-turbo-force>New Menu</div>')
     );
     expect(from.getAttribute('aria-expanded')).toEqual('');
+    expect(from.hidden).toBeTruthy();
   });
 
   it('should dispatch event', async () => {

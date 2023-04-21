@@ -3,6 +3,7 @@ import { isElement } from '@coldwired/utils';
 const attributes = [
   'role',
   'disabled',
+  'hidden',
   'tab-index',
   'aria-autocomplete',
   'aria-checked',

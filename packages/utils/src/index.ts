@@ -150,6 +150,18 @@ export function focusElement(element: Element) {
   }
 }
 
+export function focusNextElement(element: Element) {
+  const activeElement = element.ownerDocument.activeElement;
+  if (activeElement && (element == activeElement || element.contains(activeElement))) {
+    const focusable = getKeyboardFocusableElements(element.ownerDocument.body, element);
+    const index = focusable.indexOf(activeElement);
+    const nextFocusedElement = index > 0 ? focusable[index - 1] : focusable[index + 1];
+    if (nextFocusedElement) {
+      focusElement(nextFocusedElement);
+    }
+  }
+}
+
 export function parseHTMLDocument(html: string) {
   return new DOMParser().parseFromString(html, 'text/html');
 }
@@ -216,6 +228,18 @@ export function partition<T>(array: T[], predicat: (entry: T) => boolean): [yes:
       return parts;
     },
     [[], []]
+  );
+}
+
+function getKeyboardFocusableElements(element: Element, elementToRemove: Element): Element[] {
+  return [
+    ...element.querySelectorAll<HTMLElement>(
+      'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), details, [tabindex]:not([tabindex="-1"])'
+    ),
+  ].filter(
+    (element) =>
+      isFocused(element) ||
+      (!element.closest('[aria-hidden], [hidden]') && !elementToRemove.contains(element))
   );
 }
 

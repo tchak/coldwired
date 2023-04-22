@@ -153,49 +153,80 @@ describe('@coldwired/actions', () => {
   });
 
   it('should focus element after applying actions', async () => {
-    actions.morph(document, parseHTMLDocument('<div><button>Click me</button></div>'));
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<div id="main"><button>First</button><button>Click me</button></div><input name="name" />'
+      )
+    );
     const from = document.body.firstElementChild as HTMLDivElement;
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button data-turbo-focus>First</button><button data-turbo-focus>Click me</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
     const firstButton = from.firstElementChild as HTMLButtonElement;
-    expect(isFocused(firstButton)).toBeTruthy();
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button>First</button><button data-turbo-focus>Click me</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
-    expect(isFocused(firstButton)).toBeTruthy();
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button>First</button><button>Click me</button><button data-turbo-focus="force">Last</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
     const lastButton = from.lastElementChild as HTMLButtonElement;
-    expect(isFocused(lastButton)).toBeTruthy();
+    const input = document.querySelector('input') as HTMLInputElement;
+    lastButton.focus();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment('<button>First</button>', document),
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(firstButton)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment('yolo', document),
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(input)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          '<input name="firstName" /><input name="lastName" />',
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    const firstNameInput = document.querySelector('input[name="firstName"]') as HTMLInputElement;
+    expect(isFocused(firstNameInput)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          '<input name="firstName" /><input name="lastName" />',
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: '#main',
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(input)).toBeTruthy();
   });
 
   it('should show/hide element', async () => {

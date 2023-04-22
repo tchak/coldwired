@@ -9,6 +9,7 @@ import {
   parseHTMLFragment,
   isElementOrText,
   isElement,
+  focusNextElement,
 } from '@coldwired/utils';
 
 import { Metadata } from './metadata';
@@ -131,6 +132,12 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         }
       }
 
+      return true;
+    },
+    onBeforeNodeDiscarded(node) {
+      if (isElement(node)) {
+        focusNextElement(node);
+      }
       return true;
     },
   });

@@ -371,7 +371,7 @@ export class Actions {
 
   private _remove({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
-      focusNextElement(element, this.#schema.focusGroupAttribute);
+      focusNextElement(element, this.#schema);
       element.remove();
     }
   }
@@ -392,6 +392,7 @@ export class Actions {
 
   private _hide({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
+      focusNextElement(element, this.#schema);
       element.setAttribute('hidden', 'hidden');
       element.classList.add(this.#schema.hiddenClassName);
     }
@@ -408,6 +409,7 @@ export class Actions {
   private _disable({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       if ('disabled' in element) {
+        focusNextElement(element, this.#schema);
         element.disabled = true;
       }
     }

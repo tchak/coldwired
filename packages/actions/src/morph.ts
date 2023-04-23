@@ -10,14 +10,14 @@ import {
   isElementOrText,
   isElement,
   focusNextElement,
+  type FocusNextOptions,
 } from '@coldwired/utils';
 
 import { Metadata } from './metadata';
 
-type MorphOptions = {
+type MorphOptions = FocusNextOptions & {
   childrenOnly?: boolean;
   forceAttribute?: string;
-  focusGroupAttribute?: string;
   permanentAttribute?: string;
   metadata?: Metadata;
 };
@@ -83,7 +83,6 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
   const permanentAttribute = options?.permanentAttribute;
-  const focusGroupAttribute = options?.focusGroupAttribute;
 
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
@@ -138,7 +137,7 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
     },
     onBeforeNodeDiscarded(node) {
       if (isElement(node)) {
-        focusNextElement(node, focusGroupAttribute);
+        focusNextElement(node, options);
       }
       return true;
     },

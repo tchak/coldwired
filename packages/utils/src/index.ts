@@ -150,10 +150,12 @@ export function focusElement(element: Element) {
   }
 }
 
-export function focusNextElement(element: Element, focusGroupAttribute?: string) {
+export type FocusNextOptions = { focusGroupAttribute?: string; focusDirectionAttribute?: string };
+
+export function focusNextElement(element: Element, options?: FocusNextOptions) {
   const activeElement = element.ownerDocument.activeElement;
   if (activeElement && (element == activeElement || element.contains(activeElement))) {
-    const nextFocusedElement = getNextFocusableElement(element, activeElement, focusGroupAttribute);
+    const nextFocusedElement = getNextFocusableElement(element, activeElement, options);
     if (nextFocusedElement) {
       focusElement(nextFocusedElement);
     }
@@ -229,42 +231,71 @@ export function partition<T>(array: T[], predicat: (entry: T) => boolean): [yes:
   );
 }
 
-function getNextFocusableElementInGroup(
-  focusGroupElement: Element,
-  element: Element,
-  activeElement: Element
-) {
-  const focusable = getKeyboardFocusableElements(focusGroupElement, element);
-  const index = focusable.indexOf(activeElement);
-  return focusable.at(index > 0 ? index - 1 : index + 1) ?? null;
-}
-
 function getNextFocusableElement(
   element: Element,
   activeElement: Element,
-  focusGroupAttribute?: string
+  options?: FocusNextOptions
 ) {
+  const focusDirectionAttribute = options?.focusDirectionAttribute;
+  const focusGroupAttribute = options?.focusGroupAttribute;
+  const focusDirection = focusDirectionAttribute
+    ? element.closest(`[${focusDirectionAttribute}]`)?.getAttribute(focusDirectionAttribute)
+    : 'prev';
   const focusGroupElement = focusGroupAttribute
     ? element.closest(`[${focusGroupAttribute}]`)
     : null;
   const nextFocusedElementInGroup = focusGroupElement
-    ? getNextFocusableElementInGroup(focusGroupElement, element, activeElement)
+    ? getNextFocusableElementInGroup(
+        focusGroupElement,
+        element,
+        activeElement,
+        focusDirection == 'next' ? 'next' : 'prev'
+      )
     : null;
 
   return (
     nextFocusedElementInGroup ||
-    getNextFocusableElementInGroup(element.ownerDocument.body, element, activeElement)
+    getNextFocusableElementInGroup(
+      element.ownerDocument.body,
+      element,
+      activeElement,
+      focusDirection == 'next' ? 'next' : 'prev'
+    )
   );
 }
 
-function getKeyboardFocusableElements(element: Element, elementToRemove: Element): Element[] {
+function getNextFocusableElementInGroup(
+  focusGroupElement: Element,
+  element: Element,
+  activeElement: Element,
+  direction: 'prev' | 'next' = 'prev'
+) {
+  const focusable = getKeyboardFocusableElements(focusGroupElement, element, activeElement);
+  const index = focusable.indexOf(activeElement);
+  if (focusable.length < 2) {
+    return null;
+  }
+  const lastIndex = focusable.length - 1;
+  const prevIndex = index != 0 ? index - 1 : index + 1;
+  const nextIndex = index != lastIndex ? index + 1 : index - 1;
+  if (direction == 'prev') {
+    return focusable.at(prevIndex) ?? focusable.at(nextIndex) ?? null;
+  }
+  return focusable.at(nextIndex) ?? focusable.at(prevIndex) ?? null;
+}
+
+function getKeyboardFocusableElements(
+  element: Element,
+  elementToRemove: Element,
+  activeElement: Element
+): Element[] {
   return [
     ...element.querySelectorAll<HTMLElement>(
       'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), details, [tabindex]:not([tabindex="-1"])'
     ),
   ].filter(
     (element) =>
-      isFocused(element) ||
+      element == activeElement ||
       (!element.closest('[aria-hidden], [hidden]') && !elementToRemove.contains(element))
   );
 }

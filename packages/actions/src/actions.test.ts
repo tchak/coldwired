@@ -266,6 +266,31 @@ describe('@coldwired/actions', () => {
       const firstButton = document.querySelector('button[name="firstButton"]') as HTMLButtonElement;
       expect(isFocused(firstButton)).toBeTruthy();
     }
+
+    // FIXME: Implement replacing focusable element
+    // actions.applyActions([
+    //   {
+    //     action: 'update',
+    //     targets: [document.body],
+    //     fragment: parseHTMLFragment('<input name="firstName" />', document),
+    //   },
+    //   {
+    //     action: 'focus',
+    //     targets: 'input[name="firstName"]',
+    //   },
+    //   {
+    //     action: 'update',
+    //     targets: [document.body],
+    //     fragment: parseHTMLFragment('<textarea name="lastName" />', document),
+    //   },
+    // ]);
+    // await actions.ready();
+    // {
+    //   const lastNameInput = document.querySelector(
+    //     'textarea[name="lastName"]'
+    //   ) as HTMLTextAreaElement;
+    //   expect(isFocused(lastNameInput)).toBeTruthy();
+    // }
   });
 
   it('should show/hide element', async () => {

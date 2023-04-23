@@ -17,6 +17,7 @@ import { Metadata } from './metadata';
 type MorphOptions = {
   childrenOnly?: boolean;
   forceAttribute?: string;
+  focusGroupAttribute?: string;
   permanentAttribute?: string;
   metadata?: Metadata;
 };
@@ -82,6 +83,7 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
   const permanentAttribute = options?.permanentAttribute;
+  const focusGroupAttribute = options?.focusGroupAttribute;
 
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
@@ -136,7 +138,7 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
     },
     onBeforeNodeDiscarded(node) {
       if (isElement(node)) {
-        focusNextElement(node);
+        focusNextElement(node, focusGroupAttribute);
       }
       return true;
     },

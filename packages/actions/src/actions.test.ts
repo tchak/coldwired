@@ -227,6 +227,45 @@ describe('@coldwired/actions', () => {
     ]);
     await actions.ready();
     expect(isFocused(input)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [document.body],
+        fragment: parseHTMLFragment(
+          `<button name="firstButton"></button>
+          <div data-turbo-focus-group>
+            <input name="firstName" />
+            <input name="lastName" />
+          </div>
+          <button name="lastButton"></button>`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="firstName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="firstName"',
+      },
+    ]);
+    await actions.ready();
+    const lastNameInput = document.querySelector('input[name="lastName"]') as HTMLInputElement;
+    expect(isFocused(lastNameInput)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const firstButton = document.querySelector('button[name="firstButton"]') as HTMLButtonElement;
+      expect(isFocused(firstButton)).toBeTruthy();
+    }
   });
 
   it('should show/hide element', async () => {

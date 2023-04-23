@@ -200,12 +200,7 @@ export class Actions {
   ) {
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
-    morph(from, to, {
-      forceAttribute: this.#schema.forceAttribute,
-      permanentAttribute: this.#schema.permanentAttribute,
-      metadata: this.#metadata,
-      ...options,
-    });
+    this._morph(from, to, options);
     this.#classListObserver.observe();
     this.#attributeObserver.observe();
   }
@@ -316,6 +311,18 @@ export class Actions {
     }
   }
 
+  _morph(
+    from: Element | Document,
+    to: string | Element | Document | DocumentFragment,
+    options?: { childrenOnly?: boolean }
+  ) {
+    morph(from, to, {
+      metadata: this.#metadata,
+      ...this.#schema,
+      ...options,
+    });
+  }
+
   private _after({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.after(fragment.cloneNode(true));
@@ -350,18 +357,13 @@ export class Actions {
     fragment,
   }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
-      });
+      this._morph(element, fragment.cloneNode(true) as DocumentFragment);
     }
   }
 
   private _update({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
+      this._morph(element, fragment.cloneNode(true) as DocumentFragment, {
         childrenOnly: true,
       });
     }
@@ -369,7 +371,7 @@ export class Actions {
 
   private _remove({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
-      focusNextElement(element);
+      focusNextElement(element, this.#schema.focusGroupAttribute);
       element.remove();
     }
   }

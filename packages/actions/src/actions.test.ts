@@ -3,16 +3,16 @@ import { getByLabelText, fireEvent } from '@testing-library/dom';
 
 import { parseHTMLDocument, parseHTMLFragment, isFocused } from '@coldwired/utils';
 
-import { Actions } from '.';
+import { Actions, hide, show, remove } from '.';
 
 describe('@coldwired/actions', () => {
   let actions: Actions;
 
   beforeEach(async () => {
-    actions?.observe();
+    actions?.disconnect();
     actions = new Actions({ element: document.documentElement });
     document.body.innerHTML = '';
-    actions.disconnect();
+    actions.observe();
   });
 
   it('should morph', () => {
@@ -557,5 +557,21 @@ describe('@coldwired/actions', () => {
     ]);
     await actions.ready();
     expect(from.outerHTML).toEqual('<div>World</div>');
+  });
+
+  it('hide / show / remove global helpers', async () => {
+    actions.morph(document, parseHTMLDocument('<button id="button">Click me</button>'));
+
+    hide('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')?.classList.contains('hidden')).toBeTruthy();
+
+    show('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')?.classList.contains('hidden')).toBeFalsy();
+
+    remove('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')).toBeNull();
   });
 });

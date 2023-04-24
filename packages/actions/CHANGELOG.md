@@ -1,5 +1,21 @@
 # @coldwired/actions
 
+## 0.10.0
+
+### Minor Changes
+
+- - feat(actions): preserve hidden attribute
+  - feat(actions): add support for data-turbo-permanent attribute
+  - feat(actions): set focus to next focusable element if focused element is removed
+  - feat(actions): focusable elements can be grouped together
+  - feat(actions): make next focus direction configurable
+  - feat(actions): add global helpers
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/utils@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes

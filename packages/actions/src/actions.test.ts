@@ -3,16 +3,16 @@ import { getByLabelText, fireEvent } from '@testing-library/dom';
 
 import { parseHTMLDocument, parseHTMLFragment, isFocused } from '@coldwired/utils';
 
-import { Actions } from '.';
+import { Actions, hide, show, remove } from '.';
 
 describe('@coldwired/actions', () => {
   let actions: Actions;
 
   beforeEach(async () => {
-    actions?.observe();
+    actions?.disconnect();
     actions = new Actions({ element: document.documentElement });
     document.body.innerHTML = '';
-    actions.disconnect();
+    actions.observe();
   });
 
   it('should morph', () => {
@@ -153,49 +153,258 @@ describe('@coldwired/actions', () => {
   });
 
   it('should focus element after applying actions', async () => {
-    actions.morph(document, parseHTMLDocument('<div><button>Click me</button></div>'));
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        `<div id="main">
+          <button>First</button>
+          <button>Click me</button>
+        </div>
+        <input name="name" />`
+      )
+    );
     const from = document.body.firstElementChild as HTMLDivElement;
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button data-turbo-focus>First</button><button data-turbo-focus>Click me</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
     const firstButton = from.firstElementChild as HTMLButtonElement;
-    expect(isFocused(firstButton)).toBeTruthy();
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button>First</button><button data-turbo-focus>Click me</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
-    expect(isFocused(firstButton)).toBeTruthy();
-
-    actions.applyActions([
-      {
-        action: 'update',
-        targets: [from],
-        fragment: parseHTMLFragment(
-          '<button>First</button><button>Click me</button><button data-turbo-focus="force">Last</button>',
-          document
-        ),
-      },
-    ]);
-    await actions.ready();
     const lastButton = from.lastElementChild as HTMLButtonElement;
-    expect(isFocused(lastButton)).toBeTruthy();
+    const input = document.querySelector('input') as HTMLInputElement;
+    lastButton.focus();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment('<button>First</button>', document),
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(firstButton)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment('yolo', document),
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(input)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          `<input name="firstName" />
+          <input name="lastName" />`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    const firstNameInput = document.querySelector('input[name="firstName"]') as HTMLInputElement;
+    expect(isFocused(firstNameInput)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [from],
+        fragment: parseHTMLFragment(
+          `<input name="firstName" />
+          <input name="lastName" />`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: '#main',
+      },
+    ]);
+    await actions.ready();
+    expect(isFocused(input)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [document.body],
+        fragment: parseHTMLFragment(
+          `<button name="firstButton"></button>
+          <div data-turbo-focus-group>
+            <input name="firstName" />
+            <input name="lastName" />
+          </div>
+          <button name="lastButton"></button>`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="firstName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="firstName"]',
+      },
+    ]);
+    await actions.ready();
+    const lastNameInput = document.querySelector('input[name="lastName"]') as HTMLInputElement;
+    expect(isFocused(lastNameInput)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const firstButton = document.querySelector('button[name="firstButton"]') as HTMLButtonElement;
+      expect(isFocused(firstButton)).toBeTruthy();
+    }
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [document.body],
+        fragment: parseHTMLFragment(
+          `<div data-turbo-focus-direction="next">
+            <input name="firstName" />
+            <input name="lastName" />
+            <input name="middleName" />
+          </div>`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    const middleNameInput = document.querySelector('input[name="middleName"]') as HTMLInputElement;
+    expect(isFocused(middleNameInput)).toBeTruthy();
+
+    actions.applyActions([
+      {
+        action: 'hide',
+        targets: 'input[name="middleName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const firstNameInput = document.querySelector('input[name="firstName"]') as HTMLButtonElement;
+      expect(isFocused(firstNameInput)).toBeTruthy();
+    }
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [document.body],
+        fragment: parseHTMLFragment(
+          `<div data-turbo-focus-direction="prev">
+            <input name="firstName" />
+            <input name="lastName" />
+            <input name="middleName" />
+          </div>`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="lastName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="lastName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const firstNameInput = document.querySelector('input[name="firstName"]') as HTMLInputElement;
+      expect(isFocused(firstNameInput)).toBeTruthy();
+    }
+
+    actions.applyActions([
+      {
+        action: 'disable',
+        targets: 'input[name="firstName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const middleNameInput = document.querySelector(
+        'input[name="middleName"]'
+      ) as HTMLButtonElement;
+      expect(isFocused(middleNameInput)).toBeTruthy();
+    }
+
+    actions.applyActions([
+      {
+        action: 'update',
+        targets: [document.body],
+        fragment: parseHTMLFragment(
+          `<div data-turbo-focus-direction="next">
+            <input name="firstName" />
+            <input name="lastName" />
+            <input name="middleName" />
+          </div>`,
+          document
+        ),
+      },
+      {
+        action: 'focus',
+        targets: 'input[name="middleName"]',
+      },
+      {
+        action: 'remove',
+        targets: 'input[name="middleName"]',
+      },
+    ]);
+    await actions.ready();
+    {
+      const lastNameInput = document.querySelector('input[name="lastName"]') as HTMLInputElement;
+      expect(isFocused(lastNameInput)).toBeTruthy();
+    }
+
+    // FIXME: Implement replacing focusable element
+    // actions.applyActions([
+    //   {
+    //     action: 'update',
+    //     targets: [document.body],
+    //     fragment: parseHTMLFragment('<input name="firstName" />', document),
+    //   },
+    //   {
+    //     action: 'focus',
+    //     targets: 'input[name="firstName"]',
+    //   },
+    //   {
+    //     action: 'update',
+    //     targets: [document.body],
+    //     fragment: parseHTMLFragment('<textarea name="lastName" />', document),
+    //   },
+    // ]);
+    // await actions.ready();
+    // {
+    //   const lastNameInput = document.querySelector(
+    //     'textarea[name="lastName"]'
+    //   ) as HTMLTextAreaElement;
+    //   expect(isFocused(lastNameInput)).toBeTruthy();
+    // }
   });
 
   it('should show/hide element', async () => {
@@ -262,26 +471,45 @@ describe('@coldwired/actions', () => {
   });
 
   it('should preserve aria attributes', async () => {
-    actions.morph(document, parseHTMLDocument('<div>Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden>Menu</div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
 
+    expect(from.hidden).toBeTruthy();
     from.setAttribute('aria-expanded', 'true');
+    from.hidden = false;
     await Promise.resolve();
 
-    actions.morph(document, parseHTMLDocument('<div>New Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden>New Menu</div>'));
     expect(from.getAttribute('aria-expanded')).toEqual('true');
+    expect(from.hidden).toBeFalsy();
 
     from.removeAttribute('aria-expanded');
     await Promise.resolve();
 
-    actions.morph(document, parseHTMLDocument('<div aria-expanded>New Menu</div>'));
+    actions.morph(document, parseHTMLDocument('<div hidden aria-expanded>New Menu</div>'));
     expect(from.hasAttribute('aria-expanded')).toBeFalsy();
+    expect(from.hidden).toBeFalsy();
 
     actions.morph(
       document,
-      parseHTMLDocument('<div aria-expanded data-turbo-force>New Menu</div>')
+      parseHTMLDocument('<div hidden aria-expanded data-turbo-force>New Menu</div>')
     );
     expect(from.getAttribute('aria-expanded')).toEqual('');
+    expect(from.hidden).toBeTruthy();
+  });
+
+  it('should preserve html if permanent attribute is set', async () => {
+    actions.morph(document, parseHTMLDocument('<div>Hello world</div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+    from.setAttribute('data-turbo-permanent', '');
+    actions.morph(document, parseHTMLDocument('<div>Bye world!</div>'));
+    expect(from.textContent).toEqual('Hello world');
+    actions.morph(document, parseHTMLDocument('<div>Encore !</div>'));
+    expect(from.textContent).toEqual('Hello world');
+    expect(from.hasAttribute('data-turbo-permanent')).toBeTruthy();
+    actions.morph(document, parseHTMLDocument('<div data-turbo-force>Bye world!</div>'));
+    expect(from.textContent).toEqual('Bye world!');
+    expect(from.hasAttribute('data-turbo-permanent')).toBeFalsy();
   });
 
   it('should dispatch event', async () => {
@@ -329,5 +557,21 @@ describe('@coldwired/actions', () => {
     ]);
     await actions.ready();
     expect(from.outerHTML).toEqual('<div>World</div>');
+  });
+
+  it('hide / show / remove global helpers', async () => {
+    actions.morph(document, parseHTMLDocument('<button id="button">Click me</button>'));
+
+    hide('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')?.classList.contains('hidden')).toBeTruthy();
+
+    show('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')?.classList.contains('hidden')).toBeFalsy();
+
+    remove('#button');
+    await actions.ready();
+    expect(document.querySelector('#button')).toBeNull();
   });
 });

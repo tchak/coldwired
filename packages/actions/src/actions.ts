@@ -9,6 +9,8 @@ import {
   AbortError,
   groupBy,
   partition,
+  focusNextElement,
+  parseHTMLFragment,
 } from '@coldwired/utils';
 
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
@@ -36,7 +38,7 @@ type FragmentAction = {
   delay?: number;
   pin?: boolean | 'last';
   targets: string;
-  fragment: DocumentFragment;
+  fragment: DocumentFragment | string;
 };
 type MaterializedVoidAction = Pick<VoidAction, 'action'> & { targets: Element[] };
 type MaterializedFragmentAction = Pick<FragmentAction, 'action' | 'fragment'> & {
@@ -97,6 +99,7 @@ export class Actions {
     this.#attributeObserver.observe();
     this.#element.addEventListener('input', this.#delegate);
     this.#element.addEventListener('change', this.#delegate);
+    this.#element.addEventListener(ACTIONS_EVENT_TYPE, this.#delegate);
   }
 
   disconnect() {
@@ -105,6 +108,7 @@ export class Actions {
     this.#attributeObserver.disconnect();
     this.#element.removeEventListener('input', this.#delegate);
     this.#element.removeEventListener('change', this.#delegate);
+    this.#element.removeEventListener(ACTIONS_EVENT_TYPE, this.#delegate);
   }
 
   reset() {
@@ -199,11 +203,7 @@ export class Actions {
   ) {
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
-    morph(from, to, {
-      forceAttribute: this.#schema.forceAttribute,
-      metadata: this.#metadata,
-      ...options,
-    });
+    this._morph(from, to, options);
     this.#classListObserver.observe();
     this.#attributeObserver.observe();
   }
@@ -254,7 +254,6 @@ export class Actions {
       this.#classListObserver.disconnect();
       this.#attributeObserver.disconnect();
       this._applyActions(observableActions);
-      this._applyFocus(observableActions);
       this.#classListObserver.observe();
       this.#attributeObserver.observe();
     }
@@ -267,32 +266,6 @@ export class Actions {
         this[`_${action.action}`](action);
       } else {
         this[`_${action.action}`](action);
-      }
-    }
-  }
-
-  private _applyFocus(actions: MaterializedAction[]) {
-    const attribute = this.#schema.focusAttribute;
-    const focusTargets = [...this.element.querySelectorAll(`[${attribute}]`)];
-
-    if (focusTargets.length) {
-      const activeElement = this.element.ownerDocument.activeElement;
-      const hasActiveElement = !activeElement || activeElement != this.element.ownerDocument.body;
-      const targets = actions
-        .flatMap(({ targets }) => targets.filter((target) => target.isConnected))
-        .reverse();
-      const target = focusTargets.find((focusTarget) =>
-        targets.some((target) =>
-          !hasActiveElement || focusTarget.getAttribute(attribute) == 'force'
-            ? target.contains(focusTarget)
-            : false
-        )
-      );
-      if (target) {
-        this._focus({ targets: [target] });
-      }
-      for (const target of focusTargets) {
-        target.removeAttribute(attribute);
       }
     }
   }
@@ -341,22 +314,33 @@ export class Actions {
     }
   }
 
+  _morph(
+    from: Element | Document,
+    to: string | Element | Document | DocumentFragment,
+    options?: { childrenOnly?: boolean }
+  ) {
+    morph(from, to, {
+      metadata: this.#metadata,
+      ...this.#schema,
+      ...options,
+    });
+  }
+
   private _after({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      element.after(fragment.cloneNode(true));
+      element.after(getDocumentFragment(fragment, element));
     }
   }
 
   private _before({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      element.before(fragment.cloneNode(true));
+      element.before(getDocumentFragment(fragment, element));
     }
   }
 
   private _append({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
-    removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
-      element.append(fragment.cloneNode(true));
+      element.append(getDocumentFragment(fragment, element, true));
     }
   }
 
@@ -364,9 +348,8 @@ export class Actions {
     targets,
     fragment,
   }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
-    removeDuplicateTargetChildren(targets, fragment);
     for (const element of targets) {
-      element.prepend(fragment.cloneNode(true));
+      element.prepend(getDocumentFragment(fragment, element, true));
     }
   }
 
@@ -375,18 +358,13 @@ export class Actions {
     fragment,
   }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
-      });
+      this._morph(element, getDocumentFragment(fragment, element));
     }
   }
 
   private _update({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
-      morph(element, fragment.cloneNode(true) as DocumentFragment, {
-        forceAttribute: this.#schema.forceAttribute,
-        metadata: this.#metadata,
+      this._morph(element, getDocumentFragment(fragment, element), {
         childrenOnly: true,
       });
     }
@@ -394,6 +372,7 @@ export class Actions {
 
   private _remove({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
+      focusNextElement(element, this.#schema);
       element.remove();
     }
   }
@@ -407,12 +386,15 @@ export class Actions {
 
   private _show({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
+      element.removeAttribute('hidden');
       element.classList.remove(this.#schema.hiddenClassName);
     }
   }
 
   private _hide({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
+      focusNextElement(element, this.#schema);
+      element.setAttribute('hidden', 'hidden');
       element.classList.add(this.#schema.hiddenClassName);
     }
   }
@@ -428,6 +410,7 @@ export class Actions {
   private _disable({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
     for (const element of targets) {
       if ('disabled' in element) {
+        focusNextElement(element, this.#schema);
         element.disabled = true;
       }
     }
@@ -436,7 +419,15 @@ export class Actions {
   private handleEvent(event: Event) {
     const target = (event.composedPath && event.composedPath()[0]) || event.target;
 
-    if (isFormInputElement(target)) {
+    if (event.type == ACTIONS_EVENT_TYPE) {
+      const actions: MaterializedAction[] = ((event as ActionsEvent).detail ?? []).map(
+        (action) => ({
+          ...action,
+          targets: [target as Element],
+        })
+      );
+      this.applyActions(actions);
+    } else if (isFormInputElement(target)) {
       this.#metadata.getOrCreate(target).touched = true;
     }
   }
@@ -510,6 +501,41 @@ function getTargetElements(element: Element, selector: string) {
   return [...element.querySelectorAll(selector)];
 }
 
+function getDocumentFragment(
+  fragmentOrSelector: string | DocumentFragment,
+  target: Element,
+  deduplicate = false
+) {
+  const fragment =
+    typeof fragmentOrSelector == 'string'
+      ? parseHTMLFragment(fragmentOrSelector, target.ownerDocument)
+      : (fragmentOrSelector.cloneNode(true) as DocumentFragment);
+  if (deduplicate) {
+    removeDuplicateTargetChildren([target], fragment);
+  }
+  return fragment;
+}
+
+function serializeDocumentFragment(action: Action | MaterializedAction) {
+  if (isFragmentAction(action)) {
+    if (action.fragment instanceof DocumentFragment) {
+      const serializer = new XMLSerializer();
+      return serializer.serializeToString(action.fragment);
+    }
+    return action.fragment;
+  }
+  return;
+}
+
+function getTargets(targets?: Element | Element[] | string | null): Element[] {
+  if (typeof targets == 'string') {
+    return [...document.querySelectorAll(targets)];
+  } else if (Array.isArray(targets)) {
+    return [...targets];
+  }
+  return targets ? [targets] : [];
+}
+
 function validateAction(action: Action) {
   invariant(!(action.delay && action.pin), '[actions] a delayed action cannot be pinned');
 }
@@ -557,4 +583,35 @@ function parseEventDetail(content: string) {
   } catch {
     return null;
   }
+}
+
+const ACTIONS_EVENT_TYPE = '__actions__';
+type ActionsEvent = CustomEvent<
+  (Pick<VoidAction, 'action'> | Pick<FragmentAction, 'action' | 'fragment'>)[]
+>;
+
+export function dispatchActions(actions: (Action | MaterializedAction)[]) {
+  const actionsByTarget = groupBy(
+    actions.flatMap((action) => {
+      return getTargets(action.targets)
+        .filter((target) => target.isConnected)
+        .map((target) => [target, action.action, serializeDocumentFragment(action)] as const);
+    }),
+    ([target]) => target
+  );
+  for (const [target, actions] of actionsByTarget) {
+    dispatch(ACTIONS_EVENT_TYPE, {
+      target,
+      detail: actions.map(([, action, fragment]) => ({ action, fragment })),
+    });
+  }
+}
+
+export function dispatchAction({
+  targets,
+  ...action
+}: (Pick<VoidAction, 'action'> | Pick<FragmentAction, 'action' | 'fragment'>) & {
+  targets?: Element | Element[] | string | null;
+}) {
+  dispatchActions([{ ...action, targets: getTargets(targets) }]);
 }

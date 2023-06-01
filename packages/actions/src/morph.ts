@@ -18,7 +18,6 @@ import { Metadata } from './metadata';
 type MorphOptions = FocusNextOptions & {
   childrenOnly?: boolean;
   forceAttribute?: string;
-  permanentAttribute?: string;
   metadata?: Metadata;
 };
 
@@ -82,12 +81,11 @@ function morphToDocumentFragment(
 
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
-  const permanentAttribute = options?.permanentAttribute;
 
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
     onBeforeElUpdated(fromElement: Element, toElement: Element) {
-      const force = forceAttribute ? !!toElement.closest(`[${forceAttribute}]`) : false;
+      const force = forceAttribute ? !!toElement.closest(`[${forceAttribute}="server"]`) : false;
       const metadata = options?.metadata?.get(fromElement);
 
       if (force && metadata) {
@@ -100,8 +98,8 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         return false;
       }
 
-      if (!force && permanentAttribute) {
-        const permanent = !!fromElement.closest(`[${permanentAttribute}]`);
+      if (!force && forceAttribute) {
+        const permanent = !!fromElement.closest(`[${forceAttribute}="browser"]`);
         if (permanent) {
           return false;
         }
@@ -142,9 +140,14 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
       return true;
     },
   });
+
   if (forceAttribute) {
-    fromElement.removeAttribute(forceAttribute);
-    for (const element of [...fromElement.querySelectorAll(`[${forceAttribute}]`)]) {
+    const forcedElements =
+      fromElement.getAttribute(forceAttribute) == 'server' ? [fromElement] : [];
+    for (const element of [
+      ...forcedElements,
+      ...fromElement.querySelectorAll(`[${forceAttribute}="server"]`),
+    ]) {
       element.removeAttribute(forceAttribute);
     }
   }

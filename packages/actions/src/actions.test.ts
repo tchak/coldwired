@@ -65,7 +65,7 @@ describe('@coldwired/actions', () => {
     actions.morph(from, '<div>World</div>');
     expect(from.outerHTML).toEqual('<div class="bar">World</div>');
 
-    actions.morph(from, '<div data-turbo-force>World</div>');
+    actions.morph(from, '<div data-turbo-force="server">World</div>');
     expect(from.outerHTML).toEqual('<div>World</div>');
   });
 
@@ -464,7 +464,7 @@ describe('@coldwired/actions', () => {
     actions.morph(
       document,
       parseHTMLDocument(
-        '<label for="test">Test</label><input data-turbo-force id="test" name="test" type="text" value="test" />'
+        '<label for="test">Test</label><input data-turbo-force="server" id="test" name="test" type="text" value="test" />'
       )
     );
     expect(input.value).toEqual('test');
@@ -492,24 +492,24 @@ describe('@coldwired/actions', () => {
 
     actions.morph(
       document,
-      parseHTMLDocument('<div hidden aria-expanded data-turbo-force>New Menu</div>')
+      parseHTMLDocument('<div hidden aria-expanded data-turbo-force="server">New Menu</div>')
     );
     expect(from.getAttribute('aria-expanded')).toEqual('');
     expect(from.hidden).toBeTruthy();
   });
 
-  it('should preserve html if permanent attribute is set', async () => {
+  it('should preserve html if force="client" attribute is set', async () => {
     actions.morph(document, parseHTMLDocument('<div>Hello world</div>'));
     const from = document.body.firstElementChild as HTMLDivElement;
-    from.setAttribute('data-turbo-permanent', '');
+    from.setAttribute('data-turbo-force', 'browser');
     actions.morph(document, parseHTMLDocument('<div>Bye world!</div>'));
     expect(from.textContent).toEqual('Hello world');
     actions.morph(document, parseHTMLDocument('<div>Encore !</div>'));
     expect(from.textContent).toEqual('Hello world');
-    expect(from.hasAttribute('data-turbo-permanent')).toBeTruthy();
-    actions.morph(document, parseHTMLDocument('<div data-turbo-force>Bye world!</div>'));
+    expect(from.hasAttribute('data-turbo-force')).toBeTruthy();
+    actions.morph(document, parseHTMLDocument('<div data-turbo-force="server">Bye world!</div>'));
     expect(from.textContent).toEqual('Bye world!');
-    expect(from.hasAttribute('data-turbo-permanent')).toBeFalsy();
+    expect(from.hasAttribute('data-turbo-force')).toBeFalsy();
   });
 
   it('should dispatch event', async () => {

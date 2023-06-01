@@ -1,5 +1,13 @@
 # @coldwired/router
 
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @coldwired/actions@0.11.0
+  - @coldwired/turbo-stream@0.11.0
+
 ## 0.10.0
 
 ### Patch Changes

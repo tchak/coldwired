@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.11.0
+
+### Minor Changes
+
+- feat(actions): use data-turbo-force=“browser” instead of data-turbo-permanent
+
 ## 0.10.0
 
 ### Minor Changes

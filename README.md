@@ -12,9 +12,10 @@
 
 ## What is this?
 
-This is an attempt to bring together some ideas from [Hotwired/Turbo](https://hotwired.dev),
-[Livewire](https://livewire.laravel.com) and [Live
-View](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html). We want to stay as framework
+This is an attempt to bring together some ideas from [hotwired/turbo](https://hotwired.dev),
+[livewire](https://livewire.laravel.com) and
+[live_view](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) and
+[@remix-run/router](https://www.npmjs.com/package/@remix-run/router). We want to stay as framework
 agnostic as possible, even if currently this library is only used in production in one Rails
 project.
 

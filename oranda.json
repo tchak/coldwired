@@ -1,0 +1,21 @@
+{
+  "project": {
+    "name": "Coldwired"
+  },
+  "build": {
+    "path_prefix": "coldwired",
+    "additional_pages": {
+      "Actions": "./packages/actions/README.md",
+      "Router (experimental)": "./packages/router/README.md"
+    }
+  },
+  "components": {
+    "changelog": true,
+    "artifacts": false
+  },
+  "marketing": {
+    "social": {
+      "twitter_account": "tchak13"
+    }
+  }
+}

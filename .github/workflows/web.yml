@@ -1,37 +1,35 @@
-# Workflow to build your docs with oranda (and mdbook)
-# and deploy them to Github Pages
-name: Web deploy
+name: Deploy docs to GitHub Pages
 
-# We're going to push to the gh-pages branch, so we need that permission
-permissions:
-  contents: write
-
-# What situations do we want to build docs in?
-# All of these work independently and can be removed / commented out
-# if you don't want oranda/mdbook running in that situation
 on:
-  # Whenever something gets pushed to main, update the docs!
-  # This is great for getting docs changes live without cutting a full release.
-  #
-  # Note that if you're using cargo-dist, this will "race" the Release workflow
-  # that actually builds the Github Release that oranda tries to read (and
-  # this will almost certainly complete first). As a result you will publish
-  # docs for the latest commit but the oranda landing page won't know about
-  # the latest release. The workflow_run trigger below will properly wait for
-  # cargo-dist, and so this half-published state will only last for ~10 minutes.
-  #
-  # If you only want docs to update with releases, disable this one.
+  # Runs on pushes targeting the default branch
   push:
-    branches:
-      - main
+    branches: ["main"]
 
-# Alright, let's do it!
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  web:
-    name: Build and deploy site and docs
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -43,20 +41,15 @@ jobs:
       - name: Build the docs
         run: pnpm docs:build
 
-      # Deploy to our gh-pages branch (making it if it doesn't exist)
-      # the "public" dir that oranda made above will become the root dir
-      # of this branch.
-      #
-      # Note that once the gh-pages branch exists, you must
-      # go into repo's settings > pages and set "deploy from branch: gh-pages"
-      # the other defaults work fine.
-      - name: Deploy to Github Pages
-        uses: JamesIves/github-pages-deploy-action@v4.4.1
-        # ONLY if we're on main (so no PRs or feature branches allowed!)
-        if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          branch: gh-pages
-          # Gotta tell the action where to find oranda's output
-          folder: public
-          token: ${{ secrets.GITHUB_TOKEN }}
-          single-commit: true
+          # Upload entire repository
+          path: 'public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

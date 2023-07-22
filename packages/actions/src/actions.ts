@@ -502,14 +502,14 @@ function getTargetElements(element: Element, selector: string) {
 }
 
 function getDocumentFragment(
-  fragmentOrSelector: string | DocumentFragment,
+  fragmentOrHTML: string | DocumentFragment,
   target: Element,
   deduplicate = false
 ) {
   const fragment =
-    typeof fragmentOrSelector == 'string'
-      ? parseHTMLFragment(fragmentOrSelector, target.ownerDocument)
-      : (fragmentOrSelector.cloneNode(true) as DocumentFragment);
+    typeof fragmentOrHTML == 'string'
+      ? parseHTMLFragment(fragmentOrHTML, target.ownerDocument)
+      : (fragmentOrHTML.cloneNode(true) as DocumentFragment);
   if (deduplicate) {
     removeDuplicateTargetChildren([target], fragment);
   }

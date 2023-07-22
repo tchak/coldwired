@@ -16,7 +16,8 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "prepare": "pnpm run build",
-    "doc": "pnpm oranda dev"
+    "docs:dev": "pnpm oranda dev",
+    "docs:build": "pnpm oranda build"
   },
   "devDependencies": {
     "@axodotdev/oranda": "^0.2.0",

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="dark">
+    <head>
+        <title>Coldwired</title>
+        
+        
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+            <meta name="description" content="An implementation of @hotwired/turbo based on remix and morphdom" />
+            <meta property="og:description" content="An implementation of @hotwired/turbo based on remix and morphdom" />
+        
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Coldwired" />
+        
+        
+        
+            <meta name="twitter:creator" content="tchak13" />
+            <meta name="twitter:site" content="tchak13" />
+        
+        <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+        <link rel="stylesheet" href="/coldwired/oranda-v0.2.0.css" />
+        
+        
+    </head>
+    <body>
+        <div class="container">
+            <div class="page-body">
+                
+                    <div class="repo_banner">
+                        <a href="https://github.com/tchak/coldwired.git">
+                            <div class="github-icon" aria-hidden="true"></div>
+                            Check out our GitHub!
+                        </a>
+                    </div>
+                
+
+                <main>
+                    <header>
+                        
+                        <h1 class="title">Coldwired</h1>
+                        
+    <nav class="nav">
+        <ul>
+            <li><a href="/coldwired/">Home</a></li>
+
+            
+                
+                    <li><a href="/coldwired/packages/actions/README/">Actions</a></li>
+                
+                    <li><a href="/coldwired/packages/router/README/">Router (experimental)</a></li>
+                
+            
+
+            
+
+            
+
+            
+
+            
+                <li><a href="/coldwired/changelog/">Changelog</a></li>
+            
+        </ul>
+    </nav>
+
+                    </header>
+
+                    
+<h1>@coldwired/router <a href="https://www.npmjs.com/package/@coldwired/router" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/@coldwired/router.svg" alt="npm package"></a></h1>
+<h2>Why?</h2>
+<p>At work we have a six-year-old reasonably big rails app. It powers quite a successful service while being run by a small team. It's an old school, server rendered rails app. The team is not interested at all in migrating to a JavaScript framework. But we do have some pieces of the app that requires dynamic components. Recently we introduced <a href="https://hotwired.dev" rel="noopener noreferrer">hotwired/turbo</a> into our code base and it is quite a success. The team likes the minimal JavaScript API surface a lot. But turbo has problems. Those problems are very similar to the ones solved by <a href="https://www.npmjs.com/package/@remix-run/router" rel="noopener noreferrer">@remix-run/router</a>. The main one is coordinating multiple submitting forms on one page without full reloads.</p>
+<h2>How?</h2>
+<p>This project is an almost "drop in" replacement of <a href="https://turbo.hotwired.dev/handbook/drive" rel="noopener noreferrer">turbo-drive</a> with <a href="https://www.npmjs.com/package/@remix-run/router" rel="noopener noreferrer">remix</a> based router. It does several things:</p>
+<ul>
+<li>intercepts <code>click</code> and <code>submit</code> events to navigate with client router</li>
+<li>use <a href="https://github.com/patrick-steele-idem/morphdom" rel="noopener noreferrer">morphdom</a> to render pages</li>
+<li>bypass in browser routing if <code>data-turbo="false"</code> is set on links and forms</li>
+<li>provide a directive to register fetchers (<code>data-turbo-fetcher</code>)</li>
+<li>provide a directive to submit forms on changes (<code>data-turbo-submit-on-change</code>)</li>
+<li>provide a directive to revalidate pages (<code>data-turbo-revalidate</code>)</li>
+<li>in fetcher responses, accepts <a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a> format and bypass revalidation in those cases</li>
+<li>if <code>data-turbo-method</code> is used on <code>&lt;a&gt;</code> it will submit the link instead of navigating</li>
+<li>if <code>data-turbo-disabled</code> is used on <code>&lt;input&gt;</code>, <code>&lt;select&gt;</code> or <code>&lt;button&gt;</code> it will atomatically disable them during submission</li>
+<li>if <code>data-turbo-confirm</code> is used on <code>&lt;a&gt;</code> or <code>&lt;form&gt;</code> it will ask for confirmation before submitting/navigating</li>
+<li>preserve <code>class</code> attribute changes between renders unless <code>data-turbo-force</code> directive is used</li>
+<li>preserve <code>aria-</code> and related attributes changes between renders unless <code>data-turbo-force</code> directive is used</li>
+<li>preserve <code>value</code> on touched <code>&lt;input&gt;</code> and <code>&lt;select&gt;</code> between renders unless <code>data-turbo-force</code> directive is used</li>
+<li>extends <a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a> with ability to delay actions</li>
+<li>extends <a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a> with ability to pin actions between renders</li>
+</ul>
+<h2>Demo</h2>
+<p><a href="https://github.com/tchak/coldwired-rails-demo" rel="noopener noreferrer">@coldwired rails demo</a></p>
+<h2>Usage</h2>
+<p>In order to use this router you need to generate (or write) a JSON array of all the routes exposed by your server. You must add <code>method</code> to route handles in order for router to register loaders and actions. No nested routing for now – we might explore the possibility later but it will require a much more involved server. All the requests to your server will have a header <code>x-requested-with: coldwire</code>. In order for redirects to work properly you must respond with a <code>204</code> and a <code>x-coldwire-redirect: &lt;url&gt;</code> header instead of the usual <code>30*</code> and a <code>location: &lt;url&gt;</code> header.</p>
+<pre style="background-color:#263238;"><span style="font-style:italic;color:#c792ea;">import </span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">Application</span><span style="color:#89ddff;">, </span><span style="font-style:italic;color:#c792ea;">type </span><span style="color:#eeffff;">RouteObject </span><span style="color:#89ddff;">} </span><span style="font-style:italic;color:#c792ea;">from </span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">@coldwired/router</span><span style="color:#89ddff;">';
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">const </span><span style="color:#eeffff;">routes</span><span style="color:#89ddff;">: </span><span style="color:#eeffff;">RouteObject[] </span><span style="color:#89ddff;">= </span><span style="color:#eeffff;">[
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    path</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">/</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    id</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">root</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    handle</span><span style="color:#89ddff;">: { </span><span style="color:#eeffff;">method</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">get</span><span style="color:#89ddff;">' }
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">},
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    path</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">/login</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    id</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">login</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    handle</span><span style="color:#89ddff;">: { </span><span style="color:#eeffff;">method</span><span style="color:#89ddff;">: </span><span style="color:#eeffff;">[</span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">get</span><span style="color:#89ddff;">', '</span><span style="color:#c3e88d;">post</span><span style="color:#89ddff;">'</span><span style="color:#eeffff;">] </span><span style="color:#89ddff;">}
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">}
+</span><span style="color:#eeffff;">]</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">const </span><span style="color:#eeffff;">application </span><span style="color:#89ddff;">= </span><span style="font-style:italic;color:#c792ea;">await </span><span style="color:#eeffff;">Application</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">start</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">routes </span><span style="color:#89ddff;">}</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span></pre>
+
+<pre style="background-color:#263238;"><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">html</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">body </span><span style="font-style:italic;color:#ffcb6b;">data-turbo</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">      (...)
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">div </span><span style="font-style:italic;color:#ffcb6b;">data-turbo</span><span style="color:#89ddff;">="</span><span style="color:#c3e88d;">false</span><span style="color:#89ddff;">"&gt;
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">        (...)
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">div</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">ul</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">li </span><span style="font-style:italic;color:#ffcb6b;">id</span><span style="color:#89ddff;">="</span><span style="color:#c3e88d;">item_1</span><span style="color:#89ddff;">"&gt;
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">form </span><span style="font-style:italic;color:#ffcb6b;">data-turbo-fetcher</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">          (...)
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">li</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">li </span><span style="font-style:italic;color:#ffcb6b;">id</span><span style="color:#89ddff;">="</span><span style="color:#c3e88d;">item_2</span><span style="color:#89ddff;">"&gt;
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">&lt;</span><span style="color:#f07178;">form </span><span style="font-style:italic;color:#ffcb6b;">data-turbo-fetcher</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">          (...)
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">form</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">      </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">li</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">ul</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">body</span><span style="color:#89ddff;">&gt;
+</span><span style="color:#89ddff;">&lt;/</span><span style="color:#f07178;">html</span><span style="color:#89ddff;">&gt;
+</span></pre>
+
+
+
+                </main>
+            </div>
+
+            <footer>
+                
+                    <a href="https://github.com/tchak/coldwired.git"><div class="github-icon" aria-hidden="true"></div></a>
+                
+                <span>
+                    Coldwired, MIT
+                </span>
+            </footer>
+        </div>
+
+        
+        
+
+        
+    </body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="dark">
+    <head>
+        <title>Coldwired</title>
+        
+        
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+            <meta name="description" content="An implementation of @hotwired/turbo based on remix and morphdom" />
+            <meta property="og:description" content="An implementation of @hotwired/turbo based on remix and morphdom" />
+        
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Coldwired" />
+        
+        
+        
+            <meta name="twitter:creator" content="tchak13" />
+            <meta name="twitter:site" content="tchak13" />
+        
+        <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+        <link rel="stylesheet" href="/coldwired/oranda-v0.2.0.css" />
+        
+        
+    </head>
+    <body>
+        <div class="container">
+            <div class="page-body">
+                
+                    <div class="repo_banner">
+                        <a href="https://github.com/tchak/coldwired.git">
+                            <div class="github-icon" aria-hidden="true"></div>
+                            Check out our GitHub!
+                        </a>
+                    </div>
+                
+
+                <main>
+                    <header>
+                        
+                        <h1 class="title">Coldwired</h1>
+                        
+    <nav class="nav">
+        <ul>
+            <li><a href="/coldwired/">Home</a></li>
+
+            
+                
+                    <li><a href="/coldwired/packages/actions/README/">Actions</a></li>
+                
+                    <li><a href="/coldwired/packages/router/README/">Router (experimental)</a></li>
+                
+            
+
+            
+
+            
+
+            
+
+            
+                <li><a href="/coldwired/changelog/">Changelog</a></li>
+            
+        </ul>
+    </nav>
+
+                    </header>
+
+                    
+<h1>@coldwired/actions <a href="https://www.npmjs.com/package/@coldwired/actions" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/@coldwired/actions.svg" alt="npm package"></a></h1>
+<h2>Why?</h2>
+<p>Initial inspiration was <a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a>, which allows
+for the application of incremental changes to the page. The problem we faced was that applying
+changes wiped out client changes and it was not always practical to propagate the client state
+necessary for rendering to the server. We wanted to be able to preserve some state, such as open
+dialogs an menues or input values.</p>
+<h2>How?</h2>
+<p><code>Actions</code> will create a <code>MutationObserver</code> and a <code>WeakMap</code> of some of the DOM state, such as class
+names, aria attributes, and input values. This allows it to preserve state across morph changes. You
+always have the possibility to force a state update through the attribute <code>data-turbo-force</code>.</p>
+<h2>Usage</h2>
+<p>An action is an object describing a DOM operation. Actions can be fully serialized to carry them
+over the wire (<a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a>).</p>
+<pre style="background-color:#263238;"><span style="font-style:italic;color:#c792ea;">type </span><span style="color:#eeffff;">Action </span><span style="color:#89ddff;">= {
+</span><span style="color:#eeffff;">  action</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">after</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">before</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">append</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">prepend</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">replace</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">update</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">remove</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">focus</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">enable</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">disable</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">hide</span><span style="color:#89ddff;">' | '</span><span style="color:#c3e88d;">show</span><span style="color:#89ddff;">';
+</span><span style="color:#eeffff;">  targets</span><span style="color:#89ddff;">: </span><span style="color:#eeffff;">Element[] </span><span style="color:#89ddff;">| </span><span style="color:#ffcb6b;">string</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">  fragment</span><span style="color:#89ddff;">?: </span><span style="color:#eeffff;">DocumentFragment </span><span style="color:#89ddff;">| </span><span style="color:#ffcb6b;">string</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">  delay</span><span style="color:#89ddff;">?: </span><span style="color:#ffcb6b;">number</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">  pin</span><span style="color:#89ddff;">?: </span><span style="color:#ffcb6b;">boolean</span><span style="color:#89ddff;">;
+</span><span style="color:#89ddff;">}
+</span></pre>
+
+<p>Before you start working with actions, you need to create and register an instance of <code>Actions</code>.
+After that, actions can be applied through the <code>Actions</code> instance or dispatched as events. We also
+provide an implementation of <a href="https://turbo.hotwired.dev/handbook/streams" rel="noopener noreferrer">turbo-stream</a> on top of
+<code>Actions</code> through the <a href="https://www.npmjs.com/package/@coldwired/turbo-stream" rel="noopener noreferrer">@coldwired/turbo-stream</a>
+package.</p>
+<pre style="background-color:#263238;"><span style="font-style:italic;color:#c792ea;">import </span><span style="color:#f78c6c;">* </span><span style="font-style:italic;color:#c792ea;">as </span><span style="color:#eeffff;">Actions </span><span style="font-style:italic;color:#c792ea;">from </span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">@coldwired/actions</span><span style="color:#89ddff;">';
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">const </span><span style="color:#eeffff;">actions </span><span style="color:#89ddff;">= new </span><span style="color:#eeffff;">Actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">Actions</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">element</span><span style="color:#89ddff;">: </span><span style="color:#eeffff;">document</span><span style="color:#89ddff;">.</span><span style="color:#eeffff;">body </span><span style="color:#89ddff;">}</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="color:#82aaff;">addEventListener</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">DOMContentLoaded</span><span style="color:#89ddff;">', () </span><span style="font-style:italic;color:#c792ea;">=&gt; </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">  actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">observe</span><span style="color:#eeffff;">()</span><span style="color:#89ddff;">;
+</span><span style="color:#89ddff;">}</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">const </span><span style="color:#eeffff;">fragment </span><span style="color:#89ddff;">= </span><span style="color:#82aaff;">document</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">createDocumentFragment</span><span style="color:#eeffff;">()</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">append</span><span style="color:#eeffff;">(</span><span style="color:#82aaff;">document</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">createTextNode</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">'</span><span style="color:#eeffff;">))</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Insert a fragment after each target element
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">after</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">after</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment </span><span style="color:#89ddff;">}</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// If you want to dispatch actions from places where you don't have access to the `Actions` instance.
+</span><span style="color:#eeffff;">Actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">after</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment </span><span style="color:#89ddff;">}</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Insert a fragment before each target element
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">before</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Append a fragment after the last child of each target element
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">append</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">append</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: </span><span style="color:#eeffff;">[document</span><span style="color:#89ddff;">.</span><span style="color:#eeffff;">body]</span><span style="color:#89ddff;">, </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Prepend a fragment before the first child of each target element
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">prepend</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Replace every target element with the fragment. Uses morph to preserve interactive state.
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">replace</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Update every target inner with the fragment. Uses morph to preserve interactive state.
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">update</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">', </span><span style="color:#eeffff;">fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Remove all target elements
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">remove</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Focus first target element
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">focus</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Disable all target elements
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">disable</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Enable all target elements
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">enable</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Hide all target elements
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">hide</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Show all target elements
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">show</span><span style="color:#eeffff;">(</span><span style="color:#89ddff;">{ </span><span style="color:#eeffff;">targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item</span><span style="color:#89ddff;">' }</span><span style="color:#eeffff;">)</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Apply actions in batch. This is the low level API.
+</span><span style="color:#eeffff;">actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">applyActions</span><span style="color:#eeffff;">([
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    action</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">update</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item-to-update</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">'
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">},
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    action</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">remove</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item-to-remove</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">},
+</span><span style="color:#eeffff;">])
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#546e7a;">// Same as `applyActions` but if you want to dispatch actions from places where you don't have access to the `Actions` instance.
+</span><span style="color:#eeffff;">Actions</span><span style="color:#89ddff;">.</span><span style="color:#82aaff;">dispatchActions</span><span style="color:#eeffff;">([
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    action</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">update</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item-to-update</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    fragment</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">&lt;p&gt;Hello World&lt;/p&gt;</span><span style="color:#89ddff;">'
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">},
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">{
+</span><span style="color:#eeffff;">    action</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">remove</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">    targets</span><span style="color:#89ddff;">: '</span><span style="color:#c3e88d;">.item-to-remove</span><span style="color:#89ddff;">',
+</span><span style="color:#eeffff;">  </span><span style="color:#89ddff;">},
+</span><span style="color:#eeffff;">])</span><span style="color:#89ddff;">;
+</span><span style="color:#eeffff;">
+</span></pre>
+
+
+
+                </main>
+            </div>
+
+            <footer>
+                
+                    <a href="https://github.com/tchak/coldwired.git"><div class="github-icon" aria-hidden="true"></div></a>
+                
+                <span>
+                    Coldwired, MIT
+                </span>
+            </footer>
+        </div>
+
+        
+        
+
+        
+    </body>
+</html>

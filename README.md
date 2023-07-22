@@ -12,7 +12,11 @@
 
 ## What is this?
 
-This is an attempt to bring together some ideas from turbo, livewire and live view. We want to stay as framework agnostic as possible event if currently this library is only used in production in one rails project.
+This is an attempt to bring together some ideas from [Hotwired/Turbo](https://hotwired.dev),
+[Livewire](https://livewire.laravel.com) and [Live
+View](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html). We want to stay as framework
+agnostic as possible, even if currently this library is only used in production in one Rails
+project.
 
 ## Packages
 

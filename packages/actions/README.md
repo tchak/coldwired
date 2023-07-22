@@ -42,10 +42,7 @@ package.
 import * as Actions from '@coldwired/actions';
 
 const actions = new Actions.Actions({ element: document.body });
-
-addEventListener('DOMContentLoaded', () => {
-  actions.observe();
-});
+actions.observe();
 
 const fragment = document.createDocumentFragment();
 fragment.append(document.createTextNode('<p>Hello World</p>'));
@@ -54,7 +51,8 @@ fragment.append(document.createTextNode('<p>Hello World</p>'));
 actions.after({ targets: '.item', fragment: '<p>Hello World</p>' });
 actions.after({ targets: '.item', fragment });
 
-// If you want to dispatch actions from places where you don't have access to the `Actions` instance.
+// If you want to dispatch actions from places where you don't have access to the `Actions`
+// instance.
 Actions.after({ targets: '.item', fragment });
 
 // Insert a fragment before each target element
@@ -104,7 +102,8 @@ actions.applyActions([
   },
 ])
 
-// Same as `applyActions` but if you want to dispatch actions from places where you don't have access to the `Actions` instance.
+// Same as `applyActions` but if you want to dispatch actions from places where you don't have
+// access to the `Actions` instance.
 Actions.dispatchActions([
   {
     action: 'update',
@@ -116,5 +115,4 @@ Actions.dispatchActions([
     targets: '.item-to-remove',
   },
 ]);
-
 ```

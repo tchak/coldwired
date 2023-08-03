@@ -1,5 +1,13 @@
 # @coldwired/actions
 
+## 0.11.1
+
+### Patch Changes
+
+- b6797ec: preserve style attribute
+- Updated dependencies [b6797ec]
+  - @coldwired/utils@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes

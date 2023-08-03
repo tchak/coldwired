@@ -24,7 +24,7 @@ type MorphOptions = FocusNextOptions & {
 export function morph(
   fromElementOrDocument: Element | Document,
   toElementOrDocument: string | Element | Document | DocumentFragment,
-  options?: MorphOptions
+  options?: MorphOptions,
 ) {
   if (fromElementOrDocument instanceof Document) {
     invariant(toElementOrDocument instanceof Document, 'Cannot morph document to element');
@@ -37,7 +37,7 @@ export function morph(
       morphToDocumentFragment(
         fromElementOrDocument,
         parseHTMLFragment(toElementOrDocument, fromElementOrDocument.ownerDocument),
-        options
+        options,
       );
     } else {
       morphToElement(fromElementOrDocument, toElementOrDocument, options);
@@ -48,7 +48,7 @@ export function morph(
 function morphToDocumentFragment(
   fromElement: Element,
   toDocumentFragment: DocumentFragment,
-  options?: MorphOptions
+  options?: MorphOptions,
 ) {
   toDocumentFragment.normalize();
 
@@ -58,7 +58,7 @@ function morphToDocumentFragment(
     morphToElement(fromElement, wrapper, options);
   } else {
     const [firstChild, secondChild, ...children] = [...toDocumentFragment.childNodes].filter(
-      isElementOrText
+      isElementOrText,
     );
 
     if (isElement(firstChild)) {

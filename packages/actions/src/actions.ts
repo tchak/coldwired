@@ -134,7 +134,7 @@ export class Actions {
     const immediateActions = unmaterializedActions.filter(isImmediateAction);
     const delayedActions = groupBy(
       unmaterializedActions.filter(isDelayedAction),
-      ({ delay }) => delay
+      ({ delay }) => delay,
     );
 
     this.scheduleActions(immediateActions);
@@ -199,7 +199,7 @@ export class Actions {
   morph(
     from: Element | Document,
     to: string | Element | Document | DocumentFragment,
-    options?: { childrenOnly?: boolean }
+    options?: { childrenOnly?: boolean },
   ) {
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
@@ -317,7 +317,7 @@ export class Actions {
   _morph(
     from: Element | Document,
     to: string | Element | Document | DocumentFragment,
-    options?: { childrenOnly?: boolean }
+    options?: { childrenOnly?: boolean },
   ) {
     morph(from, to, {
       metadata: this.#metadata,
@@ -424,7 +424,7 @@ export class Actions {
         (action) => ({
           ...action,
           targets: [target as Element],
-        })
+        }),
       );
       this.applyActions(actions);
     } else if (isFormInputElement(target)) {
@@ -465,7 +465,7 @@ function duplicateChildren(targets: Element[], fragment: DocumentFragment) {
     .flatMap((element) => [...element.children])
     .filter((element) => !!element.id);
   const newChildrenIds = new Set(
-    [...fragment.children].filter((element) => !!element.id).map((element) => element.id)
+    [...fragment.children].filter((element) => !!element.id).map((element) => element.id),
   );
 
   return existingChildren.filter((element) => newChildrenIds.has(element.id));
@@ -488,7 +488,7 @@ function isDelayedAction(action: Action): action is Action & { delay: number } {
 }
 
 function isFragmentAction(
-  action: Action | MaterializedAction
+  action: Action | MaterializedAction,
 ): action is FragmentAction | MaterializedFragmentAction {
   return 'fragment' in action;
 }
@@ -504,7 +504,7 @@ function getTargetElements(element: Element, selector: string) {
 function getDocumentFragment(
   fragmentOrHTML: string | DocumentFragment,
   target: Element,
-  deduplicate = false
+  deduplicate = false,
 ) {
   const fragment =
     typeof fragmentOrHTML == 'string'
@@ -556,9 +556,8 @@ class DispatchEventElement extends HTMLElement {
     invariant(type, '[dispatch-event] must have "type" attribute');
     invariant(target, '[dispatch-event] must have a target element');
 
-    const content = this.querySelector<HTMLScriptElement>(
-      'script[type="application/json"]'
-    )?.textContent;
+    const content = this.querySelector<HTMLScriptElement>('script[type="application/json"]')
+      ?.textContent;
     const detail = content ? parseEventDetail(content) : null;
 
     dispatch(type, { target, detail });
@@ -597,7 +596,7 @@ export function dispatchActions(actions: (Action | MaterializedAction)[]) {
         .filter((target) => target.isConnected)
         .map((target) => [target, action.action, serializeDocumentFragment(action)] as const);
     }),
-    ([target]) => target
+    ([target]) => target,
   );
   for (const [target, actions] of actionsByTarget) {
     dispatch(ACTIONS_EVENT_TYPE, {

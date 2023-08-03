@@ -82,11 +82,11 @@ describe('@coldwired/actions', () => {
   it('should morph tr', () => {
     actions.morph(
       document,
-      parseHTMLDocument('<table><tbody><tr id="row1"><td>Hello</td></tr></tbody></table>')
+      parseHTMLDocument('<table><tbody><tr id="row1"><td>Hello</td></tr></tbody></table>'),
     );
     const table = document.body.firstElementChild as HTMLTableElement;
     expect(table.outerHTML).toEqual(
-      '<table><tbody><tr id="row1"><td>Hello</td></tr></tbody></table>'
+      '<table><tbody><tr id="row1"><td>Hello</td></tr></tbody></table>',
     );
     const row1 = table.querySelector('#row1') as HTMLTableRowElement;
     actions.morph(row1, '<tr id="row1"><td>Hello</td></tr><tr id="row2"><td>World</td></tr>');
@@ -128,7 +128,7 @@ describe('@coldwired/actions', () => {
       childrenOnly: true,
     });
     expect(document.body.innerHTML).toEqual(
-      '<div class="bar">Hello<div class="foo">World</div>World<span>!</span></div>'
+      '<div class="bar">Hello<div class="foo">World</div>World<span>!</span></div>',
     );
     expect(document.body.firstElementChild?.firstChild?.textContent).toEqual('Hello');
   });
@@ -137,18 +137,18 @@ describe('@coldwired/actions', () => {
     actions.morph(
       document,
       parseHTMLDocument(
-        '<turbo-frame id="test-frame" data-turbo-action="advance">Hello World</turbo-frame>'
-      )
+        '<turbo-frame id="test-frame" data-turbo-action="advance">Hello World</turbo-frame>',
+      ),
     );
     const frame = document.body.firstElementChild as HTMLElement;
 
     actions.morph(
       frame,
-      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>'
+      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>',
     );
 
     expect(document.body.innerHTML).toEqual(
-      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>'
+      '<turbo-frame id="test-frame" data-turbo-action="advance"><div>Hello new World</div></turbo-frame>',
     );
   });
 
@@ -160,8 +160,8 @@ describe('@coldwired/actions', () => {
           <button>First</button>
           <button>Click me</button>
         </div>
-        <input name="name" />`
-      )
+        <input name="name" />`,
+      ),
     );
     const from = document.body.firstElementChild as HTMLDivElement;
     const firstButton = from.firstElementChild as HTMLButtonElement;
@@ -196,7 +196,7 @@ describe('@coldwired/actions', () => {
         fragment: parseHTMLFragment(
           `<input name="firstName" />
           <input name="lastName" />`,
-          document
+          document,
         ),
       },
       {
@@ -219,7 +219,7 @@ describe('@coldwired/actions', () => {
         fragment: parseHTMLFragment(
           `<input name="firstName" />
           <input name="lastName" />`,
-          document
+          document,
         ),
       },
       {
@@ -245,7 +245,7 @@ describe('@coldwired/actions', () => {
             <input name="lastName" />
           </div>
           <button name="lastButton"></button>`,
-          document
+          document,
         ),
       },
       {
@@ -283,7 +283,7 @@ describe('@coldwired/actions', () => {
             <input name="lastName" />
             <input name="middleName" />
           </div>`,
-          document
+          document,
         ),
       },
       {
@@ -321,7 +321,7 @@ describe('@coldwired/actions', () => {
             <input name="lastName" />
             <input name="middleName" />
           </div>`,
-          document
+          document,
         ),
       },
       {
@@ -348,7 +348,7 @@ describe('@coldwired/actions', () => {
     await actions.ready();
     {
       const middleNameInput = document.querySelector(
-        'input[name="middleName"]'
+        'input[name="middleName"]',
       ) as HTMLButtonElement;
       expect(isFocused(middleNameInput)).toBeTruthy();
     }
@@ -363,7 +363,7 @@ describe('@coldwired/actions', () => {
             <input name="lastName" />
             <input name="middleName" />
           </div>`,
-          document
+          document,
         ),
       },
       {
@@ -445,8 +445,8 @@ describe('@coldwired/actions', () => {
     actions.morph(
       document,
       parseHTMLDocument(
-        '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />'
-      )
+        '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />',
+      ),
     );
     const input = getByLabelText<HTMLInputElement>(document.body, 'Test');
     fireEvent.change(input, { target: { value: 'Hello World' } });
@@ -455,8 +455,8 @@ describe('@coldwired/actions', () => {
     actions.morph(
       document,
       parseHTMLDocument(
-        '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />'
-      )
+        '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />',
+      ),
     );
     expect(input.value).toEqual('Hello World');
     expect(input.selectionStart).toEqual(5);
@@ -464,8 +464,8 @@ describe('@coldwired/actions', () => {
     actions.morph(
       document,
       parseHTMLDocument(
-        '<label for="test">Test</label><input data-turbo-force="server" id="test" name="test" type="text" value="test" />'
-      )
+        '<label for="test">Test</label><input data-turbo-force="server" id="test" name="test" type="text" value="test" />',
+      ),
     );
     expect(input.value).toEqual('test');
   });
@@ -492,7 +492,7 @@ describe('@coldwired/actions', () => {
 
     actions.morph(
       document,
-      parseHTMLDocument('<div hidden aria-expanded data-turbo-force="server">New Menu</div>')
+      parseHTMLDocument('<div hidden aria-expanded data-turbo-force="server">New Menu</div>'),
     );
     expect(from.getAttribute('aria-expanded')).toEqual('');
     expect(from.hidden).toBeTruthy();
@@ -540,7 +540,7 @@ describe('@coldwired/actions', () => {
       targets: 'head',
       fragment: parseHTMLFragment(
         '<dispatch-event type="data"><script type="application/json"><![CDATA[{ "the answer": 42, "more >": "&<t>" }]]></script></dispatch-event>',
-        document
+        document,
       ),
     });
     await actions.ready();

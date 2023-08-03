@@ -17,7 +17,7 @@ export type NavigationContextDelegate = {
   navigationDone(
     navigation: NavigationStates['Idle'],
     revalidation: boolean,
-    data?: RouteData
+    data?: RouteData,
   ): void;
   fetcherDone(fetcherKey: string, fetcher: Fetcher, form: Element, data?: RouteData): void;
 };
@@ -36,7 +36,7 @@ export class NavigationContext {
     element: Element,
     schema: Schema,
     delegate: NavigationContextDelegate,
-    debug = false
+    debug = false,
   ) {
     this.#element = element;
     this.#schema = schema;

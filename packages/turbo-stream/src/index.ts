@@ -5,7 +5,7 @@ import { parseHTMLFragment } from '@coldwired/utils';
 
 export async function renderTurboStream(actions: Actions, stream: string) {
   actions.applyActions(
-    [...parseHTMLFragment(stream, actions.element.ownerDocument).children].map(parseTurboStream)
+    [...parseHTMLFragment(stream, actions.element.ownerDocument).children].map(parseTurboStream),
   );
   await actions.ready();
 }
@@ -75,7 +75,7 @@ function parseTemplate(stream: Element): DocumentFragment | undefined {
   }
   invariant(
     templateElement instanceof HTMLTemplateElement,
-    '[turbo-stream] first child element must be a <template> element'
+    '[turbo-stream] first child element must be a <template> element',
   );
   const templateContent = templateElement.content;
   templateContent.normalize();

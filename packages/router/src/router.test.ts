@@ -11,21 +11,21 @@ export const handlers = [
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
-      ctx.body(html('<h1>Hello world!</h1>'))
+      ctx.body(html('<h1>Hello world!</h1>')),
     );
   }),
   rest.get('/about', (_, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
-      ctx.body(html('<h1>About</h1><a href="/">Home</a>', 'About'))
+      ctx.body(html('<h1>About</h1><a href="/">Home</a>', 'About')),
     );
   }),
   rest.get('/yolo', (_, res, ctx) => {
     return res(
       ctx.status(404),
       ctx.set('content-type', ContentType.HTML),
-      ctx.body(html('<h1>Not Found</h1>', 'Not Found'))
+      ctx.body(html('<h1>Not Found</h1>', 'Not Found')),
     );
   }),
   rest.get('/forms', (_, res, ctx) => {
@@ -39,9 +39,9 @@ export const handlers = [
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>`,
-          'Form'
-        )
-      )
+          'Form',
+        ),
+      ),
     );
   }),
   rest.get('/forms/submit-on-change', (_, res, ctx) => {
@@ -55,9 +55,9 @@ export const handlers = [
             <input name="firstName" value="Paul">
             <input type="checkbox" name="accept" value="true">
           </form>`,
-          'Submit on change form'
-        )
-      )
+          'Submit on change form',
+        ),
+      ),
     );
   }),
   rest.get('/forms/redirect-to-self', (_, res, ctx) => {
@@ -71,9 +71,9 @@ export const handlers = [
             <input name="firstName" value="Paul">
             <input type="submit" value="Submit">
           </form>`,
-          'Form'
-        )
-      )
+          'Form',
+        ),
+      ),
     );
   }),
   rest.post('/forms', (_, res, ctx) => {
@@ -97,9 +97,9 @@ export const handlers = [
           <form data-turbo-fetcher method="post" action="/turbo-stream">
             <input type="submit" value="Delete">
           </form>`,
-          'Fetcher'
-        )
-      )
+          'Fetcher',
+        ),
+      ),
     );
   }),
   rest.post('/forms/fetcher', (_, res, ctx) => {
@@ -124,14 +124,14 @@ export const handlers = [
         <template>
           Fetcher!
         </template>
-      </turbo-stream>`)
+      </turbo-stream>`),
     );
   }),
   rest.get('/http-override', (_, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
-      ctx.body(html('<form method="patch"><button type="submit">Send</button></form>'))
+      ctx.body(html('<form method="patch"><button type="submit">Send</button></form>')),
     );
   }),
   rest.post('/http-override', async (req, res, ctx) => {
@@ -139,7 +139,7 @@ export const handlers = [
     return res(
       ctx.status(200),
       ctx.set('content-type', ContentType.HTML),
-      ctx.body(html(`<code>${body}</code>`))
+      ctx.body(html(`<code>${body}</code>`)),
     );
   }),
 ];
@@ -254,21 +254,21 @@ describe('@coldwired/router', () => {
     expect(text).not.toEqual(newText);
 
     await application.renderTurboStream(
-      '<turbo-stream action="update" targets="h1" pin="last"><template>New Form</template></turbo-stream>'
+      '<turbo-stream action="update" targets="h1" pin="last"><template>New Form</template></turbo-stream>',
     );
 
     await application.renderTurboStream(
-      '<turbo-stream action="append" targets="form" pin><template><p class="e">error1</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error1</p></template></turbo-stream>',
     );
     await application.renderTurboStream(
-      '<turbo-stream action="append" targets="form" pin><template><p class="e">error2</p></template></turbo-stream>'
+      '<turbo-stream action="append" targets="form" pin><template><p class="e">error2</p></template></turbo-stream>',
     );
 
     await application.renderTurboStream(
-      '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning1</p></template></turbo-stream>'
+      '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning1</p></template></turbo-stream>',
     );
     await application.renderTurboStream(
-      '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning2</p></template></turbo-stream>'
+      '<turbo-stream action="prepend" targets="form" pin="last"><template><p>warning2</p></template></turbo-stream>',
     );
 
     text = document.querySelector('h1')?.textContent;

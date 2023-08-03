@@ -78,7 +78,7 @@ export class Application {
       element,
       this.#schema,
       this.#delegate,
-      options?.debug
+      options?.debug,
     );
 
     if (options?.httpMethodOverride) {
@@ -156,7 +156,7 @@ export class Application {
     const controller = new DirectiveController(
       this.#actions.element,
       directiveAttributeName,
-      factory
+      factory,
     );
     this.#controllers.add(controller);
   }
@@ -187,7 +187,7 @@ export class Application {
   private navigationDone(
     navigation: NavigationStates['Idle'],
     revalidation: boolean,
-    data?: RouteData
+    data?: RouteData,
   ) {
     switch (data?.format) {
       case 'html':
@@ -253,7 +253,7 @@ export class Application {
       {
         submitter,
         httpMethodOverride: this.#httpMethodOverride,
-      }
+      },
     );
     const replace =
       submitter?.hasAttribute(this.#schema.replaceAttribute) ||
@@ -285,7 +285,7 @@ export class Application {
       const { url, method, formData, encType } = getFormSubmissionInfo(
         href.searchParams,
         location.pathname,
-        { method: turboMethod as FormMethod, action: href.pathname }
+        { method: turboMethod as FormMethod, action: href.pathname },
       );
 
       this.#router.navigate(relativeURL(url), {

@@ -67,7 +67,7 @@ export function getFormSubmissionInfo(
     | { [name: string]: string }
     | null,
   defaultAction: string,
-  options: SubmitOptions
+  options: SubmitOptions,
 ): {
   url: URL;
   method: FormMethod;
@@ -124,7 +124,7 @@ export function getFormSubmissionInfo(
   } else if (isElement(target)) {
     invariant(
       false,
-      'Cannot submit element that is not <form>, <button>, or <input type="submit|image">'
+      'Cannot submit element that is not <form>, <button>, or <input type="submit|image">',
     );
   } else {
     method = options.method || defaultMethod;

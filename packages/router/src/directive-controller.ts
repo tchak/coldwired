@@ -6,7 +6,7 @@ import { DirectiveObserver, DirectiveObserverDelegate } from './directive-observ
 export type DirectiveConstructor = new (
   element: Element,
   router: Router,
-  schema: Schema
+  schema: Schema,
 ) => Directive;
 
 export abstract class Directive {

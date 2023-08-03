@@ -2,6 +2,7 @@ import morphdom from 'morphdom';
 import invariant from 'tiny-invariant';
 
 import {
+  isHTMLElement,
   isFormInputElement,
   isLinkElement,
   isFormOptionElement,
@@ -24,7 +25,7 @@ type MorphOptions = FocusNextOptions & {
 export function morph(
   fromElementOrDocument: Element | Document,
   toElementOrDocument: string | Element | Document | DocumentFragment,
-  options?: MorphOptions
+  options?: MorphOptions,
 ) {
   if (fromElementOrDocument instanceof Document) {
     invariant(toElementOrDocument instanceof Document, 'Cannot morph document to element');
@@ -37,7 +38,7 @@ export function morph(
       morphToDocumentFragment(
         fromElementOrDocument,
         parseHTMLFragment(toElementOrDocument, fromElementOrDocument.ownerDocument),
-        options
+        options,
       );
     } else {
       morphToElement(fromElementOrDocument, toElementOrDocument, options);
@@ -48,7 +49,7 @@ export function morph(
 function morphToDocumentFragment(
   fromElement: Element,
   toDocumentFragment: DocumentFragment,
-  options?: MorphOptions
+  options?: MorphOptions,
 ) {
   toDocumentFragment.normalize();
 
@@ -58,7 +59,7 @@ function morphToDocumentFragment(
     morphToElement(fromElement, wrapper, options);
   } else {
     const [firstChild, secondChild, ...children] = [...toDocumentFragment.childNodes].filter(
-      isElementOrText
+      isElementOrText,
     );
 
     if (isElement(firstChild)) {
@@ -112,6 +113,10 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         for (const [name, value] of Object.entries(metadata.attributes)) {
           if (value == null) {
             toElement.removeAttribute(name);
+          } else if (name == 'style') {
+            if (isHTMLElement(toElement)) {
+              toElement.style.cssText = value;
+            }
           } else {
             toElement.setAttribute(name, value);
           }

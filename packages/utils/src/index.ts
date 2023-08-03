@@ -19,7 +19,7 @@ export type DispatchOptions<T> = {
 
 export function dispatch<T>(
   eventName: string,
-  { target, cancelable, detail }: Partial<DispatchOptions<T>> = {}
+  { target, cancelable, detail }: Partial<DispatchOptions<T>> = {},
 ) {
   const event = new CustomEvent(eventName, {
     cancelable,
@@ -80,6 +80,10 @@ export function isElement(node: unknown): node is Element {
   return isNode(node) && node.nodeType == Node.ELEMENT_NODE;
 }
 
+export function isHTMLElement(node: unknown): node is HTMLElement {
+  return isElement(node) && 'style' in node;
+}
+
 export function isButtonElement(node: unknown): node is HTMLButtonElement {
   return isElement(node) && node.tagName == 'BUTTON';
 }
@@ -105,7 +109,7 @@ export function isInputElement(node: unknown): node is HTMLInputElement {
 }
 
 export function isFormInputElement(
-  node: unknown
+  node: unknown,
 ): node is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   return isElement(node) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName);
 }
@@ -199,7 +203,7 @@ export function wait(delay: number, signal?: AbortSignal) {
         clearTimeout(timer);
         reject(new AbortError('Aborted'));
       },
-      { once: true }
+      { once: true },
     );
   });
 }
@@ -227,14 +231,14 @@ export function partition<T>(array: T[], predicat: (entry: T) => boolean): [yes:
       }
       return parts;
     },
-    [[], []]
+    [[], []],
   );
 }
 
 function getNextFocusableElement(
   element: Element,
   activeElement: Element,
-  options?: FocusNextOptions
+  options?: FocusNextOptions,
 ) {
   const focusDirectionAttribute = options?.focusDirectionAttribute;
   const focusGroupAttribute = options?.focusGroupAttribute;
@@ -249,7 +253,7 @@ function getNextFocusableElement(
         focusGroupElement,
         element,
         activeElement,
-        focusDirection == 'next' ? 'next' : 'prev'
+        focusDirection == 'next' ? 'next' : 'prev',
       )
     : null;
 
@@ -259,7 +263,7 @@ function getNextFocusableElement(
       element.ownerDocument.body,
       element,
       activeElement,
-      focusDirection == 'next' ? 'next' : 'prev'
+      focusDirection == 'next' ? 'next' : 'prev',
     )
   );
 }
@@ -268,7 +272,7 @@ function getNextFocusableElementInGroup(
   focusGroupElement: Element,
   element: Element,
   activeElement: Element,
-  direction: 'prev' | 'next' = 'prev'
+  direction: 'prev' | 'next' = 'prev',
 ) {
   const focusable = getKeyboardFocusableElements(focusGroupElement, element, activeElement);
   const index = focusable.indexOf(activeElement);
@@ -287,16 +291,16 @@ function getNextFocusableElementInGroup(
 function getKeyboardFocusableElements(
   element: Element,
   elementToRemove: Element,
-  activeElement: Element
+  activeElement: Element,
 ): Element[] {
   return [
     ...element.querySelectorAll<HTMLElement>(
-      'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), details, [tabindex]:not([tabindex="-1"])'
+      'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), details, [tabindex]:not([tabindex="-1"])',
     ),
   ].filter(
     (element) =>
       element == activeElement ||
-      (!element.closest('[aria-hidden], [hidden]') && !elementToRemove.contains(element))
+      (!element.closest('[aria-hidden], [hidden]') && !elementToRemove.contains(element)),
   );
 }
 

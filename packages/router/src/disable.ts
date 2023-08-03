@@ -7,7 +7,7 @@ export function disableFormInputs(
   {
     disableAttribute,
     disableWithAttribute,
-  }: { disableAttribute: string; disableWithAttribute: string }
+  }: { disableAttribute: string; disableWithAttribute: string },
 ) {
   for (const element of container.querySelectorAll<
     HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement
@@ -36,7 +36,7 @@ export function enableFormInputs(
   {
     disableAttribute,
     disableWithAttribute,
-  }: { disableAttribute: string; disableWithAttribute: string }
+  }: { disableAttribute: string; disableWithAttribute: string },
 ) {
   for (const element of container.querySelectorAll<
     HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement

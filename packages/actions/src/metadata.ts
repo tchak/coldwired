@@ -3,6 +3,7 @@ type MetadataValue = {
   removedClassNames: Set<string>;
   touched: boolean;
   attributes: Record<string, string | null>;
+  style?: string;
 };
 
 export class Metadata {

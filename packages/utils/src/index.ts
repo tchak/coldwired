@@ -80,6 +80,10 @@ export function isElement(node: unknown): node is Element {
   return isNode(node) && node.nodeType == Node.ELEMENT_NODE;
 }
 
+export function isHTMLElement(node: unknown): node is HTMLElement {
+  return isElement(node) && 'style' in node;
+}
+
 export function isButtonElement(node: unknown): node is HTMLButtonElement {
   return isElement(node) && node.tagName == 'BUTTON';
 }

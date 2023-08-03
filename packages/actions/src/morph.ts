@@ -2,6 +2,7 @@ import morphdom from 'morphdom';
 import invariant from 'tiny-invariant';
 
 import {
+  isHTMLElement,
   isFormInputElement,
   isLinkElement,
   isFormOptionElement,
@@ -112,6 +113,10 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         for (const [name, value] of Object.entries(metadata.attributes)) {
           if (value == null) {
             toElement.removeAttribute(name);
+          } else if (name == 'style') {
+            if (isHTMLElement(toElement)) {
+              toElement.style.cssText = value;
+            }
           } else {
             toElement.setAttribute(name, value);
           }

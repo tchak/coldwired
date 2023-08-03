@@ -1,10 +1,11 @@
-import { isElement } from '@coldwired/utils';
+import { isElement, isHTMLElement } from '@coldwired/utils';
 
 const attributes = [
   'role',
   'disabled',
   'hidden',
   'tab-index',
+  'style',
   'aria-autocomplete',
   'aria-checked',
   'aria-disabled',
@@ -109,8 +110,18 @@ export class AttributeObserver {
 
   private onAttributeMutation(mutation: MutationRecord) {
     if (isElement(mutation.target) && mutation.attributeName) {
-      const value = mutation.target.getAttribute(mutation.attributeName);
-      this.#delegate.attributeChanged(mutation.target, mutation.attributeName, value);
+      if (mutation.attributeName == 'style') {
+        if (isHTMLElement(mutation.target)) {
+          this.#delegate.attributeChanged(
+            mutation.target,
+            mutation.attributeName,
+            mutation.target.style.cssText,
+          );
+        }
+      } else {
+        const value = mutation.target.getAttribute(mutation.attributeName);
+        this.#delegate.attributeChanged(mutation.target, mutation.attributeName, value);
+      }
     }
   }
 }

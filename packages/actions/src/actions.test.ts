@@ -498,6 +498,19 @@ describe('@coldwired/actions', () => {
     expect(from.hidden).toBeTruthy();
   });
 
+  it('should preserve style attribute', async () => {
+    actions.morph(document, parseHTMLDocument('<div style="color: red;">Menu</div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    expect(from.style.cssText).toEqual('color: red;');
+    from.style.backgroundColor = 'blue';
+    from.style.color = '';
+    await Promise.resolve();
+
+    actions.morph(document, parseHTMLDocument('<div style="color: red;">New Menu</div>'));
+    expect(from.style.cssText).toEqual('background-color: blue;');
+  });
+
   it('should preserve html if force="client" attribute is set', async () => {
     actions.morph(document, parseHTMLDocument('<div>Hello world</div>'));
     const from = document.body.firstElementChild as HTMLDivElement;

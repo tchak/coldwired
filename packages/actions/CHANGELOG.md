@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.11.2
+
+### Patch Changes
+
+- dd2239c: fix dispatch event
+
 ## 0.11.1
 
 ### Patch Changes

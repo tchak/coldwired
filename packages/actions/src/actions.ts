@@ -498,6 +498,11 @@ function isMaterializedAction(action: Action | MaterializedAction): action is Ma
 }
 
 function getTargetElements(element: Element, selector: string) {
+  if (selector == 'head') {
+    return [element.ownerDocument.head];
+  } else if (selector == 'body') {
+    return [element.ownerDocument.body];
+  }
   return [...element.querySelectorAll(selector)];
 }
 

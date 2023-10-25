@@ -2,7 +2,7 @@ import {
   debounce,
   parseIntWithDefault,
   isFormInputElement,
-  isTextInputElement,
+  matchInputElement,
 } from '@coldwired/utils';
 import { Directive } from '../directive-controller';
 
@@ -36,15 +36,19 @@ export class SubmitOnChange extends Directive implements EventListenerObject {
   }
 
   private onInput(form: HTMLFormElement, target: EventTarget) {
-    if (isTextInputElement(target)) {
-      debounce(form, () => form.requestSubmit(), this.interval);
-    }
+    matchInputElement(target, {
+      inputable: () => {
+        debounce(form, () => form.requestSubmit(), this.interval);
+      },
+    });
   }
 
   private onChange(form: HTMLFormElement, target: EventTarget) {
-    if (isFormInputElement(target)) {
-      form.requestSubmit();
-    }
+    matchInputElement(target, {
+      changable: () => {
+        form.requestSubmit();
+      },
+    });
   }
 
   private get interval() {

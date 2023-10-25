@@ -126,11 +126,48 @@ export function isFormOptionElement(node: unknown): node is HTMLOptionElement {
   return isElement(node) && node.tagName == 'OPTION';
 }
 
+export function isDateInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && isDateType(node.type);
+}
+
+export function isNumberInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'number';
+}
+
+export function isCheckboxInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'checkbox';
+}
+
+export function isRadioInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'radio';
+}
+
+export function isRangeInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'range';
+}
+
+export function isColorInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'color';
+}
+
+export function isFileInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'file';
+}
+
+export function isHiddenInputElement(node: unknown): node is HTMLInputElement {
+  return isInputElement(node) && node.type == 'hidden';
+}
+
 export function isTextInputElement(node: unknown): node is HTMLInputElement | HTMLTextAreaElement {
-  return (
-    isElement(node) &&
-    (node.tagName == 'TEXTAREA' || (isInputElement(node) && isTextType(node.type)))
-  );
+  return isTextAreaElement(node) || (isInputElement(node) && isTextType(node.type));
+}
+
+export function isInputableElement(node: unknown): node is HTMLInputElement | HTMLTextAreaElement {
+  return isTextAreaElement(node) || (isInputElement(node) && isInputableType(node.type));
+}
+
+export function isChangableElement(node: unknown): node is HTMLInputElement | HTMLSelectElement {
+  return isSelectElement(node) || (isInputElement(node) && isChangableType(node.type));
 }
 
 export function isElementOrText(node: unknown): node is Element | Text {
@@ -148,7 +185,7 @@ export function isFocused(element: Element) {
 export function focusElement(element: Element) {
   if ('focus' in element && typeof element.focus == 'function') {
     element.focus();
-    if (isTextInputElement(element)) {
+    if (isInputableElement(element)) {
       element.setSelectionRange(element.value.length, element.value.length);
     }
   }
@@ -304,7 +341,77 @@ function getKeyboardFocusableElements(
   );
 }
 
-const TEXT_TYPES = ['text', 'search', 'url', 'tel', 'password'];
+const TEXT_TYPES = ['text', 'search', 'url', 'tel', 'password', 'email'];
 function isTextType(type: string) {
   return TEXT_TYPES.includes(type);
+}
+
+const DATE_TYPES = ['date', 'datetime-local', 'month', 'week', 'time'];
+function isDateType(type: string) {
+  return DATE_TYPES.includes(type);
+}
+
+const INPUTABLE_TYPES = [...TEXT_TYPES, ...DATE_TYPES, 'number'];
+function isInputableType(type: string) {
+  return INPUTABLE_TYPES.includes(type);
+}
+
+const CHANGABLE_TYPES = ['checkbox', 'radio', 'range', 'file', 'color'];
+function isChangableType(type: string) {
+  return CHANGABLE_TYPES.includes(type);
+}
+
+type InputMatcher<T extends HTMLElement = HTMLInputElement> = (element: T) => void;
+
+export function matchInputElement(
+  node: unknown,
+  matcher: {
+    inputable?: InputMatcher<HTMLInputElement | HTMLTextAreaElement>;
+    changable?: InputMatcher<HTMLInputElement | HTMLSelectElement>;
+    text?: InputMatcher<HTMLInputElement | HTMLTextAreaElement>;
+    select?: InputMatcher<HTMLSelectElement>;
+    date?: InputMatcher;
+    number?: InputMatcher;
+    checkbox?: InputMatcher;
+    radio?: InputMatcher;
+    range?: InputMatcher;
+    file?: InputMatcher;
+    color?: InputMatcher;
+    hidden?: InputMatcher;
+  },
+  options?: { disabled?: boolean },
+) {
+  if (isFormInputElement(node) && !options?.disabled && node.disabled) {
+    return;
+  }
+
+  if (isInputableElement(node)) {
+    if (matcher.text && isTextInputElement(node)) {
+      matcher.text(node);
+    } else if (matcher.date && isDateInputElement(node)) {
+      matcher.date(node);
+    } else if (matcher.number && isNumberInputElement(node)) {
+      matcher.number(node);
+    } else {
+      matcher.inputable?.(node);
+    }
+  } else if (isChangableElement(node)) {
+    if (matcher.select && isSelectElement(node)) {
+      matcher.select(node);
+    } else if (matcher.checkbox && isCheckboxInputElement(node)) {
+      matcher.checkbox(node);
+    } else if (matcher.radio && isRadioInputElement(node)) {
+      matcher.radio(node);
+    } else if (matcher.range && isRangeInputElement(node)) {
+      matcher.range(node);
+    } else if (matcher.file && isFileInputElement(node)) {
+      matcher.file(node);
+    } else if (matcher.color && isColorInputElement(node)) {
+      matcher.color(node);
+    } else {
+      matcher.changable?.(node);
+    }
+  } else if (isHiddenInputElement(node)) {
+    matcher.hidden?.(node);
+  }
 }

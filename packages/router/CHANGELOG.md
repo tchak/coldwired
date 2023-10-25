@@ -1,5 +1,13 @@
 # @coldwired/router
 
+## 0.11.3
+
+### Patch Changes
+
+- 6053d0c: add more utils helpers
+- Updated dependencies [6053d0c]
+  - @coldwired/utils@0.11.3
+
 ## 0.11.1
 
 ### Patch Changes

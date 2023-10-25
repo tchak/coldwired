@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.11.3
+
+### Patch Changes
+
+- 6053d0c: add more utils helpers
+
 ## 0.11.1
 
 ### Patch Changes

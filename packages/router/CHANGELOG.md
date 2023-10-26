@@ -1,5 +1,13 @@
 # @coldwired/router
 
+## 0.11.4
+
+### Patch Changes
+
+- 2f082dc: fix changable -> changeable
+- Updated dependencies [2f082dc]
+  - @coldwired/utils@0.11.4
+
 ## 0.11.3
 
 ### Patch Changes

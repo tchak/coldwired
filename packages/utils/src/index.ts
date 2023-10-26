@@ -166,8 +166,8 @@ export function isInputableElement(node: unknown): node is HTMLInputElement | HT
   return isTextAreaElement(node) || (isInputElement(node) && isInputableType(node.type));
 }
 
-export function isChangableElement(node: unknown): node is HTMLInputElement | HTMLSelectElement {
-  return isSelectElement(node) || (isInputElement(node) && isChangableType(node.type));
+export function isChangeableElement(node: unknown): node is HTMLInputElement | HTMLSelectElement {
+  return isSelectElement(node) || (isInputElement(node) && isChangeableType(node.type));
 }
 
 export function isElementOrText(node: unknown): node is Element | Text {
@@ -356,9 +356,9 @@ function isInputableType(type: string) {
   return INPUTABLE_TYPES.includes(type);
 }
 
-const CHANGABLE_TYPES = ['checkbox', 'radio', 'range', 'file', 'color'];
-function isChangableType(type: string) {
-  return CHANGABLE_TYPES.includes(type);
+const CHANGEABLE_TYPES = ['checkbox', 'radio', 'range', 'file', 'color'];
+function isChangeableType(type: string) {
+  return CHANGEABLE_TYPES.includes(type);
 }
 
 type InputMatcher<T extends HTMLElement = HTMLInputElement> = (element: T) => void;
@@ -367,7 +367,7 @@ export function matchInputElement(
   node: unknown,
   matcher: {
     inputable?: InputMatcher<HTMLInputElement | HTMLTextAreaElement>;
-    changable?: InputMatcher<HTMLInputElement | HTMLSelectElement>;
+    changeable?: InputMatcher<HTMLInputElement | HTMLSelectElement>;
     text?: InputMatcher<HTMLInputElement | HTMLTextAreaElement>;
     select?: InputMatcher<HTMLSelectElement>;
     date?: InputMatcher;
@@ -395,7 +395,7 @@ export function matchInputElement(
     } else {
       matcher.inputable?.(node);
     }
-  } else if (isChangableElement(node)) {
+  } else if (isChangeableElement(node)) {
     if (matcher.select && isSelectElement(node)) {
       matcher.select(node);
     } else if (matcher.checkbox && isCheckboxInputElement(node)) {
@@ -409,7 +409,7 @@ export function matchInputElement(
     } else if (matcher.color && isColorInputElement(node)) {
       matcher.color(node);
     } else {
-      matcher.changable?.(node);
+      matcher.changeable?.(node);
     }
   } else if (isHiddenInputElement(node)) {
     matcher.hidden?.(node);

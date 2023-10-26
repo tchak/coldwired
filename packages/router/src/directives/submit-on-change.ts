@@ -45,7 +45,7 @@ export class SubmitOnChange extends Directive implements EventListenerObject {
 
   private onChange(form: HTMLFormElement, target: EventTarget) {
     matchInputElement(target, {
-      changable: () => {
+      changeable: () => {
         form.requestSubmit();
       },
     });

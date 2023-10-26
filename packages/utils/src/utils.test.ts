@@ -6,7 +6,7 @@ import {
   isFormInputElement,
   isSelectElement,
   isInputableElement,
-  isChangableElement,
+  isChangeableElement,
   matchInputElement,
 } from '.';
 
@@ -96,34 +96,34 @@ describe('@coldwired/utils', () => {
     });
   });
 
-  describe('isChangableElement', () => {
+  describe('isChangeableElement', () => {
     it('should match checkbox input element', () => {
-      expect(isChangableElement(createInputElement('checkbox'))).toBeTruthy();
+      expect(isChangeableElement(createInputElement('checkbox'))).toBeTruthy();
     });
     it('should match radio input element', () => {
-      expect(isChangableElement(createInputElement('radio'))).toBeTruthy();
+      expect(isChangeableElement(createInputElement('radio'))).toBeTruthy();
     });
     it('should match range input element', () => {
-      expect(isChangableElement(createInputElement('range'))).toBeTruthy();
+      expect(isChangeableElement(createInputElement('range'))).toBeTruthy();
     });
     it('should match color input element', () => {
-      expect(isChangableElement(createInputElement('color'))).toBeTruthy();
+      expect(isChangeableElement(createInputElement('color'))).toBeTruthy();
     });
     it('should match file input element', () => {
-      expect(isChangableElement(createInputElement('file'))).toBeTruthy();
+      expect(isChangeableElement(createInputElement('file'))).toBeTruthy();
     });
     it('should match select element', () => {
-      expect(isChangableElement(document.createElement('select'))).toBeTruthy();
+      expect(isChangeableElement(document.createElement('select'))).toBeTruthy();
     });
 
     it('should not match text input element', () => {
-      expect(isChangableElement(createInputElement('text'))).toBeFalsy();
+      expect(isChangeableElement(createInputElement('text'))).toBeFalsy();
     });
     it('should not match textarea element', () => {
-      expect(isChangableElement(document.createElement('textarea'))).toBeFalsy();
+      expect(isChangeableElement(document.createElement('textarea'))).toBeFalsy();
     });
     it('should not match div element', () => {
-      expect(isChangableElement(document.createElement('div'))).toBeFalsy();
+      expect(isChangeableElement(document.createElement('div'))).toBeFalsy();
     });
   });
 
@@ -137,7 +137,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -152,7 +152,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -169,7 +169,7 @@ describe('@coldwired/utils', () => {
           inputable: (target) => {
             expect(target).toBeInstanceOf(HTMLInputElement);
           },
-          changable: (target) => {
+          changeable: (target) => {
             expect(target).toBeInstanceOf(HTMLInputElement);
           },
         },
@@ -186,7 +186,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -201,7 +201,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -216,7 +216,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -228,7 +228,7 @@ describe('@coldwired/utils', () => {
         text: (target) => {
           expect(target).toBeInstanceOf(HTMLTextAreaElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -255,7 +255,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
@@ -267,13 +267,13 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLTextAreaElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
     });
 
-    it('should match input changable element', () => {
+    it('should match input changeable element', () => {
       expect.assertions(1);
       matchInputElement(createInputElement('checkbox'), {
         checkbox: (target) => {
@@ -282,13 +282,13 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
       });
     });
 
-    it('should match select changable element', () => {
+    it('should match select changeable element', () => {
       expect.assertions(1);
       matchInputElement(document.createElement('select'), {
         select: (target) => {
@@ -297,7 +297,7 @@ describe('@coldwired/utils', () => {
         inputable: (target) => {
           expect(target).toBeInstanceOf(HTMLInputElement);
         },
-        changable: (target) => {
+        changeable: (target) => {
           expect(target).toBeInstanceOf(HTMLSelectElement);
         },
       });

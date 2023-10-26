@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.11.4
+
+### Patch Changes
+
+- 2f082dc: fix changable -> changeable
+
 ## 0.11.3
 
 ### Patch Changes

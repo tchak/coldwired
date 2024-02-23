@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "@coldwired/utils": "^0.11.1",
-    "morphdom": "^2.7.0",
-    "tiny-invariant": "^1.3.1"
+    "morphdom": "^2.7.2",
+    "tiny-invariant": "^1.3.2"
   },
   "engines": {
     "node": ">=16"

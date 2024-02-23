@@ -3,8 +3,6 @@
 [build-badge]: https://github.com/tchak/coldwired/workflows/CI/badge.svg
 [build]: https://github.com/tchak/coldwired/actions
 
-[npm-badge-router]: https://img.shields.io/npm/v/@coldwired/router.svg
-[npm-router]: https://www.npmjs.com/package/@coldwired/router
 [npm-badge-actions]: https://img.shields.io/npm/v/@coldwired/actions.svg
 [npm-actions]: https://www.npmjs.com/package/@coldwired/actions
 [npm-badge-turbo-stream]: https://img.shields.io/npm/v/@coldwired/turbo-stream.svg
@@ -23,7 +21,6 @@ project.
 
 * @coldwired/actions [![npm package][npm-badge-actions]][npm-actions]
 * @coldwired/turbo-stream [![npm package][npm-badge-turbo-stream]][npm-turbo-stream]
-* @coldwired/router [![npm package][npm-badge-router]][npm-router]
 
 ## Install
 

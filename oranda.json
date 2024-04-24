@@ -5,8 +5,7 @@
   "build": {
     "path_prefix": "coldwired",
     "additional_pages": {
-      "Actions": "./packages/actions/README.md",
-      "Router (experimental)": "./packages/router/README.md"
+      "Actions": "./packages/actions/README.md"
     }
   },
   "components": {

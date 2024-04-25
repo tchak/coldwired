@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { getByText, fireEvent, waitFor } from '@testing-library/dom';
 import { StrictMode, useState } from 'react';
 
-import { NAME_ATTRIBUTE, PROPS_ATTRIBUTE, Manifest, encodeProps } from '@coldwired/react';
+import {
+  NAME_ATTRIBUTE,
+  PROPS_ATTRIBUTE,
+  REACT_COMPONENT_TAG,
+  Manifest,
+  encodeProps,
+} from '@coldwired/react';
 
 import { Actions } from '.';
 
@@ -70,7 +76,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#frag-1',
-      fragment: `<react-component ${NAME_ATTRIBUTE}="Counter"></react-component>`,
+      fragment: `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -100,7 +106,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test</${DEFAULT_TAG_NAME}>`,
+      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test</${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
     expect(actions.container?.getCache().size).toEqual(2);
@@ -114,7 +120,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test 23</${DEFAULT_TAG_NAME}>`,
+      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test 23</${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
     expect(actions.container?.getCache().size).toEqual(2);
@@ -128,7 +134,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}>`,
+      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -142,7 +148,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<input name="age" /><${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}>`,
+      fragment: `<input name="age" /><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -156,7 +162,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<section><input name="age" /></section><${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}>`,
+      fragment: `<section><input name="age" /></section><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -170,7 +176,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter" label="My Count"></react-component></${DEFAULT_TAG_NAME}></section>`,
+      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" label="My Count"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}></section>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -193,7 +199,7 @@ describe('@coldwired/actions', () => {
 
     actions.update({
       targets: '#main',
-      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><react-component ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'My New Count' })}"></react-component></${DEFAULT_TAG_NAME}></section>`,
+      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'My New Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}></section>`,
     });
     await actions.ready();
     await waitFor(() => {

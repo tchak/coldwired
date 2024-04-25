@@ -22,8 +22,10 @@ type Component = {
 };
 export type Manifest = Record<string, ComponentType<any>>;
 
-export const NAME_ATTRIBUTE = '$name';
-export const PROPS_ATTRIBUTE = '$props';
+export const NAME_ATTRIBUTE = '@name';
+export const PROPS_ATTRIBUTE = '@props';
+export const REACT_COMPONENT_TAG = 'react-component';
+export const REACT_SLOT_TAG = 'react-slot';
 
 function isElement(node: JSONValue | Element | Component): node is Element {
   return !!(node && typeof node == 'object' && 'tagName' in node && 'attributes' in node);
@@ -53,10 +55,10 @@ export function preload(
     ...new Set(
       Array.from(childNodes).flatMap((childNode) => {
         if (isElementNode(childNode)) {
-          if (childNode.tagName.toLowerCase() == 'react-component') {
+          if (childNode.tagName.toLowerCase() == REACT_COMPONENT_TAG) {
             return childNode.getAttribute(NAME_ATTRIBUTE)!;
           }
-          return Array.from(childNode.querySelectorAll('react-component')).map(
+          return Array.from(childNode.querySelectorAll(REACT_COMPONENT_TAG)).map(
             (element) => element.getAttribute(NAME_ATTRIBUTE)!,
           );
         }
@@ -99,10 +101,10 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>): HydrateResult {
     } else if (isElementNode(childNode)) {
       const tagName = childNode.tagName.toLowerCase();
       const { children, props } = hydrateChildNodes(childNode.childNodes);
-      if (tagName == 'react-component') {
+      if (tagName == REACT_COMPONENT_TAG) {
         const name = childNode.getAttribute(NAME_ATTRIBUTE);
         if (!name) {
-          throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <react-component>`);
+          throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <${REACT_COMPONENT_TAG}>`);
         }
         result.children.push({
           name,
@@ -111,12 +113,12 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>): HydrateResult {
         });
       } else {
         if (Object.keys(props).length > 0) {
-          throw new Error('<react-slot> only allowed as direct child of <react-component>');
+          throw new Error('<react-slot> only allowed as direct child of <${REACT_COMPONENT_TAG}>');
         }
-        if (tagName == 'react-slot') {
+        if (tagName == REACT_SLOT_TAG) {
           const name = childNode.getAttribute(NAME_ATTRIBUTE);
           if (!name) {
-            throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <react-slot>`);
+            throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <${REACT_SLOT_TAG}>`);
           }
           if (children.length == 1) {
             const child = children[0];

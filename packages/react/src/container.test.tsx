@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useState, StrictMode } from 'react';
 
-import { createContainer, NAME_ATTRIBUTE, type Manifest } from '.';
+import { createContainer, NAME_ATTRIBUTE, REACT_COMPONENT_TAG, type Manifest } from '.';
 
 const DEFAULT_TAG_NAME = 'turbo-fragment';
 
@@ -49,7 +49,7 @@ describe('@coldwired/react', () => {
         fragmentTagName: DEFAULT_TAG_NAME,
         loadingClassName: 'loading',
       });
-      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><react-component ${NAME_ATTRIBUTE}="Counter"></react-component></${DEFAULT_TAG_NAME}><div id="root"></div>`;
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><div id="root"></div>`;
       await container.mount(document.getElementById('root')!, StrictMode);
       await container.render(document.body);
 

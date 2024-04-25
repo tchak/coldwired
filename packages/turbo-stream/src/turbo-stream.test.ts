@@ -12,7 +12,7 @@ describe('@coldwired/turbo-stream', () => {
     actions?.observe();
     actions = new Actions({ element: document.documentElement });
     document.body.innerHTML = '';
-    actions.disconnect();
+    //actions.disconnect();
   });
 
   it('should append', async () => {

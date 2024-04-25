@@ -13,6 +13,7 @@ import {
   focusNextElement,
   type FocusNextOptions,
 } from '@coldwired/utils';
+import type { Container } from '@coldwired/react';
 
 import { Metadata } from './metadata';
 
@@ -20,6 +21,7 @@ type MorphOptions = FocusNextOptions & {
   childrenOnly?: boolean;
   forceAttribute?: string;
   metadata?: Metadata;
+  container?: Container;
 };
 
 export function morph(
@@ -54,9 +56,13 @@ function morphToDocumentFragment(
   toDocumentFragment.normalize();
 
   if (options?.childrenOnly) {
-    const wrapper = toDocumentFragment.ownerDocument.createElement('div');
-    wrapper.append(toDocumentFragment);
-    morphToElement(fromElement, wrapper, options);
+    if (options.container?.isFragment(fromElement)) {
+      options.container.render(fromElement, toDocumentFragment);
+    } else {
+      const wrapper = toDocumentFragment.ownerDocument.createElement('div');
+      wrapper.append(toDocumentFragment);
+      morphToElement(fromElement, wrapper, options);
+    }
   } else {
     const [firstChild, secondChild, ...children] = [...toDocumentFragment.childNodes].filter(
       isElementOrText,
@@ -83,9 +89,18 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
 
+  if (options?.container?.isInsideFragment(fromElement)) {
+    throw new Error('Cannot morph element inside fragment');
+  }
+
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
-    onBeforeElUpdated(fromElement: Element, toElement: Element) {
+    onBeforeElUpdated(fromElement, toElement) {
+      if (options?.container?.isFragment(fromElement)) {
+        options.container.render(fromElement, toElement);
+        return false;
+      }
+
       const force = forceAttribute ? !!toElement.closest(`[${forceAttribute}="server"]`) : false;
       const metadata = options?.metadata?.get(fromElement);
 
@@ -141,8 +156,15 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
     onBeforeNodeDiscarded(node) {
       if (isElement(node)) {
         focusNextElement(node, options);
+        options?.container?.remove(node);
       }
       return true;
+    },
+    onNodeAdded(node) {
+      if (isElement(node)) {
+        options?.container?.render(node);
+      }
+      return node;
     },
   });
 

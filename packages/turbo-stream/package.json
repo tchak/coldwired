@@ -2,7 +2,9 @@
   "name": "@coldwired/turbo-stream",
   "description": "A `turbo-stream` implementation based on @coldwired/actions",
   "license": "MIT",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
   "types": "./dist/types/index.d.ts",
@@ -13,8 +15,10 @@
     }
   },
   "type": "module",
-  "version": "0.11.1",
-  "keywords": ["turbo"],
+  "version": "0.12.0",
+  "keywords": [
+    "turbo"
+  ],
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",
@@ -30,8 +34,8 @@
     "clean": "del dist coverage node_modules/.vite"
   },
   "dependencies": {
-    "@coldwired/actions": "^0.11.1",
-    "@coldwired/utils": "^0.11.1",
+    "@coldwired/actions": "^0.12.0",
+    "@coldwired/utils": "^0.12.0",
     "tiny-invariant": "^1.3.2"
   },
   "engines": {
@@ -45,15 +49,24 @@
   "eslintConfig": {
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint"],
-    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "prettier"
+    ],
     "rules": {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-redeclare": "off"
     },
     "overrides": [
       {
-        "files": ["vite.config.js", "vitest.config.ts"],
+        "files": [
+          "vite.config.js",
+          "vitest.config.ts"
+        ],
         "env": {
           "node": true
         }

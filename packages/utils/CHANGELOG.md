@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.12.0
+
+### Minor Changes
+
+- a467d1b: add support for react turbo fragments
+
 ## 0.11.4
 
 ### Patch Changes

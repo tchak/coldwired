@@ -1,5 +1,19 @@
 # @coldwired/turbo-stream
 
+## 0.12.0
+
+### Minor Changes
+
+- a467d1b: add support for react turbo fragments
+
+### Patch Changes
+
+- 63ff134: update dependencies
+- Updated dependencies [a467d1b]
+- Updated dependencies [63ff134]
+  - @coldwired/actions@0.12.0
+  - @coldwired/utils@0.12.0
+
 ## 0.11.1
 
 ### Patch Changes

@@ -3,7 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 import { parseHTMLFragment } from '@coldwired/utils';
 
-import { createReactTree, hydrate, NAME_ATTRIBUTE } from './react-tree-builder';
+import {
+  createReactTree,
+  hydrate,
+  NAME_ATTRIBUTE,
+  REACT_COMPONENT_TAG,
+  REACT_SLOT_TAG,
+} from './react-tree-builder';
 
 function Greeting({ firstName, lastName }: { firstName: string; lastName: string }) {
   return (
@@ -126,10 +132,10 @@ describe('@coldwired/react', () => {
     });
 
     it('render component', () => {
-      const greeting1 = `<react-component ${NAME_ATTRIBUTE}="Greeting" first_name="John" last_name="Doe"></react-component>`;
-      const greeting2 = `<react-component ${NAME_ATTRIBUTE}="Greeting" first-name="Greer" last-name="Pilkington"></react-component>`;
-      const fieldset1 = `<react-component ${NAME_ATTRIBUTE}="FieldSet" lang="fr" legend="Test">Hello World</react-component>`;
-      const fieldset2 = `<react-component ${NAME_ATTRIBUTE}="FieldSet" lang="en"><react-slot ${NAME_ATTRIBUTE}="legend"><span class="blue">Test</span></react-slot>${greeting2}</react-component>`;
+      const greeting1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" first_name="John" last_name="Doe"></${REACT_COMPONENT_TAG}>`;
+      const greeting2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" first-name="Greer" last-name="Pilkington"></${REACT_COMPONENT_TAG}>`;
+      const fieldset1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" lang="fr" legend="Test">Hello World</${REACT_COMPONENT_TAG}>`;
+      const fieldset2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" lang="en"><${REACT_SLOT_TAG} ${NAME_ATTRIBUTE}="legend"><span class="blue">Test</span></${REACT_SLOT_TAG}>${greeting2}</${REACT_COMPONENT_TAG}>`;
 
       const tree = hydrate(
         parseHTMLFragment(`${greeting1}<form>${fieldset1}${fieldset2}</form>`, document),

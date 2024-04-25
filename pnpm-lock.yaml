@@ -72,7 +72,7 @@ importers:
         specifier: '*'
         version: link:../react
       '@coldwired/utils':
-        specifier: ^0.11.1
+        specifier: ^0.12.0
         version: link:../utils
       morphdom:
         specifier: ^2.7.2
@@ -97,7 +97,7 @@ importers:
   packages/react:
     dependencies:
       '@coldwired/utils':
-        specifier: ^0.11.4
+        specifier: ^0.12.0
         version: link:../utils
       react:
         specifier: ^18.0.0
@@ -119,10 +119,10 @@ importers:
   packages/turbo-stream:
     dependencies:
       '@coldwired/actions':
-        specifier: ^0.11.1
+        specifier: ^0.12.0
         version: link:../actions
       '@coldwired/utils':
-        specifier: ^0.11.1
+        specifier: ^0.12.0
         version: link:../utils
       tiny-invariant:
         specifier: ^1.3.2

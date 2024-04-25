@@ -15,7 +15,7 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "declaration": true,
-    "outDir": "./dist/types",
+    "outDir": "./dist/types"
   },
-  "include": ["src", "test"]
+  "include": ["src"]
 }

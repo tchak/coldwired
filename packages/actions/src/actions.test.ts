@@ -39,7 +39,7 @@ describe('@coldwired/actions', () => {
     await Promise.resolve();
 
     actions.morph(from, '<div>World</div>');
-    expect(from.outerHTML).toEqual('<div>World</div>');
+    expect(from.outerHTML).toEqual('<div class="">World</div>');
   });
 
   it('should preserve removed classes', async () => {

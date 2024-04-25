@@ -5,20 +5,23 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [ 18, 20 ]
+        node: [18, 20]
     name: Node ${{ matrix.node }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node }}
-    - uses: pnpm/action-setup@v2.2.4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: pnpm/action-setup@v3
 
-    - name: Install Dependencies
-      run: pnpm install
+      - name: Install Dependencies
+        run: pnpm install
 
-    - name: Lint
-      run: pnpm lint
+      - name: Install Playwright
+        run: pnpm exec playwright install
 
-    - name: Test
-      run: pnpm test
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test

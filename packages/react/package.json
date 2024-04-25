@@ -1,6 +1,6 @@
 {
-  "name": "@coldwired/turbo-stream",
-  "description": "A `turbo-stream` implementation based on @coldwired/actions",
+  "name": "@coldwired/react",
+  "description": "React container for use with @coldwired",
   "license": "MIT",
   "files": ["dist"],
   "main": "./dist/index.cjs.js",
@@ -13,8 +13,7 @@
     }
   },
   "type": "module",
-  "version": "0.11.1",
-  "keywords": ["turbo"],
+  "version": "0.1.0",
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",
@@ -30,9 +29,16 @@
     "clean": "del dist coverage node_modules/.vite"
   },
   "dependencies": {
-    "@coldwired/actions": "^0.11.1",
-    "@coldwired/utils": "^0.11.1",
-    "tiny-invariant": "^1.3.2"
+    "@coldwired/utils": "^0.11.4"
+  },
+  "devDependencies": {
+    "html-entities": "^2.4.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "engines": {
     "node": ">=16"

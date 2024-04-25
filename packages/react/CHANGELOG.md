@@ -1,5 +1,11 @@
 # @coldwired/react
 
+## 0.12.1
+
+### Patch Changes
+
+- 76f2297: safer react attributes
+
 ## 0.12.0
 
 ### Minor Changes

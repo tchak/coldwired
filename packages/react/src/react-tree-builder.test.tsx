@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 import { parseHTMLFragment } from '@coldwired/utils';
+import { z } from 'zod';
 
 import {
   createReactTree,
@@ -148,6 +149,38 @@ describe('@coldwired/react', () => {
       expect(html).toBe(
         '<p>Bonjour John Doe !</p><form><fieldset lang="fr"><legend>Test</legend>Hello World</fieldset><fieldset lang="en"><legend><span class="blue">Test</span></legend><p>Bonjour Greer Pilkington !</p></fieldset></form>',
       );
+    });
+
+    it('deserialize values', () => {
+      const html = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" string="$$toto" int="$i42" float="$f42.1" boolt="$btrue" boolf="$bfalse" date="$D${new Date().toISOString()}" ></${REACT_COMPONENT_TAG}>`;
+      const tree = hydrate(parseHTMLFragment(html, document), { Greeting });
+
+      const result = z
+        .object({
+          props: z.object({
+            children: z
+              .object({
+                props: z.object({
+                  string: z.string(),
+                  int: z.number(),
+                  float: z.number(),
+                  boolt: z.boolean(),
+                  boolf: z.boolean(),
+                  date: z.date(),
+                }),
+              })
+              .array(),
+          }),
+        })
+        .safeParse(tree);
+      expect(result.data?.props.children[0].props).toEqual({
+        string: '$toto',
+        int: 42,
+        float: 42.1,
+        boolt: true,
+        boolf: false,
+        date: expect.any(Date),
+      });
     });
   });
 });

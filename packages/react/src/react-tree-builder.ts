@@ -1,4 +1,5 @@
-import { createElement, Fragment, type ComponentType, type ReactNode, type Key } from 'react';
+import type { ComponentType, ReactNode, Key } from 'react';
+import { createElement, Fragment } from 'react';
 import { decode as htmlDecode, encode as htmlEncode } from 'html-entities';
 
 type Child = string | Element | Component;
@@ -113,7 +114,9 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>): HydrateResult {
         });
       } else {
         if (Object.keys(props).length > 0) {
-          throw new Error('<react-slot> only allowed as direct child of <${REACT_COMPONENT_TAG}>');
+          throw new Error(
+            `<${REACT_SLOT_TAG}> only allowed as direct child of <${REACT_COMPONENT_TAG}>`,
+          );
         }
         if (tagName == REACT_SLOT_TAG) {
           const name = childNode.getAttribute(NAME_ATTRIBUTE);
@@ -227,13 +230,13 @@ function createChild(child: Child, manifest: Manifest, key?: Key): ReactNode | s
 }
 
 function transformAttributeName(name: string) {
-  const name_ = cebabCase(name);
-  if (attributeMap[name_]) {
-    return attributeMap[name_];
-  } else if (name_.startsWith('aria-')) {
-    return name_;
+  const attributeName = cebabCase(name);
+  if (attributeMap[attributeName]) {
+    return attributeMap[attributeName];
+  } else if (attributeName.startsWith('aria-')) {
+    return attributeName;
   }
-  return camelcase(name_);
+  return camelcase(attributeName);
 }
 
 function transformAttributeValue(name: string, value: string) {
@@ -241,7 +244,7 @@ function transformAttributeValue(name: string, value: string) {
     return parseStyleAttribute(value);
   }
   if (booleanAttribute.includes(name)) {
-    return value == name || value == 'true' || value == '1' || value == '';
+    return value != 'false' && value != 'off' && value != '0';
   }
   return value;
 }
@@ -280,6 +283,15 @@ function transformStringValue(value: string): ReactValue {
       case 'n':
         // BigInt
         return BigInt(value.slice(2));
+      case 'b':
+        // Boolean
+        return value[2] == 't';
+      case 'i':
+        // Integer
+        return parseInt(value.slice(2));
+      case 'f':
+        // Float
+        return parseFloat(value.slice(2));
     }
   }
   return value;

@@ -1,5 +1,11 @@
 # @coldwired/react
 
+## 0.12.2
+
+### Patch Changes
+
+- 0d8e4bb: fix deps
+
 ## 0.12.1
 
 ### Patch Changes

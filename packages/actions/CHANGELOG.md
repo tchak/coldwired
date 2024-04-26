@@ -1,5 +1,13 @@
 # @coldwired/actions
 
+## 0.12.2
+
+### Patch Changes
+
+- 0d8e4bb: fix deps
+- Updated dependencies [0d8e4bb]
+  - @coldwired/react@0.12.2
+
 ## 0.12.0
 
 ### Minor Changes

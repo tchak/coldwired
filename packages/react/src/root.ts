@@ -1,50 +1,70 @@
 import { createPortal } from 'react-dom';
-import { createRoot } from 'react-dom/client';
+import { createRoot as createReactRoot, type Root as ReactRoot } from 'react-dom/client';
 import {
   useSyncExternalStore,
   useEffect,
   createElement,
   Fragment,
+  StrictMode,
   type ReactNode,
   type ComponentType,
 } from 'react';
 import { parseHTMLFragment, isElement } from '@coldwired/utils';
 
-import { hydrate, preload, type Manifest } from './react-tree-builder';
+import {
+  hydrate,
+  preload,
+  defaultSchema as defaultTreeBuilderSchema,
+  type Manifest,
+  type Schema as TreeBuilderSchema,
+  type DocumentFragmentLike,
+} from './react-tree-builder';
 
 export type Loader = (name: string) => Promise<ComponentType>;
+export type { Manifest };
 
-export interface Container {
-  mount(rootElement: Element, Layout?: ComponentType<{ children: ReactNode }>): Promise<void>;
-  render(element: Element, fragment?: Element | DocumentFragment | string): Promise<void>;
-  remove(element: Element): void;
-  isFragment(element: Element): boolean;
-  isInsideFragment(element: Element): boolean;
+export interface RenderBatch {
+  count: number;
+  done: Promise<void>;
+}
+
+export interface Root {
+  mount(): Promise<void>;
+  unmount(): void;
+  render(element: Element, fragment?: DocumentFragmentLike | string): RenderBatch;
+  remove(element: Element): boolean;
+  contains(element: Element): boolean;
   destroy(): void;
   getCache(): Map<Element, ReactNode>;
 }
 
-export interface ContainerOptions {
+export interface RootOptions {
   loader: Loader;
-  fragmentTagName: string;
-  loadingClassName: string;
+  Layout?: ComponentType<{ children: ReactNode }>;
   manifest?: Manifest;
+  schema?: Partial<Schema>;
 }
 
-export function createContainer({
-  loader,
-  manifest: preloadedManifest,
-  fragmentTagName,
-  loadingClassName,
-}: ContainerOptions): Container {
+export interface Schema extends TreeBuilderSchema {
+  fragmentTagName: string;
+  loadingClassName: string;
+}
+
+export const defaultSchema: Schema = {
+  ...defaultTreeBuilderSchema,
+  fragmentTagName: 'turbo-fragment',
+  loadingClassName: 'loading',
+};
+
+export function createRoot(container: Element, options: RootOptions): Root {
+  const { loader, manifest: preloadedManifest } = options;
   let isDestroyed = false;
   let cache = new Map<Element, ReactNode>();
-  const mounted = new Map<
-    Element,
-    (fragment: Element | DocumentFragment | string) => Promise<void>
-  >();
+  const mounted = new Map<Element, (fragment: DocumentFragmentLike | string) => Promise<void>>();
   const subscriptions = new Set<() => void>();
   const manifest: Manifest = Object.assign({}, preloadedManifest);
+  const schema = Object.assign({}, defaultSchema, options.schema);
+  const Layout = options.Layout ?? StrictMode;
 
   const notify = () => {
     if (!isDestroyed) {
@@ -55,14 +75,14 @@ export function createContainer({
 
   const render = async (
     element: Element,
-    fragmentOrHTML: Element | DocumentFragment | string,
+    fragmentOrHTML: DocumentFragmentLike | string,
     reset: boolean,
   ) => {
     const fragment =
       typeof fragmentOrHTML == 'string'
         ? parseHTMLFragment(fragmentOrHTML, element.ownerDocument)
         : fragmentOrHTML;
-    if (isElement(fragment) && fragment.tagName.toLowerCase() != fragmentTagName) {
+    if (isElement(fragment) && fragment.tagName.toLowerCase() != schema.fragmentTagName) {
       throw new Error('Cannot rerender with a non-fragment element');
     }
     await preload(fragment, (names) => manifestLoader(names, loader, manifest));
@@ -72,7 +92,7 @@ export function createContainer({
     }
     cache.set(element, tree);
     notify();
-    element.classList.remove(loadingClassName);
+    element.classList.remove(schema.loadingClassName);
     if (element.classList.length == 0) {
       element.removeAttribute('class');
     }
@@ -109,70 +129,83 @@ export function createContainer({
       subscriptions.delete(callback);
     };
   };
-  let unmount: (() => void) | undefined;
+  let root: ReactRoot | undefined;
 
   return {
-    async mount(providerRootElement, Layout = ({ children }) => children) {
-      if (unmount) {
-        throw new Error('Container is already mounted');
+    async mount() {
+      if (root) {
+        throw new Error('Root is already mounted');
       }
       if (isDestroyed) {
-        throw new Error('Container is destroyed');
+        throw new Error('Root is destroyed');
       }
       let onMounted: () => void = () => {};
       const ready = new Promise<void>((resolve) => {
         onMounted = resolve;
       });
-      unmount = createProvider({
-        providerRootElement,
-        subscribe,
-        getSnapshot,
-        onMounted,
-        Layout,
-      });
+      root = createReactRoot(container);
+      root.render(
+        createElement(
+          Layout,
+          null,
+          createElement(RootProvider, { subscribe, getSnapshot, onMounted }),
+        ),
+      );
 
       await ready;
     },
-    async render(element, fragmentOrHTML) {
+    unmount() {
+      if (root) {
+        root.unmount();
+        root = undefined;
+      }
+    },
+    render(element, fragmentOrHTML) {
       if (fragmentOrHTML) {
-        await mounted.get(element)?.(fragmentOrHTML);
+        const update = mounted.get(element);
+        if (update) {
+          return { count: 1, done: update(fragmentOrHTML) };
+        }
       } else {
-        if (element.tagName.toLowerCase() == fragmentTagName) {
-          await create(element);
+        if (element.tagName.toLowerCase() == schema.fragmentTagName) {
+          return { count: 1, done: create(element) };
         } else {
-          const elements = Array.from(element.querySelectorAll(fragmentTagName));
+          const elements = Array.from(element.querySelectorAll(schema.fragmentTagName));
           if (elements.length) {
-            await Promise.all(elements.map(create));
+            return {
+              count: elements.length,
+              done: Promise.all(elements.map(create)).then(() => undefined),
+            };
           }
         }
       }
+      return { count: 0, done: Promise.resolve() };
     },
     remove(element) {
       if (mounted.has(element)) {
         mounted.delete(element);
         cache.delete(element);
         notify();
+        return true;
       }
+      return false;
     },
-    isFragment(element) {
-      return mounted.has(element);
-    },
-    isInsideFragment(element) {
-      return !!element.closest(fragmentTagName) && element.tagName.toLowerCase() != fragmentTagName;
+    contains(element) {
+      return (
+        element.tagName.toLowerCase() != schema.fragmentTagName &&
+        !!element.closest(schema.fragmentTagName)
+      );
     },
     destroy() {
       isDestroyed = true;
-      for (const element of cache.keys()) {
-        element.remove();
-      }
       cache.clear();
       notify();
       subscriptions.clear();
+      root?.unmount?.();
       for (const name of Object.keys(manifest)) {
         delete manifest[name];
       }
       mounted.clear();
-      unmount?.();
     },
     getCache() {
       return cache;
@@ -180,31 +213,7 @@ export function createContainer({
   };
 }
 
-function createProvider({
-  providerRootElement,
-  subscribe,
-  getSnapshot,
-  Layout,
-  onMounted,
-}: {
-  providerRootElement: Element;
-  subscribe(callback: () => void): () => void;
-  getSnapshot(): Map<Element, ReactNode>;
-  Layout: ComponentType<{ children: ReactNode }>;
-  onMounted: () => void;
-}) {
-  const root = createRoot(providerRootElement);
-  root.render(
-    createElement(
-      Layout,
-      null,
-      createElement(ContainerProvider, { subscribe, getSnapshot, onMounted }),
-    ),
-  );
-  return () => root.unmount();
-}
-
-function ContainerProvider({
+function RootProvider({
   subscribe,
   getSnapshot,
   onMounted,

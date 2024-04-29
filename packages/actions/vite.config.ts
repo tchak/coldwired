@@ -9,7 +9,7 @@ export default defineConfig({
       formats: ['cjs', 'es'],
     },
     rollupOptions: {
-      external: ['@coldwired/utils', '@coldwired/react', 'morphdom'],
+      external: ['@coldwired/utils', 'morphdom'],
     },
   },
 });

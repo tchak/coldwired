@@ -3,14 +3,24 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 import { parseHTMLFragment } from '@coldwired/utils';
 import { z } from 'zod';
+import { encode as htmlEncode } from 'html-entities';
 
 import {
   createReactTree,
   hydrate,
-  NAME_ATTRIBUTE,
-  REACT_COMPONENT_TAG,
-  REACT_SLOT_TAG,
+  preload,
+  defaultSchema,
+  type ReactComponent,
 } from './react-tree-builder';
+
+const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
+const PROPS_ATTRIBUTE = defaultSchema.propsAttribute;
+const REACT_COMPONENT_TAG = defaultSchema.componentTagName;
+const REACT_SLOT_TAG = defaultSchema.slotTagName;
+
+function encodeProps(props: ReactComponent['props']): string {
+  return htmlEncode(JSON.stringify(props));
+}
 
 function Greeting({ firstName, lastName }: { firstName: string; lastName: string }) {
   return (
@@ -35,6 +45,14 @@ function FieldSet({
       {children}
     </fieldset>
   );
+}
+
+function Button({ children }: { children: ReactNode }) {
+  return <button>{children}</button>;
+}
+
+function Box({ children }: { children: ReactNode }) {
+  return <div>{children}</div>;
 }
 
 describe('@coldwired/react', () => {
@@ -133,26 +151,30 @@ describe('@coldwired/react', () => {
     });
 
     it('render component', () => {
-      const greeting1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" first_name="John" last_name="Doe"></${REACT_COMPONENT_TAG}>`;
-      const greeting2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" first-name="Greer" last-name="Pilkington"></${REACT_COMPONENT_TAG}>`;
-      const fieldset1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" lang="fr" legend="Test">Hello World</${REACT_COMPONENT_TAG}>`;
-      const fieldset2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" lang="en"><${REACT_SLOT_TAG} ${NAME_ATTRIBUTE}="legend"><span class="blue">Test</span></${REACT_SLOT_TAG}>${greeting2}</${REACT_COMPONENT_TAG}>`;
+      const greeting1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" ${PROPS_ATTRIBUTE}="${encodeProps({ first_name: 'John', last_name: 'Doe' })}"></${REACT_COMPONENT_TAG}>`;
+      const greeting2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" ${PROPS_ATTRIBUTE}="${encodeProps({ ['first-name']: 'Greer', ['last-name']: 'Pilkington' })}"></${REACT_COMPONENT_TAG}>`;
+      const fieldset1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" ${PROPS_ATTRIBUTE}="${encodeProps({ lang: 'fr', legend: 'Test' })}">Hello World</${REACT_COMPONENT_TAG}>`;
+      const fieldset2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" ${PROPS_ATTRIBUTE}="${encodeProps({ lang: 'en' })}"><${REACT_SLOT_TAG} ${NAME_ATTRIBUTE}="legend"><span class="blue">Test</span></${REACT_SLOT_TAG}>${greeting2}</${REACT_COMPONENT_TAG}>`;
+      const button = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Click me</${REACT_COMPONENT_TAG}>`;
+      const box = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Box">${button}</${REACT_COMPONENT_TAG}>`;
 
       const tree = hydrate(
-        parseHTMLFragment(`${greeting1}<form>${fieldset1}${fieldset2}</form>`, document),
+        parseHTMLFragment(`${greeting1}<form>${fieldset1}${fieldset2}</form>${box}`, document),
         {
           Greeting,
           FieldSet,
+          Button,
+          Box,
         },
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(
-        '<p>Bonjour John Doe !</p><form><fieldset lang="fr"><legend>Test</legend>Hello World</fieldset><fieldset lang="en"><legend><span class="blue">Test</span></legend><p>Bonjour Greer Pilkington !</p></fieldset></form>',
+        '<p>Bonjour John Doe !</p><form><fieldset lang="fr"><legend>Test</legend>Hello World</fieldset><fieldset lang="en"><legend><span class="blue">Test</span></legend><p>Bonjour Greer Pilkington !</p></fieldset></form><div><button>Click me</button></div>',
       );
     });
 
     it('deserialize values', () => {
-      const html = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" string="$$toto" int="$i42" float="$f42.1" boolt="$btrue" boolf="$bfalse" date="$D${new Date().toISOString()}" ></${REACT_COMPONENT_TAG}>`;
+      const html = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" ${PROPS_ATTRIBUTE}="${encodeProps({ string: '$$toto', date: `$D${new Date().toISOString()}`, bigInt: '$n389474656382938746542635' })}" ></${REACT_COMPONENT_TAG}>`;
       const tree = hydrate(parseHTMLFragment(html, document), { Greeting });
 
       const result = z
@@ -162,11 +184,8 @@ describe('@coldwired/react', () => {
               .object({
                 props: z.object({
                   string: z.string(),
-                  int: z.number(),
-                  float: z.number(),
-                  boolt: z.boolean(),
-                  boolf: z.boolean(),
                   date: z.date(),
+                  bigInt: z.bigint(),
                 }),
               })
               .array(),
@@ -175,12 +194,33 @@ describe('@coldwired/react', () => {
         .safeParse(tree);
       expect(result.data?.props.children[0].props).toEqual({
         string: '$toto',
-        int: 42,
-        float: 42.1,
-        boolt: true,
-        boolf: false,
         date: expect.any(Date),
+        bigInt: BigInt('389474656382938746542635'),
       });
+    });
+  });
+
+  describe('preload', () => {
+    it('preload components', async () => {
+      const greeting1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" ${PROPS_ATTRIBUTE}=${encodeProps({ first_name: 'John', last_name: 'Doe' })}></${REACT_COMPONENT_TAG}>`;
+      const greeting2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Greeting" ${PROPS_ATTRIBUTE}=${encodeProps({ ['first-name']: 'Greer', ['last-name']: 'Pilkington' })}></${REACT_COMPONENT_TAG}>`;
+      const fieldset1 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" ${PROPS_ATTRIBUTE}=${encodeProps({ lang: 'fr', legend: 'Test' })}>Hello World</${REACT_COMPONENT_TAG}>`;
+      const fieldset2 = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="FieldSet" ${PROPS_ATTRIBUTE}=${encodeProps({ lang: 'en' })}><${REACT_SLOT_TAG} ${NAME_ATTRIBUTE}="legend"><span class="blue">Test</span></${REACT_SLOT_TAG}>${greeting2}</${REACT_COMPONENT_TAG}>`;
+      const button = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Click me</${REACT_COMPONENT_TAG}>`;
+      const box = `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Box">${button}</${REACT_COMPONENT_TAG}>`;
+
+      const components: Record<string, any> = {
+        Greeting,
+        FieldSet,
+        Button,
+        Box,
+      };
+
+      const manifest = await preload(
+        parseHTMLFragment(`${greeting1}<form>${fieldset1}${fieldset2}</form>${box}`, document),
+        async (names) => Object.fromEntries(names.map((name) => [name, components[name]])),
+      );
+      expect(manifest).toStrictEqual(components);
     });
   });
 });

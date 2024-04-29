@@ -12,13 +12,13 @@ import {
   focusNextElement,
   parseHTMLFragment,
 } from '@coldwired/utils';
-import type { Container, ContainerOptions } from '@coldwired/react';
 
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
 import { AttributeObserver, AttributeObserverDelegate } from './attribute-observer';
 import { Metadata } from './metadata';
 import { morph } from './morph';
 import { Schema, defaultSchema } from './schema';
+import type { Plugin } from './plugin';
 
 const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show'] as const;
 const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;
@@ -55,9 +55,9 @@ type PinnedAction =
 
 export type ActionsOptions = {
   element?: Element;
-  schema?: Schema;
+  schema?: Partial<Schema>;
   debug?: boolean;
-  container?: Omit<ContainerOptions, 'fragmentTagName' | 'loadingClassName'>;
+  plugins?: Plugin[];
 };
 
 export class Actions {
@@ -69,8 +69,7 @@ export class Actions {
 
   #metadata = new Metadata();
   #controller = new AbortController();
-  #containerOptions?: Omit<ContainerOptions, 'fragmentTagName' | 'loadingClassName'>;
-  #container?: Container;
+  #plugins: Plugin[] = [];
 
   #pending = new Set<Promise<void>>();
   #pinned = new Map<string, PinnedAction[]>();
@@ -81,6 +80,7 @@ export class Actions {
     this.#element = options?.element ?? document.documentElement;
     this.#schema = { ...defaultSchema, ...options?.schema };
     this.#debug = options?.debug ?? false;
+    this.#plugins = options?.plugins ?? [];
     this.#delegate = {
       handleEvent: this.handleEvent.bind(this),
       classListChanged: this.classListChanged.bind(this),
@@ -88,15 +88,19 @@ export class Actions {
     };
     this.#classListObserver = new ClassListObserver(this.#element, this.#delegate);
     this.#attributeObserver = new AttributeObserver(this.#element, this.#delegate);
-    this.#containerOptions = options?.container;
   }
 
   async ready() {
-    await Promise.all(this.#pending);
+    const pendingPlugins = this.#plugins.map((plugin) => plugin.ready());
+    await Promise.all([...this.#pending, ...pendingPlugins]);
   }
 
   get element() {
     return this.#element;
+  }
+
+  get plugins() {
+    return this.#plugins;
   }
 
   observe() {
@@ -105,26 +109,7 @@ export class Actions {
     this.#element.addEventListener('input', this.#delegate);
     this.#element.addEventListener('change', this.#delegate);
     this.#element.addEventListener(ACTIONS_EVENT_TYPE, this.#delegate);
-  }
-
-  async mount(root: Element, Layout?: Parameters<Container['mount']>[1]) {
-    if (!this.#containerOptions) {
-      throw new Error('No container provided');
-    }
-    const mod = await import('@coldwired/react');
-    const container = mod.createContainer({
-      fragmentTagName: this.#schema.fragmentTagName,
-      loadingClassName: this.#schema.loadingClassName,
-      ...this.#containerOptions,
-    });
-    await this.ready();
-    await container.mount(root, Layout);
-    await container.render(this.#element);
-    this.#container = container;
-  }
-
-  get container() {
-    return this.#container;
+    this.#plugins.forEach((plugin) => plugin.init(this.#element));
   }
 
   disconnect() {
@@ -142,8 +127,6 @@ export class Actions {
     this.#pending.clear();
     this.#pinned.clear();
     this.#metadata.clear();
-    this.#container?.destroy();
-    this.#container = undefined;
   }
 
   applyActions(actions: (Action | MaterializedAction)[]) {
@@ -289,15 +272,14 @@ export class Actions {
   private _applyActions(actions: MaterializedAction[]) {
     this._debugApplyActions(actions);
     for (const action of actions) {
-      if (
-        this.#container &&
-        action.targets.some((element) => this.#container?.isInsideFragment(element))
-      ) {
-        throw new Error('Cannot apply action inside fragment');
-      }
       if (isFragmentAction(action)) {
         this[`_${action.action}`](action);
       } else {
+        if (action.action != 'focus') {
+          action.targets.forEach((element) => {
+            this.#plugins.forEach((plugin) => plugin.validate?.(element));
+          });
+        }
         this[`_${action.action}`](action);
       }
     }
@@ -354,7 +336,7 @@ export class Actions {
   ) {
     morph(from, to, {
       metadata: this.#metadata,
-      container: this.#container,
+      plugins: this.#plugins,
       ...this.#schema,
       ...options,
     });

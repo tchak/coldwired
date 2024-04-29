@@ -1,10 +1,8 @@
 {
   "name": "@coldwired/react",
-  "description": "React container for use with @coldwired",
+  "description": "React support for @coldwired",
   "license": "MIT",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
   "types": "./dist/types/index.d.ts",
@@ -34,6 +32,7 @@
     "@coldwired/utils": "^0.12.0"
   },
   "devDependencies": {
+    "@coldwired/actions": "*",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "html-entities": "^2.4.0",
@@ -54,24 +53,15 @@
   "eslintConfig": {
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended",
-      "prettier"
-    ],
+    "plugins": ["@typescript-eslint"],
+    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
     "rules": {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-redeclare": "off"
     },
     "overrides": [
       {
-        "files": [
-          "vite.config.js",
-          "vitest.config.ts"
-        ],
+        "files": ["vite.config.js", "vitest.config.ts"],
         "env": {
           "node": true
         }

@@ -1,5 +1,6 @@
 export * from './actions';
 export * from './schema';
+export * from './plugin';
 
 import { dispatchAction } from './actions';
 

@@ -1,58 +1,65 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getByText, fireEvent, waitFor } from '@testing-library/dom';
-import { StrictMode, useState } from 'react';
+import { useState } from 'react';
+import { Actions } from '@coldwired/actions';
+import { encode as htmlEncode } from 'html-entities';
 
-import {
-  NAME_ATTRIBUTE,
-  PROPS_ATTRIBUTE,
-  REACT_COMPONENT_TAG,
-  Manifest,
-  encodeProps,
-} from '@coldwired/react';
+import { createRoot, createReactPlugin, defaultSchema, type Manifest, type Root } from '.';
+import type { ReactComponent } from './react-tree-builder';
 
-import { Actions } from '.';
+const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
+const PROPS_ATTRIBUTE = defaultSchema.propsAttribute;
+const REACT_COMPONENT_TAG = defaultSchema.componentTagName;
+const DEFAULT_TAG_NAME = defaultSchema.fragmentTagName;
 
-describe('@coldwired/actions', () => {
+function encodeProps(props: ReactComponent['props']): string {
+  return htmlEncode(JSON.stringify(props));
+}
+
+const Counter = ({ label }: { label?: string }) => {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <p>
+        {label ?? 'Count'}: {count}
+      </p>
+      <button onClick={() => setCount((count) => count + 1)}>Increment</button>
+    </div>
+  );
+};
+const manifest: Manifest = { Counter };
+
+describe('@coldwired/react', () => {
   let actions: Actions;
-
-  const DEFAULT_TAG_NAME = 'turbo-fragment';
-  const Counter = ({ label }: { label?: string }) => {
-    const [count, setCount] = useState(0);
-    return (
-      <div>
-        <p>
-          {label ?? 'Count'}: {count}
-        </p>
-        <button onClick={() => setCount((count) => count + 1)}>Increment</button>
-      </div>
-    );
-  };
-  const manifest: Manifest = { Counter };
+  let root: Root;
 
   beforeEach(async () => {
     actions?.disconnect();
+    document.body.innerHTML = `<div id="main"><${DEFAULT_TAG_NAME} id="frag-1" class="loading"><div class="title">Hello</div></${DEFAULT_TAG_NAME}></div><div id="root"></div>`;
+    root = createRoot(document.getElementById('root')!, {
+      loader: (name) => Promise.resolve(manifest[name]),
+    });
+    const plugin = createReactPlugin(root);
     actions = new Actions({
       element: document.documentElement,
-      container: { loader: (name) => Promise.resolve(manifest[name]) },
+      plugins: [plugin],
     });
 
-    document.body.innerHTML = `<div id="main"><${DEFAULT_TAG_NAME} id="frag-1" class="loading"><div class="title">Hello</div></${DEFAULT_TAG_NAME}></div><div id="root"></div>`;
     actions.observe();
     await actions.ready();
-    await actions.mount(document.getElementById('root')!, StrictMode);
   });
 
   function layout(content: string) {
     return `<div id="main">${content}</div><div id="root"></div>`;
   }
 
-  it('render with container', async () => {
+  it('actions plugin', async () => {
     expect(document.body.innerHTML).toEqual(
       layout(
         `<${DEFAULT_TAG_NAME} id="frag-1"><div class="title">Hello</div></${DEFAULT_TAG_NAME}>`,
       ),
     );
-    expect(actions.container?.getCache().size).toEqual(1);
+    expect(root.getCache().size).toEqual(1);
 
     actions.update({
       targets: '#main',
@@ -109,7 +116,7 @@ describe('@coldwired/actions', () => {
       fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test</${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
-    expect(actions.container?.getCache().size).toEqual(2);
+    expect(root.getCache().size).toEqual(2);
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
@@ -123,7 +130,7 @@ describe('@coldwired/actions', () => {
       fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test 23</${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();
-    expect(actions.container?.getCache().size).toEqual(2);
+    expect(root.getCache().size).toEqual(2);
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
@@ -143,7 +150,7 @@ describe('@coldwired/actions', () => {
           `<${DEFAULT_TAG_NAME} id="frag-1"><div><p>Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}>`,
         ),
       );
-      expect(actions.container?.getCache().size).toEqual(1);
+      expect(root.getCache().size).toEqual(1);
     });
 
     actions.update({
@@ -157,7 +164,7 @@ describe('@coldwired/actions', () => {
           `<input name="age"><${DEFAULT_TAG_NAME} id="frag-1"><div><p>Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}>`,
         ),
       );
-      expect(actions.container?.getCache().size).toEqual(1);
+      expect(root.getCache().size).toEqual(1);
     });
 
     actions.update({
@@ -171,12 +178,12 @@ describe('@coldwired/actions', () => {
           `<section><input name="age"></section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}>`,
         ),
       );
-      expect(actions.container?.getCache().size).toEqual(1);
+      expect(root.getCache().size).toEqual(1);
     });
 
     actions.update({
       targets: '#main',
-      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" label="My Count"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}></section>`,
+      fragment: `<section><${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'My Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}></section>`,
     });
     await actions.ready();
     await waitFor(() => {
@@ -185,7 +192,7 @@ describe('@coldwired/actions', () => {
           `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
         ),
       );
-      expect(actions.container?.getCache().size).toEqual(1);
+      expect(root.getCache().size).toEqual(1);
     });
 
     fireEvent.click(getByText(document.body, 'Increment'));
@@ -208,7 +215,7 @@ describe('@coldwired/actions', () => {
           `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 3</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
         ),
       );
-      expect(actions.container?.getCache().size).toEqual(1);
+      expect(root.getCache().size).toEqual(1);
     });
   });
 });

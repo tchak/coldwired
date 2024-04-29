@@ -13,15 +13,15 @@ import {
   focusNextElement,
   type FocusNextOptions,
 } from '@coldwired/utils';
-import type { Container } from '@coldwired/react';
 
 import { Metadata } from './metadata';
+import { Plugin } from './plugin';
 
 type MorphOptions = FocusNextOptions & {
   childrenOnly?: boolean;
   forceAttribute?: string;
   metadata?: Metadata;
-  container?: Container;
+  plugins?: Plugin[];
 };
 
 export function morph(
@@ -29,6 +29,8 @@ export function morph(
   toElementOrDocument: string | Element | Document | DocumentFragment,
   options?: MorphOptions,
 ) {
+  options?.plugins?.forEach((plugin) => plugin.validate?.(fromElementOrDocument));
+
   if (fromElementOrDocument instanceof Document) {
     invariant(toElementOrDocument instanceof Document, 'Cannot morph document to element');
     morphDocument(fromElementOrDocument, toElementOrDocument, options);
@@ -56,9 +58,10 @@ function morphToDocumentFragment(
   toDocumentFragment.normalize();
 
   if (options?.childrenOnly) {
-    if (options.container?.isFragment(fromElement)) {
-      options.container.render(fromElement, toDocumentFragment);
-    } else {
+    const pluginRendered = options?.plugins?.some((plugin) =>
+      plugin.onBeforeUpdateElement?.(fromElement, toDocumentFragment),
+    );
+    if (!pluginRendered) {
       const wrapper = toDocumentFragment.ownerDocument.createElement('div');
       wrapper.append(toDocumentFragment);
       morphToElement(fromElement, wrapper, options);
@@ -89,15 +92,13 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
 
-  if (options?.container?.isInsideFragment(fromElement)) {
-    throw new Error('Cannot morph element inside fragment');
-  }
-
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
     onBeforeElUpdated(fromElement, toElement) {
-      if (options?.container?.isFragment(fromElement)) {
-        options.container.render(fromElement, toElement);
+      const pluginRendered = options?.plugins?.some((plugin) =>
+        plugin.onBeforeUpdateElement?.(fromElement, toElement),
+      );
+      if (pluginRendered) {
         return false;
       }
 
@@ -155,14 +156,14 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
     },
     onBeforeNodeDiscarded(node) {
       if (isElement(node)) {
+        options?.plugins?.forEach((plugin) => plugin.onBeforeDestroyElement?.(node));
         focusNextElement(node, options);
-        options?.container?.remove(node);
       }
       return true;
     },
     onNodeAdded(node) {
       if (isElement(node)) {
-        options?.container?.render(node);
+        options?.plugins?.forEach((plugin) => plugin.onCreateElement?.(node));
       }
       return node;
     },

@@ -1,8 +1,8 @@
 import type { ComponentType, ReactNode, Key } from 'react';
 import { createElement, Fragment } from 'react';
-import { decode as htmlDecode, encode as htmlEncode } from 'html-entities';
+import { decode as htmlDecode } from 'html-entities';
 
-type Child = string | Element | Component;
+type Child = string | ReactElement | ReactComponent;
 type PrimitiveValue = string | number | boolean | null | undefined;
 type JSONValue = PrimitiveValue | Array<JSONValue> | { [key: string]: JSONValue };
 type ReactValue =
@@ -11,63 +11,69 @@ type ReactValue =
   | bigint
   | Array<ReactValue>
   | { [key: string]: ReactValue };
-type Element = {
+export type ReactElement = {
   tagName: string;
   attributes: Record<string, string>;
   children?: Child | Child[];
 };
-type Component = {
+export type ReactComponent = {
   name: string;
-  props: Record<string, JSONValue | Element | Component>;
+  props: Record<string, JSONValue | ReactElement | ReactComponent>;
   children?: Child | Child[];
 };
 export type Manifest = Record<string, ComponentType<any>>;
 
-export const NAME_ATTRIBUTE = '@name';
-export const PROPS_ATTRIBUTE = '@props';
-export const REACT_COMPONENT_TAG = 'react-component';
-export const REACT_SLOT_TAG = 'react-slot';
-
-function isElement(node: JSONValue | Element | Component): node is Element {
+function isReactElement(node: JSONValue | ReactElement | ReactComponent): node is ReactElement {
   return !!(node && typeof node == 'object' && 'tagName' in node && 'attributes' in node);
 }
 
-function isComponent(node: JSONValue | Element | Component): node is Component {
-  return !!(node && typeof node == 'object' && NAME_ATTRIBUTE in node && PROPS_ATTRIBUTE in node);
+function isReactComponent(node: JSONValue | ReactElement | ReactComponent): node is ReactComponent {
+  return !!(node && typeof node == 'object' && 'name' in node && 'props' in node);
 }
 
-export type DocumentFragmentLike = DocumentFragment | { childNodes: NodeListOf<ChildNode> };
+export type DocumentFragmentLike = {
+  childNodes: DocumentFragment['childNodes'];
+  querySelectorAll: DocumentFragment['querySelectorAll'];
+};
+
+export interface Schema {
+  componentTagName: string;
+  slotTagName: string;
+  nameAttribute: string;
+  propsAttribute: string;
+}
+
+export const defaultSchema: Schema = {
+  componentTagName: 'turbo-component',
+  slotTagName: 'turbo-slot',
+  nameAttribute: 'name',
+  propsAttribute: 'props',
+};
 
 export function hydrate(
   documentOrFragment: Document | DocumentFragmentLike,
   manifest: Manifest,
+  schema?: Partial<Schema>,
 ): ReactNode {
+  const schema_ = Object.assign({}, defaultSchema, schema);
   const childNodes = getChildNodes(documentOrFragment);
-  const { children } = hydrateChildNodes(childNodes);
+  const { children } = hydrateChildNodes(childNodes, schema_);
   return createReactTree(children, manifest);
 }
 
 export function preload(
   documentOrFragment: Document | DocumentFragmentLike,
   loader: (names: string[]) => Promise<Manifest>,
+  schema?: Partial<Schema>,
 ): Promise<Manifest> {
-  const childNodes = getChildNodes(documentOrFragment);
-  const componentNames = [
-    ...new Set(
-      Array.from(childNodes).flatMap((childNode) => {
-        if (isElementNode(childNode)) {
-          if (childNode.tagName.toLowerCase() == REACT_COMPONENT_TAG) {
-            return childNode.getAttribute(NAME_ATTRIBUTE)!;
-          }
-          return Array.from(childNode.querySelectorAll(REACT_COMPONENT_TAG)).map(
-            (element) => element.getAttribute(NAME_ATTRIBUTE)!,
-          );
-        }
-        return [];
-      }),
+  const { componentTagName, nameAttribute } = Object.assign({}, defaultSchema, schema);
+  const components = documentOrFragment.querySelectorAll(componentTagName);
+  const componentNames = new Set(
+    Array.from(components).map(
+      (component) => (component as HTMLElement).getAttribute(nameAttribute)!,
     ),
-  ];
-  return loader(componentNames);
+  );
+  return loader([...componentNames]);
 }
 
 export function createReactTree(tree: Child | Child[], manifest: Manifest): ReactNode {
@@ -94,34 +100,38 @@ type HydrateResult = {
   props: Record<string, Child>;
 };
 
-function hydrateChildNodes(childNodes: NodeListOf<ChildNode>): HydrateResult {
+function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): HydrateResult {
   const result: HydrateResult = { children: [], props: {} };
   childNodes.forEach((childNode) => {
     if (isTextNode(childNode) && childNode.textContent) {
       result.children.push(childNode.textContent);
     } else if (isElementNode(childNode)) {
       const tagName = childNode.tagName.toLowerCase();
-      const { children, props } = hydrateChildNodes(childNode.childNodes);
-      if (tagName == REACT_COMPONENT_TAG) {
-        const name = childNode.getAttribute(NAME_ATTRIBUTE);
+      const { children, props } = hydrateChildNodes(childNode.childNodes, schema);
+      if (tagName == schema.componentTagName) {
+        const name = childNode.getAttribute(schema.nameAttribute);
         if (!name) {
-          throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <${REACT_COMPONENT_TAG}>`);
+          throw new Error(
+            `Missing "${schema.nameAttribute}" attribute on <${schema.componentTagName}>`,
+          );
         }
         result.children.push({
           name,
-          props: { ...hydrateProps(childNode), ...props },
+          props: { ...hydrateProps(childNode, schema.propsAttribute), ...props },
           children: children.length > 0 ? children : undefined,
         });
       } else {
         if (Object.keys(props).length > 0) {
           throw new Error(
-            `<${REACT_SLOT_TAG}> only allowed as direct child of <${REACT_COMPONENT_TAG}>`,
+            `<${schema.slotTagName}> only allowed as direct child of <${schema.componentTagName}>`,
           );
         }
-        if (tagName == REACT_SLOT_TAG) {
-          const name = childNode.getAttribute(NAME_ATTRIBUTE);
+        if (tagName == schema.slotTagName) {
+          const name = childNode.getAttribute(schema.nameAttribute);
           if (!name) {
-            throw new Error(`Missing "${NAME_ATTRIBUTE}" attribute on <${REACT_SLOT_TAG}>`);
+            throw new Error(
+              `Missing "${schema.nameAttribute}" attribute on <${schema.slotTagName}>`,
+            );
           }
           if (children.length == 1) {
             const child = children[0];
@@ -157,26 +167,17 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>): HydrateResult {
   return result;
 }
 
-export function encodeProps(props: Component['props']): string {
-  return htmlEncode(JSON.stringify(props));
-}
-
-export function decodeProps(props: string): Component['props'] {
+function decodeProps(props: string): ReactComponent['props'] {
   return JSON.parse(htmlDecode(props));
 }
 
-function hydrateProps(childNode: HTMLElement): Component['props'] {
-  const serializedProps = childNode.getAttribute(PROPS_ATTRIBUTE);
-  const props = Object.fromEntries(
-    Array.from(childNode.attributes)
-      .filter((attr) => attr.name != NAME_ATTRIBUTE && attr.name != PROPS_ATTRIBUTE)
-      .map((attr) => [attr.name, attr.value]),
-  );
-  return Object.assign(props, serializedProps ? decodeProps(serializedProps) : {});
+function hydrateProps(childNode: HTMLElement, propsAttribute: string): ReactComponent['props'] {
+  const serializedProps = childNode.getAttribute(propsAttribute);
+  return serializedProps ? decodeProps(serializedProps) : {};
 }
 
 function createElementOrComponent(
-  child: Element | Component,
+  child: ReactElement | ReactComponent,
   manifest: Manifest,
   key?: Key,
 ): ReactNode {
@@ -204,7 +205,7 @@ function createElementOrComponent(
   }
   const props: { [key: string]: ReactValue } = Object.fromEntries(
     Object.entries(child.props).map(([key, value]) => {
-      if (isElement(value) || isComponent(value)) {
+      if (isReactElement(value) || isReactComponent(value)) {
         return [transformPropName(key), createElementOrComponent(value, manifest)];
       }
       return [transformPropName(key), transformPropValue(value)];
@@ -283,15 +284,6 @@ function transformStringValue(value: string): ReactValue {
       case 'n':
         // BigInt
         return BigInt(value.slice(2));
-      case 'b':
-        // Boolean
-        return value[2] == 't';
-      case 'i':
-        // Integer
-        return parseInt(value.slice(2));
-      case 'f':
-        // Float
-        return parseFloat(value.slice(2));
     }
   }
   return value;

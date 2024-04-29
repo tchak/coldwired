@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.13.0
+
+### Minor Changes
+
+- 9a2bb0d: react support as a plugin
+
 ## 0.12.0
 
 ### Minor Changes

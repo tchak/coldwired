@@ -85,8 +85,8 @@ export function createRoot(container: Element, options: RootOptions): Root {
     if (isElement(fragment) && fragment.tagName.toLowerCase() != schema.fragmentTagName) {
       throw new Error('Cannot rerender with a non-fragment element');
     }
-    await preload(fragment, (names) => manifestLoader(names, loader, manifest));
-    const tree = hydrate(fragment, manifest);
+    await preload(fragment, (names) => manifestLoader(names, loader, manifest), schema);
+    const tree = hydrate(fragment, manifest, schema);
     if (reset) {
       element.innerHTML = '';
     }

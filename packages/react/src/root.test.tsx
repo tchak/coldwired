@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useState } from 'react';
+import { ComboBox, ListBox, ListBoxItem, Popover, Label, Input } from 'react-aria-components';
 
 import { createRoot, defaultSchema, type Manifest } from '.';
 
@@ -16,7 +17,7 @@ const Counter = () => {
     </div>
   );
 };
-const manifest: Manifest = { Counter };
+const manifest: Manifest = { Counter, ComboBox, ListBox, ListBoxItem, Popover, Label, Input };
 
 describe('@coldwired/react', () => {
   describe('root', () => {
@@ -51,6 +52,32 @@ describe('@coldwired/react', () => {
 
       expect(document.body.innerHTML).toEqual(
         `<${DEFAULT_TAG_NAME}><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+      );
+      root.destroy();
+    });
+
+    it('render fragment with react aria component', async () => {
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
+        <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">Test</${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover">
+            <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">One</${REACT_COMPONENT_TAG}>
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Two </${REACT_COMPONENT_TAG}>
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Three</${REACT_COMPONENT_TAG}>
+            </${REACT_COMPONENT_TAG}>
+          </${REACT_COMPONENT_TAG}>
+        </${REACT_COMPONENT_TAG}>
+      </${DEFAULT_TAG_NAME}><div id="root"></div>`;
+      const root = createRoot(document.getElementById('root')!, {
+        loader: (name) => Promise.resolve(manifest[name]),
+      });
+      await root.mount();
+      await root.render(document.body).done;
+
+      expect(document.body.innerHTML).toEqual(
+        `<${DEFAULT_TAG_NAME}><div class="react-aria-ComboBox" data-rac=""><label class="react-aria-Label" id="react-aria-:rc:" for="react-aria-:rb:">Test</label><input type="text" aria-autocomplete="list" autocomplete="off" id="react-aria-:rb:" aria-labelledby="react-aria-:rc:" role="combobox" aria-expanded="false" autocorrect="off" spellcheck="false" class="react-aria-Input" data-rac="" value="" title=""></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
       );
       root.destroy();
     });

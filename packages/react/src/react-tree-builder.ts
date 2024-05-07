@@ -102,8 +102,11 @@ type HydrateResult = {
 function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): HydrateResult {
   const result: HydrateResult = { children: [], props: {} };
   childNodes.forEach((childNode) => {
-    if (isTextNode(childNode) && childNode.textContent) {
-      result.children.push(childNode.textContent);
+    if (isTextNode(childNode)) {
+      const text = childNode.textContent;
+      if (text?.trim()) {
+        result.children.push(text);
+      }
     } else if (isElementNode(childNode)) {
       const tagName = childNode.tagName.toLowerCase();
       const { children, props } = hydrateChildNodes(childNode.childNodes, schema);

@@ -15,7 +15,7 @@
     }
   },
   "type": "module",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",

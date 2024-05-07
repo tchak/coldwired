@@ -55,9 +55,8 @@ export function hydrate(
   manifest: Manifest,
   schema?: Partial<Schema>,
 ): ReactNode {
-  const schema_ = Object.assign({}, defaultSchema, schema);
   const childNodes = getChildNodes(documentOrFragment);
-  const { children } = hydrateChildNodes(childNodes, schema_);
+  const { children } = hydrateChildNodes(childNodes, Object.assign({}, defaultSchema, schema));
   return createReactTree(children, manifest);
 }
 

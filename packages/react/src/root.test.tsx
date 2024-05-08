@@ -17,7 +17,19 @@ const Counter = () => {
     </div>
   );
 };
-const manifest: Manifest = { Counter, ComboBox, ListBox, ListBoxItem, Popover, Label, Input };
+const ComponentWithError = () => {
+  throw new Error('Boom!');
+};
+const manifest: Manifest = {
+  Counter,
+  ComponentWithError,
+  ComboBox,
+  ListBox,
+  ListBoxItem,
+  Popover,
+  Label,
+  Input,
+};
 
 describe('@coldwired/react', () => {
   describe('root', () => {
@@ -52,6 +64,24 @@ describe('@coldwired/react', () => {
 
       expect(document.body.innerHTML).toEqual(
         `<${DEFAULT_TAG_NAME}><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+      );
+      root.destroy();
+    });
+
+    it('render with error boundary', async () => {
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
+        <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}>
+      </${DEFAULT_TAG_NAME}> some text <${DEFAULT_TAG_NAME}>
+        <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComponentWithError"></${REACT_COMPONENT_TAG}>
+      </${DEFAULT_TAG_NAME}><div id="root"></div>`;
+      const root = createRoot(document.getElementById('root')!, {
+        loader: (name) => Promise.resolve(manifest[name]),
+      });
+      await root.mount();
+      await root.render(document.body).done;
+
+      expect(document.body.innerHTML).toEqual(
+        `<${DEFAULT_TAG_NAME}><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}> some text <${DEFAULT_TAG_NAME}><div role="alert"><pre style="color: red;">Boom!</pre></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
       );
       root.destroy();
     });

@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type ComponentType,
 } from 'react';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { parseHTMLFragment, isElement } from '@coldwired/utils';
 
 import {
@@ -43,6 +44,7 @@ export interface RootOptions {
   Layout?: ComponentType<{ children: ReactNode }>;
   manifest?: Manifest;
   schema?: Partial<Schema>;
+  fallbackRender?: FallbackRender;
 }
 
 export interface Schema extends TreeBuilderSchema {
@@ -64,6 +66,7 @@ export function createRoot(container: Element, options: RootOptions): Root {
   const subscriptions = new Set<() => void>();
   const manifest: Manifest = Object.assign({}, preloadedManifest);
   const schema = Object.assign({}, defaultSchema, options.schema);
+  const fallbackRender = options.fallbackRender ?? defaultFallbackRender;
   const Layout = options.Layout ?? StrictMode;
 
   const notify = () => {
@@ -148,7 +151,7 @@ export function createRoot(container: Element, options: RootOptions): Root {
         createElement(
           Layout,
           null,
-          createElement(RootProvider, { subscribe, getSnapshot, onMounted }),
+          createElement(RootProvider, { subscribe, getSnapshot, onMounted, fallbackRender }),
         ),
       );
 
@@ -213,14 +216,27 @@ export function createRoot(container: Element, options: RootOptions): Root {
   };
 }
 
+export type FallbackRender = (props: FallbackProps & { element: Element }) => ReactNode;
+
+const defaultFallbackRender: FallbackRender = ({ error, element }) => {
+  const message = element.getAttribute('fallback-message') ?? error.message;
+  return createElement(
+    'div',
+    { role: 'alert' },
+    createElement('pre', { style: { color: 'red' } }, message),
+  );
+};
+
 function RootProvider({
   subscribe,
   getSnapshot,
   onMounted,
+  fallbackRender,
 }: {
   subscribe(callback: () => void): () => void;
   getSnapshot(): Map<Element, ReactNode>;
   onMounted: () => void;
+  fallbackRender: FallbackRender;
 }) {
   useEffect(onMounted, []);
   const cache = useSyncExternalStore(subscribe, getSnapshot);
@@ -229,7 +245,17 @@ function RootProvider({
     Fragment,
     null,
     ...Array.from(cache).map(([element, content]) =>
-      createPortal(content, element, getKeyForElement(element)),
+      createPortal(
+        createElement(
+          ErrorBoundary,
+          {
+            fallbackRender: (props) => fallbackRender({ element, ...props }),
+          },
+          content,
+        ),
+        element,
+        getKeyForElement(element),
+      ),
     ),
   );
 }

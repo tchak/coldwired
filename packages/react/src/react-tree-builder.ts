@@ -1,16 +1,22 @@
 import type { ComponentType, ReactNode, Key } from 'react';
-import { createElement, Fragment } from 'react';
+import { createElement, Fragment, useState, useMemo, memo } from 'react';
 import { decode as htmlDecode } from 'html-entities';
+import isEqual from 'react-fast-compare';
+
+import { Observable, type Observer } from './observable';
 
 type Child = string | ReactElement | ReactComponent;
 type PrimitiveValue = string | number | boolean | null | undefined;
 type JSONValue = PrimitiveValue | Array<JSONValue> | { [key: string]: JSONValue };
+type EventHandler = (value: ReactValue | Event) => void;
 type ReactValue =
   | PrimitiveValue
   | Date
   | bigint
   | Array<ReactValue>
-  | { [key: string]: ReactValue };
+  | { [key: string]: ReactValue }
+  | EventHandler
+  | Observable<ReactValue>;
 export type ReactElement = {
   tagName: string;
   attributes: Record<string, string>;
@@ -56,8 +62,78 @@ export function hydrate(
   schema?: Partial<Schema>,
 ): ReactNode {
   const childNodes = getChildNodes(documentOrFragment);
-  const { children } = hydrateChildNodes(childNodes, Object.assign({}, defaultSchema, schema));
-  return createReactTree(children, manifest);
+  const { children: tree, withState } = hydrateChildNodes(
+    childNodes,
+    Object.assign({}, defaultSchema, schema),
+  );
+  if (withState) {
+    return createElement(RootComponent, { tree, manifest });
+  }
+  return createReactTree(tree, manifest, createNullState());
+}
+
+const RootComponent = memo(function RootComponent({
+  tree,
+  manifest,
+}: {
+  tree: Child[];
+  manifest: Manifest;
+}) {
+  const state = useLocalState();
+  return createReactTree(tree, manifest, state);
+}, isEqual);
+
+export interface State {
+  get(key: string, defaultValue?: ReactValue): ReactValue;
+  set(key: string, value: ReactValue): void;
+  observe(key: string): Observable<ReactValue>;
+}
+type StateValue = Record<string, ReactValue>;
+
+export function createState(
+  state: StateValue,
+  setState: (valueOrUpdate: StateValue | ((state: StateValue) => StateValue)) => void,
+): State {
+  const registry = new Map<string, Set<Observer<ReactValue>>>();
+  return {
+    set: (key, value) => {
+      setState((state) => ({ ...state, [key]: value }));
+      const observers = registry.get(key);
+      if (observers) {
+        for (const observer of observers) {
+          observer.next(value);
+        }
+      }
+    },
+    get: (key, defaultValue) => state[key] ?? defaultValue,
+    observe: (key) => {
+      return new Observable((observer) => {
+        let observers = registry.get(key);
+        if (!observers) {
+          observers = new Set();
+          registry.set(key, observers);
+        }
+        observers.add(observer);
+        return () => {
+          observers.delete(observer);
+          if (observers.size == 0) {
+            registry.delete(key);
+          }
+        };
+      });
+    },
+  };
+}
+
+export function createNullState() {
+  return createState({}, () => {
+    throw new Error('Cannot set state on null state');
+  });
+}
+
+function useLocalState(): State {
+  const [state, setState] = useState<StateValue>({});
+  return useMemo(() => createState(state, setState), [state]);
 }
 
 export function preload(
@@ -75,17 +151,21 @@ export function preload(
   return loader([...componentNames]);
 }
 
-export function createReactTree(tree: Child | Child[], manifest: Manifest): ReactNode {
+export function createReactTree(
+  tree: Child | Child[],
+  manifest: Manifest,
+  state: State,
+): ReactNode {
   if (Array.isArray(tree)) {
     return createElement(
       Fragment,
       {},
-      tree.map((child, i) => createChild(child, manifest, i)),
+      tree.map((child, i) => createChild(child, manifest, state, i)),
     );
   } else if (typeof tree == 'string') {
     return createElement(Fragment, {}, tree);
   }
-  return createElementOrComponent(tree, manifest);
+  return createElementOrComponent(tree, manifest, state);
 }
 
 function getChildNodes(documentOrFragment: Document | DocumentFragmentLike) {
@@ -97,10 +177,11 @@ function getChildNodes(documentOrFragment: Document | DocumentFragmentLike) {
 type HydrateResult = {
   children: Child[];
   props: Record<string, Child>;
+  withState: boolean;
 };
 
 function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): HydrateResult {
-  const result: HydrateResult = { children: [], props: {} };
+  const result: HydrateResult = { children: [], props: {}, withState: false };
   childNodes.forEach((childNode) => {
     if (isTextNode(childNode)) {
       const text = childNode.textContent;
@@ -109,7 +190,11 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
       }
     } else if (isElementNode(childNode)) {
       const tagName = childNode.tagName.toLowerCase();
-      const { children, props } = hydrateChildNodes(childNode.childNodes, schema);
+      const {
+        children,
+        props,
+        withState: childrenWithState,
+      } = hydrateChildNodes(childNode.childNodes, schema);
       if (tagName == schema.componentTagName) {
         const name = childNode.getAttribute(schema.nameAttribute);
         if (!name) {
@@ -117,9 +202,13 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
             `Missing "${schema.nameAttribute}" attribute on <${schema.componentTagName}>`,
           );
         }
+        const [hydratedProps, withState] = hydrateProps(childNode, schema.propsAttribute);
+        if (withState || childrenWithState) {
+          result.withState = true;
+        }
         result.children.push({
           name,
-          props: { ...hydrateProps(childNode, schema.propsAttribute), ...props },
+          props: { ...hydratedProps, ...props },
           children: children.length > 0 ? children : undefined,
         });
       } else {
@@ -173,14 +262,19 @@ function decodeProps(props: string): ReactComponent['props'] {
   return JSON.parse(htmlDecode(props));
 }
 
-function hydrateProps(childNode: HTMLElement, propsAttribute: string): ReactComponent['props'] {
+function hydrateProps(
+  childNode: HTMLElement,
+  propsAttribute: string,
+): [props: ReactComponent['props'], withState: boolean] {
   const serializedProps = childNode.getAttribute(propsAttribute);
-  return serializedProps ? decodeProps(serializedProps) : {};
+  const withState = serializedProps ? statePropTypeRegExp.test(serializedProps) : false;
+  return [serializedProps ? decodeProps(serializedProps) : {}, withState];
 }
 
 function createElementOrComponent(
   child: ReactElement | ReactComponent,
   manifest: Manifest,
+  state: State,
   key?: Key,
 ): ReactNode {
   if ('tagName' in child) {
@@ -195,9 +289,9 @@ function createElementOrComponent(
       child.tagName,
       attributes,
       Array.isArray(child.children)
-        ? child.children.map((child, i) => createChild(child, manifest, i))
+        ? child.children.map((child, i) => createChild(child, manifest, state, i))
         : child.children
-          ? createChild(child.children, manifest)
+          ? createChild(child.children, manifest, state)
           : undefined,
     );
   }
@@ -208,9 +302,9 @@ function createElementOrComponent(
   const props: { [key: string]: ReactValue } = Object.fromEntries(
     Object.entries(child.props).map(([key, value]) => {
       if (isReactElement(value) || isReactComponent(value)) {
-        return [transformPropName(key), createElementOrComponent(value, manifest)];
+        return [transformPropName(key), createElementOrComponent(value, manifest, state)];
       }
-      return [transformPropName(key), transformPropValue(value)];
+      return [transformPropName(key), transformPropValue(value, state)];
     }),
   );
   props.key = props.id ?? key;
@@ -218,18 +312,23 @@ function createElementOrComponent(
     ComponentImpl,
     props,
     Array.isArray(child.children)
-      ? child.children.map((child, i) => createChild(child, manifest, i))
+      ? child.children.map((child, i) => createChild(child, manifest, state, i))
       : child.children
-        ? createChild(child.children, manifest)
+        ? createChild(child.children, manifest, state)
         : undefined,
   );
 }
 
-function createChild(child: Child, manifest: Manifest, key?: Key): ReactNode | string {
+function createChild(
+  child: Child,
+  manifest: Manifest,
+  state: State,
+  key?: Key,
+): ReactNode | string {
   if (typeof child == 'string') {
     return child;
   }
-  return createElementOrComponent(child, manifest, key);
+  return createElementOrComponent(child, manifest, state, key);
 }
 
 function transformAttributeName(name: string) {
@@ -259,19 +358,49 @@ function transformPropName(name: string) {
   return transformAttributeName(name);
 }
 
-function transformPropValue(value: JSONValue): ReactValue {
+function transformPropValue(value: JSONValue, state: State): ReactValue {
   if (isPlainObject(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, value]) => [key, transformPropValue(value)]),
+    const obj = Object.fromEntries(
+      Object.entries(value).map(([key, value]) => [key, transformPropValue(value, state)]),
     );
+    if (isStateProp(obj)) {
+      switch (obj.__type__) {
+        case StatePropType.SET:
+          return (value: ReactValue | Event) => {
+            state.set(obj.key, getEventValue(value));
+          };
+        case StatePropType.GET:
+          return state.get(obj.key, obj.defaultValue);
+        case StatePropType.OBSERVE:
+          return state.observe(obj.key);
+      }
+    }
+    return obj;
   }
   if (Array.isArray(value)) {
-    return value.map(transformPropValue);
+    return value.map((value) => transformPropValue(value, state));
   }
   if (typeof value == 'string') {
     return transformStringValue(value);
   }
   return value;
+}
+
+function getEventValue(eventOrValue: Event | ReactValue): ReactValue {
+  if (eventOrValue instanceof Event) {
+    const target = eventOrValue.target;
+    if (target instanceof HTMLInputElement) {
+      if (target.type == 'checkbox') {
+        return target.checked;
+      } else {
+        return target.value;
+      }
+    } else if (eventOrValue instanceof CustomEvent) {
+      return eventOrValue.detail;
+    }
+    throw new Error('Unsupported event type');
+  }
+  return eventOrValue;
 }
 
 function transformStringValue(value: string): ReactValue {
@@ -289,6 +418,35 @@ function transformStringValue(value: string): ReactValue {
     }
   }
   return value;
+}
+
+enum StatePropType {
+  GET = '__get__',
+  SET = '__set__',
+  OBSERVE = '__observe__',
+}
+const statePropTypeSet = new Set(Object.values(StatePropType).map(String));
+const statePropTypeRegExp = new RegExp(
+  `"__type__":"(${StatePropType.GET}|${StatePropType.SET}|${StatePropType.OBSERVE})"`,
+);
+type StateProp =
+  | {
+      __type__: StatePropType.SET;
+      key: string;
+    }
+  | {
+      __type__: StatePropType.GET;
+      key: string;
+      defaultValue?: ReactValue;
+    }
+  | {
+      __type__: StatePropType.OBSERVE;
+      key: string;
+    };
+
+function isStateProp(value: { [key: string]: ReactValue }): value is StateProp {
+  const type = value['__type__'];
+  return typeof type == 'string' && statePropTypeSet.has(type);
 }
 
 const reactAttributeMap: Record<string, string> = {

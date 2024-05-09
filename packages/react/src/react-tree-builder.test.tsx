@@ -10,6 +10,7 @@ import {
   hydrate,
   preload,
   defaultSchema,
+  createNullState,
   type ReactComponent,
 } from './react-tree-builder';
 
@@ -61,6 +62,7 @@ describe('@coldwired/react', () => {
       const tree = createReactTree(
         { tagName: 'div', attributes: { className: 'title' }, children: 'Hello' },
         {},
+        createNullState(),
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe('<div class="title">Hello</div>');
@@ -79,6 +81,7 @@ describe('@coldwired/react', () => {
           ],
         },
         {},
+        createNullState(),
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(
@@ -122,6 +125,7 @@ describe('@coldwired/react', () => {
           },
         ],
         { Greeting, FieldSet },
+        createNullState(),
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(

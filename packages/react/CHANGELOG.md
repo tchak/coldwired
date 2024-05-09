@@ -1,5 +1,15 @@
 # @coldwired/react
 
+## 0.14.0
+
+### Minor Changes
+
+- 830107a: add state support
+
+### Patch Changes
+
+- d6e617c: add error boundary support
+
 ## 0.13.1
 
 ### Patch Changes

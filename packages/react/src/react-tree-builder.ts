@@ -209,7 +209,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
         result.children.push({
           name,
           props: { ...hydratedProps, ...props },
-          children: children.length > 0 ? children : undefined,
+          children: optimizeChildren(children),
         });
       } else {
         if (Object.keys(props).length > 0) {
@@ -249,13 +249,24 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
               (attrs, attr) => ({ ...attrs, [attr.name]: attr.value }),
               {},
             ),
-            children: children.length > 0 ? children : undefined,
+            children: optimizeChildren(children),
           });
         }
       }
     }
   });
   return result;
+}
+
+function optimizeChildren(children: Child[]): Child | Child[] | undefined {
+  switch (children.length) {
+    case 0:
+      return undefined;
+    case 1:
+      return children[0];
+    default:
+      return children;
+  }
 }
 
 function decodeProps(props: string): ReactComponent['props'] {

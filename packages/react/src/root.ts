@@ -58,7 +58,28 @@ export const defaultSchema: Schema = {
   loadingClassName: 'loading',
 };
 
-export function createRoot(container: Element, options: RootOptions): Root {
+export function findOrCreateContainerElement(id: string) {
+  let container = document.querySelector(`body > #${id}`);
+  if (!container) {
+    container = document.createElement('div');
+    container.id = id;
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+export function createRoot(container: Element, options: RootOptions): Root;
+export function createRoot(options: RootOptions): Root;
+export function createRoot(
+  containerOrOptions: Element | RootOptions,
+  maybeOptions?: RootOptions,
+): Root {
+  const container =
+    containerOrOptions instanceof Element
+      ? containerOrOptions
+      : findOrCreateContainerElement('react-root');
+  const options = containerOrOptions instanceof Element ? maybeOptions! : containerOrOptions;
+
   const { loader, manifest: preloadedManifest } = options;
   let isDestroyed = false;
   let cache = new Map<Element, ReactNode>();
@@ -81,7 +102,7 @@ export function createRoot(container: Element, options: RootOptions): Root {
     fragmentOrHTML: DocumentFragmentLike | string,
     reset: boolean,
   ) => {
-    const fragment =
+    const fragment: DocumentFragmentLike =
       typeof fragmentOrHTML == 'string'
         ? parseHTMLFragment(fragmentOrHTML, element.ownerDocument)
         : fragmentOrHTML;
@@ -205,10 +226,8 @@ export function createRoot(container: Element, options: RootOptions): Root {
       notify();
       subscriptions.clear();
       root?.unmount?.();
-      for (const name of Object.keys(manifest)) {
-        delete manifest[name];
-      }
       mounted.clear();
+      container.remove();
     },
     getCache() {
       return cache;

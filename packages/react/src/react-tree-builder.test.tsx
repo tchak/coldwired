@@ -184,19 +184,17 @@ describe('@coldwired/react', () => {
       const result = z
         .object({
           props: z.object({
-            children: z
-              .object({
-                props: z.object({
-                  string: z.string(),
-                  date: z.date(),
-                  bigInt: z.bigint(),
-                }),
-              })
-              .array(),
+            children: z.object({
+              props: z.object({
+                string: z.string(),
+                date: z.date(),
+                bigInt: z.bigint(),
+              }),
+            }),
           }),
         })
         .safeParse(tree);
-      expect(result.data?.props.children[0].props).toEqual({
+      expect(result.data?.props.children.props).toEqual({
         string: '$toto',
         date: expect.any(Date),
         bigInt: BigInt('389474656382938746542635'),

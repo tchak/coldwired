@@ -192,11 +192,11 @@ describe('@coldwired/react', () => {
     it('render with state', async () => {
       const textFieldProps = {
         id: 'my-text-field',
-        onChange: { __type__: '__set__', key: 'textValue' },
+        onChange: 'react:state/set?key=textValue',
       };
       const greetingProps = {
-        name: { __type__: '__get__', key: 'textValue', defaultValue: 'Guest' },
-        nameChanges: { __type__: '__observe__', key: 'textValue' },
+        name: 'react:state/get?key=textValue&defaultValue=Guest',
+        nameChanges: 'react:state/observe?key=textValue',
       };
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
         <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="TextField" ${PROPS_ATTRIBUTE}="${encodeProps(textFieldProps)}">

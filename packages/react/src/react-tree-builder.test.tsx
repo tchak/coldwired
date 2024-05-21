@@ -60,7 +60,7 @@ describe('@coldwired/react', () => {
   describe('createReactTree', () => {
     it('render simple tree', () => {
       const tree = createReactTree(
-        { tagName: 'div', attributes: { className: 'title' }, children: 'Hello' },
+        { tagName: 'div', attributes: { className: 'title' }, children: ['Hello'] },
         {},
         createNullState(),
       );
@@ -74,7 +74,7 @@ describe('@coldwired/react', () => {
           tagName: 'div',
           attributes: { className: 'container' },
           children: [
-            { tagName: 'h1', attributes: {}, children: 'Title' },
+            { tagName: 'h1', attributes: {}, children: ['Title'] },
             'Hello ',
             'World',
             { tagName: 'input', attributes: { defaultValue: 'test', maxLength: '2' } },
@@ -106,13 +106,17 @@ describe('@coldwired/react', () => {
                   lang: 'fr',
                   legend: 'Test',
                 },
-                children: 'Hello World',
+                children: ['Hello World'],
               },
               {
                 name: 'FieldSet',
                 props: {
                   lang: 'en',
-                  legend: { tagName: 'span', attributes: { className: 'blue' }, children: 'Test' },
+                  legend: {
+                    tagName: 'span',
+                    attributes: { className: 'blue' },
+                    children: ['Test'],
+                  },
                 },
                 children: [
                   {
@@ -184,19 +188,17 @@ describe('@coldwired/react', () => {
       const result = z
         .object({
           props: z.object({
-            children: z
-              .object({
-                props: z.object({
-                  string: z.string(),
-                  date: z.date(),
-                  bigInt: z.bigint(),
-                }),
-              })
-              .array(),
+            children: z.object({
+              props: z.object({
+                string: z.string(),
+                date: z.date(),
+                bigInt: z.bigint(),
+              }),
+            }),
           }),
         })
         .safeParse(tree);
-      expect(result.data?.props.children[0].props).toEqual({
+      expect(result.data?.props.children.props).toEqual({
         string: '$toto',
         date: expect.any(Date),
         bigInt: BigInt('389474656382938746542635'),

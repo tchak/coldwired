@@ -8,9 +8,10 @@ import {
   Label,
   Input,
   TextField,
+  Button,
 } from 'react-aria-components';
 import { encode as htmlEncode } from 'html-entities';
-import { getByLabelText, fireEvent, waitFor } from '@testing-library/dom';
+import { getByLabelText, getByText, getByRole, fireEvent, waitFor } from '@testing-library/dom';
 
 import { createRoot, defaultSchema, type Manifest, type Observable } from '.';
 import type { ReactComponent } from './react-tree-builder';
@@ -58,6 +59,7 @@ const manifest: Manifest = {
   Label,
   Input,
   TextField,
+  Button,
 };
 
 describe('@coldwired/react', () => {
@@ -66,21 +68,19 @@ describe('@coldwired/react', () => {
   });
   describe('root', () => {
     it('render simple fragment', async () => {
-      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="root"></div>`;
-      const root = createRoot(document.getElementById('root')!, {
-        loader: (name) => Promise.resolve(manifest[name]),
-      });
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}>`;
+      const root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
       await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
       );
 
       await root.render(document.body.firstElementChild!, `<div class="title">Hello World!</div>`)
         .done;
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="title">Hello World!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="title">Hello World!</div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
       );
       expect(root.getCache().size).toEqual(1);
       root.destroy();
@@ -123,6 +123,7 @@ describe('@coldwired/react', () => {
         <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">
           <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">Test</${REACT_COMPONENT_TAG}>
           <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Open</${REACT_COMPONENT_TAG}>
           <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover">
             <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">
               <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">One</${REACT_COMPONENT_TAG}>
@@ -132,25 +133,68 @@ describe('@coldwired/react', () => {
           </${REACT_COMPONENT_TAG}>
         </${REACT_COMPONENT_TAG}>
       </${DEFAULT_TAG_NAME}><div id="root"></div>`;
-      const root = createRoot(document.getElementById('root')!, {
+      let root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
       await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="react-aria-ComboBox" data-rac=""><label class="react-aria-Label" id="react-aria-:rc:" for="react-aria-:rb:">Test</label><input type="text" aria-autocomplete="list" autocomplete="off" id="react-aria-:rb:" aria-labelledby="react-aria-:rc:" role="combobox" aria-expanded="false" autocorrect="off" spellcheck="false" class="react-aria-Input" data-rac="" value="" title=""></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="react-aria-ComboBox" data-rac=""><label class="react-aria-Label" id="react-aria-:rc:" for="react-aria-:rb:">Test</label><input type="text" aria-autocomplete="list" autocomplete="off" id="react-aria-:rb:" aria-labelledby="react-aria-:rc:" role="combobox" aria-expanded="false" autocorrect="off" spellcheck="false" class="react-aria-Input" data-rac="" value="" title=""><button id="react-aria-:r9:" type="button" tabindex="-1" aria-label="Show suggestions" aria-labelledby="react-aria-:r9: react-aria-:rc:" aria-haspopup="listbox" aria-expanded="false" class="react-aria-Button" data-rac="">Open</button></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
       );
+
+      fireEvent.click(getByText(document.body, 'Open'));
+      fireEvent.input(getByRole(document.body, 'combobox'), { target: { value: 'One' } });
+
+      expect(document.body.querySelector('.react-aria-Popover')).toBeTruthy();
+
+      root.destroy();
+      waitFor(() => {
+        expect(root.getCache().size).toEqual(0);
+      });
+      document.body.innerHTML = '';
+
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
+        <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">Test</${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Open</${REACT_COMPONENT_TAG}>
+          <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover">
+            <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">One</${REACT_COMPONENT_TAG}>
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Two </${REACT_COMPONENT_TAG}>
+              <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Three</${REACT_COMPONENT_TAG}>
+            </${REACT_COMPONENT_TAG}>
+          </${REACT_COMPONENT_TAG}>
+        </${REACT_COMPONENT_TAG}>
+      </${DEFAULT_TAG_NAME}><div id="root"></div>`;
+
+      root = createRoot(document.getElementById('root')!, {
+        loader: (name) => Promise.resolve(manifest[name]),
+      });
+      await root.mount();
+      await root.render(document.body).done;
+
+      expect(document.body.innerHTML).toEqual(
+        `<${DEFAULT_TAG_NAME}><div class="react-aria-ComboBox" data-rac=""><label class="react-aria-Label" id="react-aria-:r1k:" for="react-aria-:r1j:">Test</label><input type="text" aria-autocomplete="list" autocomplete="off" id="react-aria-:r1j:" aria-labelledby="react-aria-:r1k:" role="combobox" aria-expanded="false" autocorrect="off" spellcheck="false" class="react-aria-Input" data-rac="" value="" title=""><button id="react-aria-:r1h:" type="button" tabindex="-1" aria-label="Show suggestions" aria-labelledby="react-aria-:r1h: react-aria-:r1k:" aria-haspopup="listbox" aria-expanded="false" class="react-aria-Button" data-rac="">Open</button></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+      );
+
+      fireEvent.click(getByText(document.body, 'Open'));
+      fireEvent.input(getByRole(document.body, 'combobox'), { target: { value: 'One' } });
+
+      expect(document.body.querySelector('.react-aria-Popover')).toBeTruthy();
+
       root.destroy();
     });
 
     it('render with state', async () => {
       const textFieldProps = {
-        onChange: { __type__: '__set__', key: 'textValue' },
+        id: 'my-text-field',
+        onChange: 'react:state/set?key=textValue',
       };
       const greetingProps = {
-        name: { __type__: '__get__', key: 'textValue', defaultValue: 'Guest' },
-        nameChanges: { __type__: '__observe__', key: 'textValue' },
+        name: 'react:state/get?key=textValue&defaultValue=Guest',
+        nameChanges: 'react:state/observe?key=textValue',
       };
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
         <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="TextField" ${PROPS_ATTRIBUTE}="${encodeProps(textFieldProps)}">
@@ -166,7 +210,7 @@ describe('@coldwired/react', () => {
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:ro:" for="react-aria-:rn:">My Name</label><input type="text" id="react-aria-:rn:" aria-labelledby="react-aria-:ro:" class="react-aria-Input" data-rac="" value="" title=""></div><div>Hello Guest!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:r2m:" for="my-text-field">My Name</label><input id="my-text-field" type="text" aria-labelledby="react-aria-:r2m:" class="react-aria-Input" data-rac="" value="" title=""></div><div>Hello Guest!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
       );
       expect(observedValue).toEqual('');
 
@@ -174,7 +218,7 @@ describe('@coldwired/react', () => {
 
       await waitFor(() => {
         expect(document.body.innerHTML).toEqual(
-          `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:ro:" for="react-aria-:rn:">My Name</label><input type="text" id="react-aria-:rn:" aria-labelledby="react-aria-:ro:" class="react-aria-Input" data-rac="" value="Paul" title=""></div><div>Hello Paul!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+          `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:r2m:" for="my-text-field">My Name</label><input id="my-text-field" type="text" aria-labelledby="react-aria-:r2m:" class="react-aria-Input" data-rac="" value="Paul" title=""></div><div>Hello Paul!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
         );
         expect(observedValue).toEqual('Paul');
       });
@@ -183,7 +227,7 @@ describe('@coldwired/react', () => {
 
       await waitFor(() => {
         expect(document.body.innerHTML).toEqual(
-          `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:ro:" for="react-aria-:rn:">My Name</label><input type="text" id="react-aria-:rn:" aria-labelledby="react-aria-:ro:" class="react-aria-Input" data-rac="" value="Greer" title=""></div><div>Hello Greer!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+          `<${DEFAULT_TAG_NAME}><div class="react-aria-TextField" data-rac=""><label class="react-aria-Label" id="react-aria-:r2m:" for="my-text-field">My Name</label><input id="my-text-field" type="text" aria-labelledby="react-aria-:r2m:" class="react-aria-Input" data-rac="" value="Greer" title=""></div><div>Hello Greer!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
         );
         expect(observedValue).toEqual('Greer');
       });

@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode, Key } from 'react';
+import type { ComponentType, JSX } from 'react';
 import { createElement, Fragment, useState, useMemo, memo } from 'react';
 import { decode as htmlDecode } from 'html-entities';
 import isEqual from 'react-fast-compare';
@@ -20,12 +20,12 @@ type ReactValue =
 export type ReactElement = {
   tagName: string;
   attributes: Record<string, string>;
-  children?: Child | Child[];
+  children?: Child[];
 };
 export type ReactComponent = {
   name: string;
   props: Record<string, JSONValue | ReactElement | ReactComponent>;
-  children?: Child | Child[];
+  children?: Child[];
 };
 export type Manifest = Record<string, ComponentType<any>>;
 
@@ -60,7 +60,7 @@ export function hydrate(
   documentOrFragment: Document | DocumentFragmentLike,
   manifest: Manifest,
   schema?: Partial<Schema>,
-): ReactNode {
+): JSX.Element {
   const childNodes = getChildNodes(documentOrFragment);
   const { children: tree, withState } = hydrateChildNodes(
     childNodes,
@@ -155,13 +155,9 @@ export function createReactTree(
   tree: Child | Child[],
   manifest: Manifest,
   state: State,
-): ReactNode {
+): JSX.Element {
   if (Array.isArray(tree)) {
-    return createElement(
-      Fragment,
-      {},
-      tree.map((child, i) => createChild(child, manifest, state, i)),
-    );
+    return createElement(Fragment, {}, ...tree.map((child) => createChild(child, manifest, state)));
   } else if (typeof tree == 'string') {
     return createElement(Fragment, {}, tree);
   }
@@ -209,7 +205,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
         result.children.push({
           name,
           props: { ...hydratedProps, ...props },
-          children: children.length > 0 ? children : undefined,
+          children,
         });
       } else {
         if (Object.keys(props).length > 0) {
@@ -230,7 +226,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
               result.props[name] = {
                 name: 'Fragment',
                 props: {},
-                children: child,
+                children: [child],
               };
             } else {
               result.props[name] = child;
@@ -249,7 +245,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
               (attrs, attr) => ({ ...attrs, [attr.name]: attr.value }),
               {},
             ),
-            children: children.length > 0 ? children : undefined,
+            children,
           });
         }
       }
@@ -275,25 +271,20 @@ function createElementOrComponent(
   child: ReactElement | ReactComponent,
   manifest: Manifest,
   state: State,
-  key?: Key,
-): ReactNode {
+): JSX.Element {
   if ('tagName' in child) {
     const attributes = Object.fromEntries(
-      Object.entries(child.attributes).map(([key, value]) => [
-        transformAttributeName(key),
-        transformAttributeValue(key, value),
-      ]),
+      Object.entries(child.attributes).map(([key, value]) => {
+        const attrName = transformAttributeName(key);
+        const attrValue = transformAttributeValue(key, value, state);
+        if (attrName.match(/^on[A-Z]/) && typeof attrValue != 'function') {
+          throw new Error(`Event handler must be a function: ${key}`);
+        }
+        return [attrName, attrValue];
+      }),
     );
-    attributes.key = attributes.id ?? key;
-    return createElement(
-      child.tagName,
-      attributes,
-      Array.isArray(child.children)
-        ? child.children.map((child, i) => createChild(child, manifest, state, i))
-        : child.children
-          ? createChild(child.children, manifest, state)
-          : undefined,
-    );
+    const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
+    return createElement(child.tagName, attributes, ...children);
   }
   const ComponentImpl = child.name == 'Fragment' ? Fragment : manifest[child.name];
   if (!ComponentImpl) {
@@ -301,34 +292,26 @@ function createElementOrComponent(
   }
   const props: { [key: string]: ReactValue } = Object.fromEntries(
     Object.entries(child.props).map(([key, value]) => {
+      const propName = transformPropName(key);
       if (isReactElement(value) || isReactComponent(value)) {
-        return [transformPropName(key), createElementOrComponent(value, manifest, state)];
+        return [propName, createElementOrComponent(value, manifest, state)];
       }
-      return [transformPropName(key), transformPropValue(value, state)];
+      const propValue = transformPropValue(value, state);
+      if (propName.match(/^on[A-Z]/) && typeof propValue != 'function') {
+        throw new Error(`Event handler must be a function: ${key}`);
+      }
+      return [propName, propValue];
     }),
   );
-  props.key = props.id ?? key;
-  return createElement(
-    ComponentImpl,
-    props,
-    Array.isArray(child.children)
-      ? child.children.map((child, i) => createChild(child, manifest, state, i))
-      : child.children
-        ? createChild(child.children, manifest, state)
-        : undefined,
-  );
+  const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
+  return createElement(ComponentImpl, props, ...children);
 }
 
-function createChild(
-  child: Child,
-  manifest: Manifest,
-  state: State,
-  key?: Key,
-): ReactNode | string {
+function createChild(child: Child, manifest: Manifest, state: State): JSX.Element | string {
   if (typeof child == 'string') {
     return child;
   }
-  return createElementOrComponent(child, manifest, state, key);
+  return createElementOrComponent(child, manifest, state);
 }
 
 function transformAttributeName(name: string) {
@@ -341,14 +324,14 @@ function transformAttributeName(name: string) {
   return camelcase(attributeName);
 }
 
-function transformAttributeValue(name: string, value: string) {
+function transformAttributeValue(name: string, value: string, state: State): ReactValue {
   if (name == 'style') {
     return parseStyleAttribute(value);
   }
   if (booleanAttribute.includes(name)) {
     return value != 'false' && value != 'off' && value != '0';
   }
-  return value;
+  return transformStringValue(value, state);
 }
 
 function transformPropName(name: string) {
@@ -360,28 +343,15 @@ function transformPropName(name: string) {
 
 function transformPropValue(value: JSONValue, state: State): ReactValue {
   if (isPlainObject(value)) {
-    const obj = Object.fromEntries(
+    return Object.fromEntries(
       Object.entries(value).map(([key, value]) => [key, transformPropValue(value, state)]),
     );
-    if (isStateProp(obj)) {
-      switch (obj.__type__) {
-        case StatePropType.SET:
-          return (value: ReactValue | Event) => {
-            state.set(obj.key, getEventValue(value));
-          };
-        case StatePropType.GET:
-          return state.get(obj.key, obj.defaultValue);
-        case StatePropType.OBSERVE:
-          return state.observe(obj.key);
-      }
-    }
-    return obj;
   }
   if (Array.isArray(value)) {
     return value.map((value) => transformPropValue(value, state));
   }
   if (typeof value == 'string') {
-    return transformStringValue(value);
+    return transformStringValue(value, state);
   }
   return value;
 }
@@ -395,6 +365,8 @@ function getEventValue(eventOrValue: Event | ReactValue): ReactValue {
       } else {
         return target.value;
       }
+    } else if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) {
+      return target.value;
     } else if (eventOrValue instanceof CustomEvent) {
       return eventOrValue.detail;
     }
@@ -403,7 +375,7 @@ function getEventValue(eventOrValue: Event | ReactValue): ReactValue {
   return eventOrValue;
 }
 
-function transformStringValue(value: string): ReactValue {
+function transformStringValue(value: string, state: State): ReactValue {
   if (value[0] == '$') {
     switch (value[1]) {
       case '$':
@@ -416,38 +388,28 @@ function transformStringValue(value: string): ReactValue {
         // BigInt
         return BigInt(value.slice(2));
     }
+  } else if (value.startsWith('react:')) {
+    const url = new URL(value);
+    const { pathname, searchParams } = url;
+    const key = searchParams.get('key');
+    if (key) {
+      switch (pathname) {
+        case 'state/get':
+          return state.get(key, searchParams.get('defaultValue'));
+        case 'state/set':
+          return (value: ReactValue | Event) => {
+            state.set(key, getEventValue(value));
+          };
+        case 'state/observe':
+          return state.observe(key);
+      }
+    }
+    throw new Error(`Unsupported react: URL: ${value}`);
   }
   return value;
 }
 
-enum StatePropType {
-  GET = '__get__',
-  SET = '__set__',
-  OBSERVE = '__observe__',
-}
-const statePropTypeSet = new Set(Object.values(StatePropType).map(String));
-const statePropTypeRegExp = new RegExp(
-  `"__type__":"(${StatePropType.GET}|${StatePropType.SET}|${StatePropType.OBSERVE})"`,
-);
-type StateProp =
-  | {
-      __type__: StatePropType.SET;
-      key: string;
-    }
-  | {
-      __type__: StatePropType.GET;
-      key: string;
-      defaultValue?: ReactValue;
-    }
-  | {
-      __type__: StatePropType.OBSERVE;
-      key: string;
-    };
-
-function isStateProp(value: { [key: string]: ReactValue }): value is StateProp {
-  const type = value['__type__'];
-  return typeof type == 'string' && statePropTypeSet.has(type);
-}
+const statePropTypeRegExp = /"react:state\/(get|set|observe)\?/;
 
 const reactAttributeMap: Record<string, string> = {
   'accept-charset': 'acceptCharset',

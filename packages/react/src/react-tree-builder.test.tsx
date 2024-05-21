@@ -60,7 +60,7 @@ describe('@coldwired/react', () => {
   describe('createReactTree', () => {
     it('render simple tree', () => {
       const tree = createReactTree(
-        { tagName: 'div', attributes: { className: 'title' }, children: 'Hello' },
+        { tagName: 'div', attributes: { className: 'title' }, children: ['Hello'] },
         {},
         createNullState(),
       );
@@ -74,7 +74,7 @@ describe('@coldwired/react', () => {
           tagName: 'div',
           attributes: { className: 'container' },
           children: [
-            { tagName: 'h1', attributes: {}, children: 'Title' },
+            { tagName: 'h1', attributes: {}, children: ['Title'] },
             'Hello ',
             'World',
             { tagName: 'input', attributes: { defaultValue: 'test', maxLength: '2' } },
@@ -106,13 +106,17 @@ describe('@coldwired/react', () => {
                   lang: 'fr',
                   legend: 'Test',
                 },
-                children: 'Hello World',
+                children: ['Hello World'],
               },
               {
                 name: 'FieldSet',
                 props: {
                   lang: 'en',
-                  legend: { tagName: 'span', attributes: { className: 'blue' }, children: 'Test' },
+                  legend: {
+                    tagName: 'span',
+                    attributes: { className: 'blue' },
+                    children: ['Test'],
+                  },
                 },
                 children: [
                   {

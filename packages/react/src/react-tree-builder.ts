@@ -20,12 +20,12 @@ type ReactValue =
 export type ReactElement = {
   tagName: string;
   attributes: Record<string, string>;
-  children?: Child | Child[];
+  children?: Child[];
 };
 export type ReactComponent = {
   name: string;
   props: Record<string, JSONValue | ReactElement | ReactComponent>;
-  children?: Child | Child[];
+  children?: Child[];
 };
 export type Manifest = Record<string, ComponentType<any>>;
 
@@ -205,7 +205,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
         result.children.push({
           name,
           props: { ...hydratedProps, ...props },
-          children: optimizeChildren(children),
+          children,
         });
       } else {
         if (Object.keys(props).length > 0) {
@@ -226,7 +226,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
               result.props[name] = {
                 name: 'Fragment',
                 props: {},
-                children: child,
+                children: [child],
               };
             } else {
               result.props[name] = child;
@@ -245,24 +245,13 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
               (attrs, attr) => ({ ...attrs, [attr.name]: attr.value }),
               {},
             ),
-            children: optimizeChildren(children),
+            children,
           });
         }
       }
     }
   });
   return result;
-}
-
-function optimizeChildren(children: Child[]): Child | Child[] | undefined {
-  switch (children.length) {
-    case 0:
-      return undefined;
-    case 1:
-      return children[0];
-    default:
-      return children;
-  }
 }
 
 function decodeProps(props: string): ReactComponent['props'] {
@@ -283,12 +272,6 @@ function createElementOrComponent(
   manifest: Manifest,
   state: State,
 ): JSX.Element {
-  const children = Array.isArray(child.children)
-    ? child.children.map((child) => createChild(child, manifest, state))
-    : child.children
-      ? [createChild(child.children, manifest, state)]
-      : [];
-
   if ('tagName' in child) {
     const attributes = Object.fromEntries(
       Object.entries(child.attributes).map(([key, value]) => {
@@ -300,6 +283,7 @@ function createElementOrComponent(
         return [attrName, attrValue];
       }),
     );
+    const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
     return createElement(child.tagName, attributes, ...children);
   }
   const ComponentImpl = child.name == 'Fragment' ? Fragment : manifest[child.name];
@@ -319,6 +303,7 @@ function createElementOrComponent(
       return [propName, propValue];
     }),
   );
+  const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
   return createElement(ComponentImpl, props, ...children);
 }
 
@@ -339,7 +324,7 @@ function transformAttributeName(name: string) {
   return camelcase(attributeName);
 }
 
-function transformAttributeValue(name: string, value: string, state: State) {
+function transformAttributeValue(name: string, value: string, state: State): ReactValue {
   if (name == 'style') {
     return parseStyleAttribute(value);
   }

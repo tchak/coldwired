@@ -68,21 +68,19 @@ describe('@coldwired/react', () => {
   });
   describe('root', () => {
     it('render simple fragment', async () => {
-      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="root"></div>`;
-      const root = createRoot(document.getElementById('root')!, {
-        loader: (name) => Promise.resolve(manifest[name]),
-      });
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}>`;
+      const root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
       await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
       );
 
       await root.render(document.body.firstElementChild!, `<div class="title">Hello World!</div>`)
         .done;
       expect(document.body.innerHTML).toEqual(
-        `<${DEFAULT_TAG_NAME}><div class="title">Hello World!</div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
+        `<${DEFAULT_TAG_NAME}><div class="title">Hello World!</div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
       );
       expect(root.getCache().size).toEqual(1);
       root.destroy();

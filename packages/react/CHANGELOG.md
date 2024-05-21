@@ -1,5 +1,11 @@
 # @coldwired/react
 
+## 0.14.1
+
+### Patch Changes
+
+- 8419c06: some minor improuvements to react render
+
 ## 0.14.0
 
 ### Minor Changes

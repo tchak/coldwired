@@ -1,15 +1,16 @@
 import type { ComponentType, JSX } from 'react';
-import { createElement, Fragment, useState, useMemo, memo } from 'react';
+import { createElement, Fragment } from 'react';
 import { decode as htmlDecode } from 'html-entities';
-import isEqual from 'react-fast-compare';
 
-import { Observable, type Observer } from './observable';
+import type { Observable } from './observable';
+import { defaultSchema } from './preload';
+import { RootStateComponent, NullState, type State } from './state.react';
 
-type Child = string | ReactElement | ReactComponent;
+export type Child = string | ReactElement | ReactComponent;
 type PrimitiveValue = string | number | boolean | null | undefined;
 type JSONValue = PrimitiveValue | Array<JSONValue> | { [key: string]: JSONValue };
 type EventHandler = (value: ReactValue | Event) => void;
-type ReactValue =
+export type ReactValue =
   | PrimitiveValue
   | Date
   | bigint
@@ -49,13 +50,6 @@ export interface Schema {
   propsAttribute: string;
 }
 
-export const defaultSchema: Schema = {
-  componentTagName: 'turbo-component',
-  slotTagName: 'turbo-slot',
-  nameAttribute: 'name',
-  propsAttribute: 'props',
-};
-
 export function hydrate(
   documentOrFragment: Document | DocumentFragmentLike,
   manifest: Manifest,
@@ -67,88 +61,9 @@ export function hydrate(
     Object.assign({}, defaultSchema, schema),
   );
   if (withState) {
-    return createElement(RootComponent, { tree, manifest });
+    return createElement(RootStateComponent, { tree, manifest });
   }
-  return createReactTree(tree, manifest, createNullState());
-}
-
-const RootComponent = memo(function RootComponent({
-  tree,
-  manifest,
-}: {
-  tree: Child[];
-  manifest: Manifest;
-}) {
-  const state = useLocalState();
-  return createReactTree(tree, manifest, state);
-}, isEqual);
-
-export interface State {
-  get(key: string, defaultValue?: ReactValue): ReactValue;
-  set(key: string, value: ReactValue): void;
-  observe(key: string): Observable<ReactValue>;
-}
-type StateValue = Record<string, ReactValue>;
-
-export function createState(
-  state: StateValue,
-  setState: (valueOrUpdate: StateValue | ((state: StateValue) => StateValue)) => void,
-): State {
-  const registry = new Map<string, Set<Observer<ReactValue>>>();
-  return {
-    set: (key, value) => {
-      setState((state) => ({ ...state, [key]: value }));
-      const observers = registry.get(key);
-      if (observers) {
-        for (const observer of observers) {
-          observer.next(value);
-        }
-      }
-    },
-    get: (key, defaultValue) => state[key] ?? defaultValue,
-    observe: (key) => {
-      return new Observable((observer) => {
-        let observers = registry.get(key);
-        if (!observers) {
-          observers = new Set();
-          registry.set(key, observers);
-        }
-        observers.add(observer);
-        return () => {
-          observers.delete(observer);
-          if (observers.size == 0) {
-            registry.delete(key);
-          }
-        };
-      });
-    },
-  };
-}
-
-export function createNullState() {
-  return createState({}, () => {
-    throw new Error('Cannot set state on null state');
-  });
-}
-
-function useLocalState(): State {
-  const [state, setState] = useState<StateValue>({});
-  return useMemo(() => createState(state, setState), [state]);
-}
-
-export function preload(
-  documentOrFragment: Document | DocumentFragmentLike,
-  loader: (names: string[]) => Promise<Manifest>,
-  schema?: Partial<Schema>,
-): Promise<Manifest> {
-  const { componentTagName, nameAttribute } = Object.assign({}, defaultSchema, schema);
-  const components = documentOrFragment.querySelectorAll(componentTagName);
-  const componentNames = new Set(
-    Array.from(components).map(
-      (component) => (component as HTMLElement).getAttribute(nameAttribute)!,
-    ),
-  );
-  return loader([...componentNames]);
+  return createReactTree(tree, manifest, NullState);
 }
 
 export function createReactTree(
@@ -157,9 +72,13 @@ export function createReactTree(
   state: State,
 ): JSX.Element {
   if (Array.isArray(tree)) {
-    return createElement(Fragment, {}, ...tree.map((child) => createChild(child, manifest, state)));
+    return createElement(
+      Fragment,
+      null,
+      ...tree.map((child) => createChild(child, manifest, state)),
+    );
   } else if (typeof tree == 'string') {
-    return createElement(Fragment, {}, tree);
+    return createElement(Fragment, null, tree);
   }
   return createElementOrComponent(tree, manifest, state);
 }

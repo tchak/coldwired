@@ -4,8 +4,14 @@ import { useState } from 'react';
 import { Actions } from '@coldwired/actions';
 import { encode as htmlEncode } from 'html-entities';
 
-import { createRoot, createReactPlugin, defaultSchema, type Manifest, type Root } from '.';
-import type { ReactComponent } from './react-tree-builder';
+import {
+  createRoot,
+  createReactPlugin,
+  defaultSchema,
+  type Manifest,
+  type Root,
+  type ReactComponent,
+} from '.';
 
 const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
 const PROPS_ATTRIBUTE = defaultSchema.propsAttribute;

@@ -13,8 +13,7 @@ import {
 import { encode as htmlEncode } from 'html-entities';
 import { getByLabelText, getByText, getByRole, fireEvent, waitFor } from '@testing-library/dom';
 
-import { createRoot, defaultSchema, type Manifest, type Observable } from '.';
-import type { ReactComponent } from './react-tree-builder';
+import { createRoot, defaultSchema, type Manifest, type Observable, type ReactComponent } from '.';
 
 const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
 const PROPS_ATTRIBUTE = defaultSchema.propsAttribute;
@@ -70,7 +69,6 @@ describe('@coldwired/react', () => {
     it('render simple fragment', async () => {
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}><div class="title">Hello</div></${DEFAULT_TAG_NAME}>`;
       const root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -91,7 +89,6 @@ describe('@coldwired/react', () => {
       const root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -109,7 +106,6 @@ describe('@coldwired/react', () => {
       const root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -136,7 +132,6 @@ describe('@coldwired/react', () => {
       let root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -172,7 +167,6 @@ describe('@coldwired/react', () => {
       root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -206,7 +200,6 @@ describe('@coldwired/react', () => {
       const root = createRoot(document.getElementById('root')!, {
         loader: (name) => Promise.resolve(manifest[name]),
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(

@@ -29,7 +29,6 @@ describe('@coldwired/react', () => {
           componentTagName: REACT_COMPONENT_TAG,
         },
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(
@@ -54,7 +53,6 @@ describe('@coldwired/react', () => {
           componentTagName: REACT_COMPONENT_TAG,
         },
       });
-      await root.mount();
       await root.render(document.body).done;
 
       expect(document.body.innerHTML).toEqual(

@@ -5,14 +5,9 @@ import { parseHTMLFragment } from '@coldwired/utils';
 import { z } from 'zod';
 import { encode as htmlEncode } from 'html-entities';
 
-import {
-  createReactTree,
-  hydrate,
-  preload,
-  defaultSchema,
-  createNullState,
-  type ReactComponent,
-} from './react-tree-builder';
+import { createReactTree, hydrate, type ReactComponent } from './tree-builder.react';
+import { NullState } from './state.react';
+import { preload, defaultSchema } from './preload';
 
 const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
 const PROPS_ATTRIBUTE = defaultSchema.propsAttribute;
@@ -62,7 +57,7 @@ describe('@coldwired/react', () => {
       const tree = createReactTree(
         { tagName: 'div', attributes: { className: 'title' }, children: ['Hello'] },
         {},
-        createNullState(),
+        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe('<div class="title">Hello</div>');
@@ -81,7 +76,7 @@ describe('@coldwired/react', () => {
           ],
         },
         {},
-        createNullState(),
+        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(
@@ -129,7 +124,7 @@ describe('@coldwired/react', () => {
           },
         ],
         { Greeting, FieldSet },
-        createNullState(),
+        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(

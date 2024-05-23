@@ -1,27 +1,16 @@
-import { createPortal } from 'react-dom';
-import { createRoot as createReactRoot, type Root as ReactRoot } from 'react-dom/client';
-import {
-  useSyncExternalStore,
-  useEffect,
-  createElement,
-  Fragment,
-  StrictMode,
-  type ReactNode,
-  type ComponentType,
-} from 'react';
-import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { parseHTMLFragment, isElement } from '@coldwired/utils';
+import type { ComponentType, ReactNode } from 'react';
 
-import {
-  hydrate,
-  preload,
-  defaultSchema as defaultTreeBuilderSchema,
-  type Manifest,
-  type Schema as TreeBuilderSchema,
-  type DocumentFragmentLike,
-} from './react-tree-builder';
+import type { LayoutComponent, ErrorBoundaryFallbackComponent } from './root.react';
+import type {
+  hydrate as hydrateFn,
+  Manifest,
+  Schema as TreeBuilderSchema,
+  DocumentFragmentLike,
+} from './tree-builder.react';
+import { preload, defaultSchema as defaultTreeBuilderSchema } from './preload';
 
-export type Loader = (name: string) => Promise<ComponentType>;
+export type Loader = (name: string) => Promise<ComponentType<any>>;
 export type { Manifest };
 
 export interface RenderBatch {
@@ -30,8 +19,6 @@ export interface RenderBatch {
 }
 
 export interface Root {
-  mount(): Promise<void>;
-  unmount(): void;
   render(element: Element, fragment?: DocumentFragmentLike | string): RenderBatch;
   remove(element: Element): boolean;
   contains(element: Element): boolean;
@@ -41,10 +28,10 @@ export interface Root {
 
 export interface RootOptions {
   loader: Loader;
-  Layout?: ComponentType<{ children: ReactNode }>;
   manifest?: Manifest;
   schema?: Partial<Schema>;
-  fallbackRender?: FallbackRender;
+  layoutComponentName?: string;
+  errorBoundaryFallbackComponentName?: string;
 }
 
 export interface Schema extends TreeBuilderSchema {
@@ -54,17 +41,30 @@ export interface Schema extends TreeBuilderSchema {
 
 export const defaultSchema: Schema = {
   ...defaultTreeBuilderSchema,
-  fragmentTagName: 'turbo-fragment',
+  fragmentTagName: 'react-fragment',
   loadingClassName: 'loading',
 };
 
+const containerElementMap = new Map<string, Element>();
 export function findOrCreateContainerElement(id: string) {
-  let container = document.querySelector(`body > #${id}`);
-  if (!container) {
-    container = document.createElement('div');
-    container.id = id;
-    document.body.appendChild(container);
+  let container = containerElementMap.get(id) ?? null;
+  // container found in cache
+  if (container?.isConnected) {
+    return container;
   }
+
+  // container found in DOM
+  container = document.querySelector(`body > #${id}`);
+  if (container?.isConnected) {
+    containerElementMap.set(id, container);
+    return container;
+  }
+
+  // container not found, create a new one
+  container = document.createElement('div');
+  container.id = id;
+  document.body.appendChild(container);
+  containerElementMap.set(id, container);
   return container;
 }
 
@@ -87,8 +87,6 @@ export function createRoot(
   const subscriptions = new Set<() => void>();
   const manifest: Manifest = Object.assign({}, preloadedManifest);
   const schema = Object.assign({}, defaultSchema, options.schema);
-  const fallbackRender = options.fallbackRender ?? defaultFallbackRender;
-  const Layout = options.Layout ?? StrictMode;
 
   const notify = () => {
     if (!isDestroyed) {
@@ -109,6 +107,7 @@ export function createRoot(
     if (isElement(fragment) && fragment.tagName.toLowerCase() != schema.fragmentTagName) {
       throw new Error('Cannot rerender with a non-fragment element');
     }
+    //const { hydrate } = await import('./react-tree-builder');
     await preload(fragment, (names) => manifestLoader(names, loader, manifest), schema);
     const tree = hydrate(fragment, manifest, schema);
     if (reset) {
@@ -138,6 +137,7 @@ export function createRoot(
 
   const create = async (element: Element) => {
     if (!isDestroyed && !mounted.has(element)) {
+      await mounting;
       mounted.set(element, (fragmentOrHTML) => render(element, fragmentOrHTML, false));
       registerDestroyer(element);
       await render(element, element, true);
@@ -153,37 +153,39 @@ export function createRoot(
       subscriptions.delete(callback);
     };
   };
-  let root: ReactRoot | undefined;
+  let mounting: Promise<void> | undefined;
+  let unmount: (() => void) | undefined;
+  let hydrate: typeof hydrateFn;
+  const mount = async () => {
+    if (isDestroyed) {
+      throw new Error('Root is destroyed');
+    }
+    let onMounted: () => void = () => {};
+    const mounting = new Promise<void>((resolve) => {
+      onMounted = resolve;
+    });
+    const [
+      { createAndRenderReactRoot, hydrate: hydrateFn },
+      LayoutComponent,
+      ErrorBoundaryFallbackComponent,
+    ] = await Promise.all([
+      import('./root.react'),
+      getLayoutComponent(loader, options.layoutComponentName),
+      getErrorBoundaryFallbackComponent(loader, options.errorBoundaryFallbackComponentName),
+    ]);
+    hydrate = hydrateFn;
+    unmount = createAndRenderReactRoot({
+      container,
+      subscribe,
+      getSnapshot,
+      onMounted,
+      LayoutComponent,
+      ErrorBoundaryFallbackComponent,
+    });
+    await mounting;
+  };
 
   return {
-    async mount() {
-      if (root) {
-        throw new Error('Root is already mounted');
-      }
-      if (isDestroyed) {
-        throw new Error('Root is destroyed');
-      }
-      let onMounted: () => void = () => {};
-      const ready = new Promise<void>((resolve) => {
-        onMounted = resolve;
-      });
-      root = createReactRoot(container);
-      root.render(
-        createElement(
-          Layout,
-          null,
-          createElement(RootProvider, { subscribe, getSnapshot, onMounted, fallbackRender }),
-        ),
-      );
-
-      await ready;
-    },
-    unmount() {
-      if (root) {
-        root.unmount();
-        root = undefined;
-      }
-    },
     render(element, fragmentOrHTML) {
       if (fragmentOrHTML) {
         const update = mounted.get(element);
@@ -191,6 +193,9 @@ export function createRoot(
           return { count: 1, done: update(fragmentOrHTML) };
         }
       } else {
+        if (!mounting) {
+          mounting = mount();
+        }
         if (element.tagName.toLowerCase() == schema.fragmentTagName) {
           return { count: 1, done: create(element) };
         } else {
@@ -225,69 +230,15 @@ export function createRoot(
       cache.clear();
       notify();
       subscriptions.clear();
-      root?.unmount?.();
+      unmount?.();
       mounted.clear();
       container.remove();
+      containerElementMap.clear();
     },
     getCache() {
       return cache;
     },
   };
-}
-
-export type FallbackRender = (props: FallbackProps & { element: Element }) => ReactNode;
-
-const defaultFallbackRender: FallbackRender = ({ error, element }) => {
-  const message = element.getAttribute('fallback-message') ?? error.message;
-  return createElement(
-    'div',
-    { role: 'alert' },
-    createElement('pre', { style: { color: 'red' } }, message),
-  );
-};
-
-function RootProvider({
-  subscribe,
-  getSnapshot,
-  onMounted,
-  fallbackRender,
-}: {
-  subscribe(callback: () => void): () => void;
-  getSnapshot(): Map<Element, ReactNode>;
-  onMounted: () => void;
-  fallbackRender: FallbackRender;
-}) {
-  useEffect(onMounted, []);
-  const cache = useSyncExternalStore(subscribe, getSnapshot);
-
-  return createElement(
-    Fragment,
-    null,
-    ...Array.from(cache).map(([element, content]) =>
-      createPortal(
-        createElement(
-          ErrorBoundary,
-          {
-            fallbackRender: (props) => fallbackRender({ element, ...props }),
-          },
-          content,
-        ),
-        element,
-        getKeyForElement(element),
-      ),
-    ),
-  );
-}
-
-const keys = new WeakMap<Element, string>();
-
-function getKeyForElement(element: Element): string {
-  let key = keys.get(element);
-  if (!key) {
-    key = Math.random().toString(36).slice(2);
-    keys.set(element, key);
-  }
-  return key;
 }
 
 async function manifestLoader(names: string[], loader: Loader, manifest: Manifest) {
@@ -301,4 +252,24 @@ async function manifestLoader(names: string[], loader: Loader, manifest: Manifes
       ),
   );
   return manifest;
+}
+
+async function getLayoutComponent(
+  loader: Loader,
+  name?: string,
+): Promise<LayoutComponent | undefined> {
+  if (name) {
+    return (await loader(name)) as LayoutComponent;
+  }
+  return;
+}
+
+async function getErrorBoundaryFallbackComponent(
+  loader: Loader,
+  name?: string,
+): Promise<ErrorBoundaryFallbackComponent | undefined> {
+  if (name) {
+    return (await loader(name)) as ErrorBoundaryFallbackComponent;
+  }
+  return;
 }

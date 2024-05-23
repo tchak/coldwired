@@ -11,7 +11,6 @@ export function createReactPlugin(root: Root): Plugin {
       });
       pending.add(ready);
       const mountAndRender = async () => {
-        await root.mount();
         const batch = root.render(element);
         if (batch.count != 0) {
           await batch.done;

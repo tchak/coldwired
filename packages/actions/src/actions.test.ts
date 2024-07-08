@@ -441,6 +441,33 @@ describe('@coldwired/actions', () => {
     expect(isFocused(from)).toBeTruthy();
   });
 
+  it('should reset form', async () => {
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<form id="form-1"><input /> <input value="yolo" /></form> <input form="form-1" /> <input />',
+      ),
+    );
+    const [input1, input2, input3, input4] = document.querySelectorAll('input');
+
+    fireEvent.change(input1, { target: { value: 'test 1' } });
+    fireEvent.change(input3, { target: { value: 'test 3' } });
+    fireEvent.change(input4, { target: { value: 'test 4' } });
+
+    expect(input1.value).toEqual('test 1');
+    expect(input2.value).toEqual('yolo');
+    expect(input3.value).toEqual('test 3');
+    expect(input4.value).toEqual('test 4');
+
+    actions.reset({ targets: '#form-1' });
+    await actions.ready();
+
+    expect(input1.value).toEqual('');
+    expect(input2.value).toEqual('yolo');
+    expect(input3.value).toEqual('');
+    expect(input4.value).toEqual('test 4');
+  });
+
   it('should preserve value', () => {
     actions.morph(
       document,

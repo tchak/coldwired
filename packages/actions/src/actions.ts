@@ -11,6 +11,7 @@ import {
   partition,
   focusNextElement,
   parseHTMLFragment,
+  isFormElement,
 } from '@coldwired/utils';
 
 import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
@@ -20,7 +21,7 @@ import { morph } from './morph';
 import { Schema, defaultSchema } from './schema';
 import type { Plugin } from './plugin';
 
-const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show'] as const;
+const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show', 'reset'] as const;
 const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;
 const actionNames = [...voidActionNames, ...fragmentActionNames];
 
@@ -113,7 +114,7 @@ export class Actions {
   }
 
   disconnect() {
-    this.reset();
+    this.clear();
     this.#classListObserver.disconnect();
     this.#attributeObserver.disconnect();
     this.#element.removeEventListener('input', this.#delegate);
@@ -121,7 +122,7 @@ export class Actions {
     this.#element.removeEventListener(ACTIONS_EVENT_TYPE, this.#delegate);
   }
 
-  reset() {
+  clear() {
     this.#controller.abort();
     this.#controller = new AbortController();
     this.#pending.clear();
@@ -204,6 +205,10 @@ export class Actions {
 
   show(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'show', ...params }]);
+  }
+
+  reset(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
+    this.applyActions([{ action: 'reset', ...params }]);
   }
 
   morph(
@@ -438,6 +443,16 @@ export class Actions {
       if ('disabled' in element) {
         focusNextElement(element, this.#schema);
         element.disabled = true;
+      }
+    }
+  }
+
+  private _reset({ targets }: Pick<MaterializedVoidAction, 'targets'>) {
+    for (const element of targets) {
+      if (isFormElement(element)) {
+        element.reset();
+      } else {
+        console.warn('reset action is not supported on non-form elements', element);
       }
     }
   }

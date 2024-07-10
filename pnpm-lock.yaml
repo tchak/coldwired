@@ -119,7 +119,7 @@ importers:
   packages/turbo-stream:
     dependencies:
       '@coldwired/actions':
-        specifier: ^0.13.0
+        specifier: ^0.15.1
         version: link:../actions
       '@coldwired/utils':
         specifier: ^0.13.0

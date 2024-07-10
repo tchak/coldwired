@@ -90,6 +90,12 @@ export function createRoot(
 
   const notify = () => {
     if (!isDestroyed) {
+      cache.forEach((_, element) => {
+        if (!element.isConnected) {
+          cache.delete(element);
+          mounted.delete(element);
+        }
+      });
       cache = new Map(cache);
       subscriptions.forEach((callback) => callback());
     }
@@ -107,7 +113,6 @@ export function createRoot(
     if (isElement(fragment) && fragment.tagName.toLowerCase() != schema.fragmentTagName) {
       throw new Error('Cannot rerender with a non-fragment element');
     }
-    //const { hydrate } = await import('./react-tree-builder');
     await preload(fragment, (names) => manifestLoader(names, loader, manifest), schema);
     const tree = hydrate(fragment, manifest, schema);
     if (reset) {

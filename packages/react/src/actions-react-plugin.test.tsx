@@ -223,5 +223,79 @@ describe('@coldwired/react', () => {
       );
       expect(root.getCache().size).toEqual(1);
     });
+
+    actions.append({
+      targets: 'section',
+      fragment: `<div>toto <${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'One more Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}></div>`,
+    });
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.body.innerHTML).toEqual(
+        layout(
+          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 3</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div>toto <${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></div></section>`,
+        ),
+      );
+      expect(root.getCache().size).toEqual(2);
+    });
+
+    actions.update({
+      targets: 'section',
+      fragment: '<p>hello</p>',
+    });
+    await actions.ready();
+
+    actions.prepend({
+      targets: 'section',
+      fragment: `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'One more Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
+    });
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.body.innerHTML).toEqual(
+        layout(
+          `<section><${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><p>hello</p></section>`,
+        ),
+      );
+      expect(root.getCache().size).toEqual(1);
+    });
+
+    actions.update({
+      targets: 'section',
+      fragment: '<p>hello</p>',
+    });
+    await actions.ready();
+
+    actions.after({
+      targets: 'p',
+      fragment: `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'One more Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
+    });
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.body.innerHTML).toEqual(
+        layout(
+          `<section><p>hello</p><${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
+        ),
+      );
+      expect(root.getCache().size).toEqual(1);
+    });
+
+    actions.update({
+      targets: 'section',
+      fragment: '<p>hello</p>',
+    });
+    await actions.ready();
+
+    actions.before({
+      targets: 'p',
+      fragment: `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter" ${PROPS_ATTRIBUTE}="${encodeProps({ label: 'One more Count' })}"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`,
+    });
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.body.innerHTML).toEqual(
+        layout(
+          `<section><${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><p>hello</p></section>`,
+        ),
+      );
+      expect(root.getCache().size).toEqual(1);
+    });
   });
 });

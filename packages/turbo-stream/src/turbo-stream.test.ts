@@ -138,7 +138,7 @@ describe('@coldwired/turbo-stream', () => {
       expect(end - start).toBeLessThan(20);
       expect(document.body.innerHTML).toBe('<div id="test1"></div><div id="test2"></div>');
     });
-    actions.reset();
+    actions.clear();
     return done;
   });
 });

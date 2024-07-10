@@ -1,5 +1,12 @@
 # @coldwired/actions
 
+## 0.15.1
+
+### Patch Changes
+
+- 0d4b8a5: implement form reset action
+- f10e9bd: fix some actions
+
 ## 0.13.0
 
 ### Minor Changes

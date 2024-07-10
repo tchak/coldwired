@@ -1,5 +1,11 @@
 # @coldwired/react
 
+## 0.15.1
+
+### Patch Changes
+
+- f10e9bd: fix some actions
+
 ## 0.15.0
 
 ### Minor Changes

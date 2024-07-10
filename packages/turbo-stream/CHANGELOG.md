@@ -1,5 +1,13 @@
 # @coldwired/turbo-stream
 
+## 0.15.1
+
+### Patch Changes
+
+- Updated dependencies [0d4b8a5]
+- Updated dependencies [f10e9bd]
+  - @coldwired/actions@0.15.1
+
 ## 0.13.0
 
 ### Minor Changes

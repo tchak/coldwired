@@ -345,18 +345,27 @@ export class Actions {
   private _after({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.after(getDocumentFragment(fragment, element));
+      const parent = element.parentElement;
+      if (parent) {
+        this.plugins.forEach((plugin) => plugin.onCreateElement?.(parent));
+      }
     }
   }
 
   private _before({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.before(getDocumentFragment(fragment, element));
+      const parent = element.parentElement;
+      if (parent) {
+        this.plugins.forEach((plugin) => plugin.onCreateElement?.(parent));
+      }
     }
   }
 
   private _append({ targets, fragment }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.append(getDocumentFragment(fragment, element, true));
+      this.plugins.forEach((plugin) => plugin.onCreateElement?.(element));
     }
   }
 
@@ -366,6 +375,7 @@ export class Actions {
   }: Pick<MaterializedFragmentAction, 'targets' | 'fragment'>) {
     for (const element of targets) {
       element.prepend(getDocumentFragment(fragment, element, true));
+      this.plugins.forEach((plugin) => plugin.onCreateElement?.(element));
     }
   }
 

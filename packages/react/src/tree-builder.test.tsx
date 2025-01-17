@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { encode as htmlEncode } from 'html-entities';
 
 import { createReactTree, hydrate, type ReactComponent } from './tree-builder.react';
-import { NullState } from './state.react';
 import { preload, defaultSchema } from './preload';
 
 const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
@@ -57,7 +56,6 @@ describe('@coldwired/react', () => {
       const tree = createReactTree(
         { tagName: 'div', attributes: { className: 'title' }, children: ['Hello'] },
         {},
-        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe('<div class="title">Hello</div>');
@@ -76,7 +74,6 @@ describe('@coldwired/react', () => {
           ],
         },
         {},
-        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(
@@ -124,7 +121,6 @@ describe('@coldwired/react', () => {
           },
         ],
         { Greeting, FieldSet },
-        NullState,
       );
       const html = renderToStaticMarkup(tree);
       expect(html).toBe(

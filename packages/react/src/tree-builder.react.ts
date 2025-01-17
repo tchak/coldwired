@@ -1,23 +1,18 @@
+import { decode as htmlDecode } from 'html-entities';
 import type { ComponentType, JSX } from 'react';
 import { createElement, Fragment } from 'react';
-import { decode as htmlDecode } from 'html-entities';
 
-import type { Observable } from './observable';
 import { defaultSchema } from './preload';
-import { RootStateComponent, NullState, type State } from './state.react';
 
 export type Child = string | ReactElement | ReactComponent;
 type PrimitiveValue = string | number | boolean | null | undefined;
 type JSONValue = PrimitiveValue | Array<JSONValue> | { [key: string]: JSONValue };
-type EventHandler = (value: ReactValue | Event) => void;
 export type ReactValue =
   | PrimitiveValue
   | Date
   | bigint
   | Array<ReactValue>
-  | { [key: string]: ReactValue }
-  | EventHandler
-  | Observable<ReactValue>;
+  | { [key: string]: ReactValue };
 export type ReactElement = {
   tagName: string;
   attributes: Record<string, string>;
@@ -56,31 +51,20 @@ export function hydrate(
   schema?: Partial<Schema>,
 ): JSX.Element {
   const childNodes = getChildNodes(documentOrFragment);
-  const { children: tree, withState } = hydrateChildNodes(
+  const { children: tree } = hydrateChildNodes(
     childNodes,
     Object.assign({}, defaultSchema, schema),
   );
-  if (withState) {
-    return createElement(RootStateComponent, { tree, manifest });
-  }
-  return createReactTree(tree, manifest, NullState);
+  return createReactTree(tree, manifest);
 }
 
-export function createReactTree(
-  tree: Child | Child[],
-  manifest: Manifest,
-  state: State,
-): JSX.Element {
+export function createReactTree(tree: Child | Child[], manifest: Manifest): JSX.Element {
   if (Array.isArray(tree)) {
-    return createElement(
-      Fragment,
-      null,
-      ...tree.map((child) => createChild(child, manifest, state)),
-    );
+    return createElement(Fragment, null, ...tree.map((child) => createChild(child, manifest)));
   } else if (typeof tree == 'string') {
     return createElement(Fragment, null, tree);
   }
-  return createElementOrComponent(tree, manifest, state);
+  return createElementOrComponent(tree, manifest);
 }
 
 function getChildNodes(documentOrFragment: Document | DocumentFragmentLike) {
@@ -92,11 +76,10 @@ function getChildNodes(documentOrFragment: Document | DocumentFragmentLike) {
 type HydrateResult = {
   children: Child[];
   props: Record<string, Child>;
-  withState: boolean;
 };
 
 function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): HydrateResult {
-  const result: HydrateResult = { children: [], props: {}, withState: false };
+  const result: HydrateResult = { children: [], props: {} };
   childNodes.forEach((childNode) => {
     if (isTextNode(childNode)) {
       const text = childNode.textContent;
@@ -105,11 +88,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
       }
     } else if (isElementNode(childNode)) {
       const tagName = childNode.tagName.toLowerCase();
-      const {
-        children,
-        props,
-        withState: childrenWithState,
-      } = hydrateChildNodes(childNode.childNodes, schema);
+      const { children, props } = hydrateChildNodes(childNode.childNodes, schema);
       if (tagName == schema.componentTagName) {
         const name = childNode.getAttribute(schema.nameAttribute);
         if (!name) {
@@ -117,10 +96,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
             `Missing "${schema.nameAttribute}" attribute on <${schema.componentTagName}>`,
           );
         }
-        const [hydratedProps, withState] = hydrateProps(childNode, schema.propsAttribute);
-        if (withState || childrenWithState) {
-          result.withState = true;
-        }
+        const hydratedProps = hydrateProps(childNode, schema.propsAttribute);
         result.children.push({
           name,
           props: { ...hydratedProps, ...props },
@@ -177,32 +153,27 @@ function decodeProps(props: string): ReactComponent['props'] {
   return JSON.parse(htmlDecode(props));
 }
 
-function hydrateProps(
-  childNode: HTMLElement,
-  propsAttribute: string,
-): [props: ReactComponent['props'], withState: boolean] {
+function hydrateProps(childNode: HTMLElement, propsAttribute: string): ReactComponent['props'] {
   const serializedProps = childNode.getAttribute(propsAttribute);
-  const withState = serializedProps ? statePropTypeRegExp.test(serializedProps) : false;
-  return [serializedProps ? decodeProps(serializedProps) : {}, withState];
+  return serializedProps ? decodeProps(serializedProps) : {};
 }
 
 function createElementOrComponent(
   child: ReactElement | ReactComponent,
   manifest: Manifest,
-  state: State,
 ): JSX.Element {
   if ('tagName' in child) {
     const attributes = Object.fromEntries(
       Object.entries(child.attributes).map(([key, value]) => {
         const attrName = transformAttributeName(key);
-        const attrValue = transformAttributeValue(key, value, state);
+        const attrValue = transformAttributeValue(key, value);
         if (attrName.match(/^on[A-Z]/) && typeof attrValue != 'function') {
           throw new Error(`Event handler must be a function: ${key}`);
         }
         return [attrName, attrValue];
       }),
     );
-    const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
+    const children = child.children?.map((child) => createChild(child, manifest)) || [];
     return createElement(child.tagName, attributes, ...children);
   }
   const ComponentImpl = child.name == 'Fragment' ? Fragment : manifest[child.name];
@@ -213,24 +184,24 @@ function createElementOrComponent(
     Object.entries(child.props).map(([key, value]) => {
       const propName = transformPropName(key);
       if (isReactElement(value) || isReactComponent(value)) {
-        return [propName, createElementOrComponent(value, manifest, state)];
+        return [propName, createElementOrComponent(value, manifest)];
       }
-      const propValue = transformPropValue(value, state);
+      const propValue = transformPropValue(value);
       if (propName.match(/^on[A-Z]/) && typeof propValue != 'function') {
         throw new Error(`Event handler must be a function: ${key}`);
       }
       return [propName, propValue];
     }),
   );
-  const children = child.children?.map((child) => createChild(child, manifest, state)) || [];
+  const children = child.children?.map((child) => createChild(child, manifest)) || [];
   return createElement(ComponentImpl, props, ...children);
 }
 
-function createChild(child: Child, manifest: Manifest, state: State): JSX.Element | string {
+function createChild(child: Child, manifest: Manifest): JSX.Element | string {
   if (typeof child == 'string') {
     return child;
   }
-  return createElementOrComponent(child, manifest, state);
+  return createElementOrComponent(child, manifest);
 }
 
 function transformAttributeName(name: string) {
@@ -243,14 +214,14 @@ function transformAttributeName(name: string) {
   return camelcase(attributeName);
 }
 
-function transformAttributeValue(name: string, value: string, state: State): ReactValue {
+function transformAttributeValue(name: string, value: string): ReactValue {
   if (name == 'style') {
     return parseStyleAttribute(value);
   }
   if (booleanAttribute.includes(name)) {
     return value != 'false' && value != 'off' && value != '0';
   }
-  return transformStringValue(value, state);
+  return transformStringValue(value);
 }
 
 function transformPropName(name: string) {
@@ -260,41 +231,22 @@ function transformPropName(name: string) {
   return transformAttributeName(name);
 }
 
-function transformPropValue(value: JSONValue, state: State): ReactValue {
+function transformPropValue(value: JSONValue): ReactValue {
   if (isPlainObject(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, value]) => [key, transformPropValue(value, state)]),
+      Object.entries(value).map(([key, value]) => [key, transformPropValue(value)]),
     );
   }
   if (Array.isArray(value)) {
-    return value.map((value) => transformPropValue(value, state));
+    return value.map((value) => transformPropValue(value));
   }
   if (typeof value == 'string') {
-    return transformStringValue(value, state);
+    return transformStringValue(value);
   }
   return value;
 }
 
-function getEventValue(eventOrValue: Event | ReactValue): ReactValue {
-  if (eventOrValue instanceof Event) {
-    const target = eventOrValue.target;
-    if (target instanceof HTMLInputElement) {
-      if (target.type == 'checkbox') {
-        return target.checked;
-      } else {
-        return target.value;
-      }
-    } else if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) {
-      return target.value;
-    } else if (eventOrValue instanceof CustomEvent) {
-      return eventOrValue.detail;
-    }
-    throw new Error('Unsupported event type');
-  }
-  return eventOrValue;
-}
-
-function transformStringValue(value: string, state: State): ReactValue {
+function transformStringValue(value: string): ReactValue {
   if (value[0] == '$') {
     switch (value[1]) {
       case '$':
@@ -307,28 +259,9 @@ function transformStringValue(value: string, state: State): ReactValue {
         // BigInt
         return BigInt(value.slice(2));
     }
-  } else if (value.startsWith('react:')) {
-    const url = new URL(value);
-    const { pathname, searchParams } = url;
-    const key = searchParams.get('key');
-    if (key) {
-      switch (pathname) {
-        case 'state/get':
-          return state.get(key, searchParams.get('defaultValue'));
-        case 'state/set':
-          return (value: ReactValue | Event) => {
-            state.set(key, getEventValue(value));
-          };
-        case 'state/observe':
-          return state.observe(key);
-      }
-    }
-    throw new Error(`Unsupported react: URL: ${value}`);
   }
   return value;
 }
-
-const statePropTypeRegExp = /"react:state\/(get|set|observe)\?/;
 
 const reactAttributeMap: Record<string, string> = {
   'accept-charset': 'acceptCharset',

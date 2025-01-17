@@ -1,14 +1,14 @@
-import { parseHTMLFragment, isElement } from '@coldwired/utils';
+import { isElement, parseHTMLFragment } from '@coldwired/utils';
 import type { ComponentType, ReactNode } from 'react';
 
-import type { LayoutComponent, ErrorBoundaryFallbackComponent } from './root.react';
+import { defaultSchema as defaultTreeBuilderSchema, preload } from './preload';
+import type { ErrorBoundaryFallbackComponent, LayoutComponent } from './root.react';
+import { createAndRenderReactRoot, hydrate } from './root.react';
 import type {
-  hydrate as hydrateFn,
+  DocumentFragmentLike,
   Manifest,
   Schema as TreeBuilderSchema,
-  DocumentFragmentLike,
 } from './tree-builder.react';
-import { preload, defaultSchema as defaultTreeBuilderSchema } from './preload';
 
 export type Loader = (name: string) => Promise<ComponentType<any>>;
 export type { Manifest };
@@ -160,7 +160,6 @@ export function createRoot(
   };
   let mounting: Promise<void> | undefined;
   let unmount: (() => void) | undefined;
-  let hydrate: typeof hydrateFn;
   const mount = async () => {
     if (isDestroyed) {
       throw new Error('Root is destroyed');
@@ -169,16 +168,10 @@ export function createRoot(
     const mounting = new Promise<void>((resolve) => {
       onMounted = resolve;
     });
-    const [
-      { createAndRenderReactRoot, hydrate: hydrateFn },
-      LayoutComponent,
-      ErrorBoundaryFallbackComponent,
-    ] = await Promise.all([
-      import('./root.react'),
+    const [LayoutComponent, ErrorBoundaryFallbackComponent] = await Promise.all([
       getLayoutComponent(loader, options.layoutComponentName),
       getErrorBoundaryFallbackComponent(loader, options.errorBoundaryFallbackComponentName),
     ]);
-    hydrate = hydrateFn;
     unmount = createAndRenderReactRoot({
       container,
       subscribe,

@@ -76,6 +76,34 @@ describe('@coldwired/react', () => {
       root.destroy();
     });
 
+    it('render fragment with component and cache', async () => {
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`;
+      const root = createRoot({
+        loader: (name) => Promise.resolve(manifest[name]),
+        cache: true,
+      });
+      await root.render(document.body).done;
+
+      expect(document.body.innerHTML).toEqual(
+        `<${DEFAULT_TAG_NAME} data-fragment-id="fragment-0"><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
+      );
+
+      root.destroy();
+
+      {
+        const root = createRoot({
+          loader: (name) => Promise.resolve(manifest[name]),
+          cache: true,
+        });
+        await root.render(document.body).done;
+
+        expect(document.body.innerHTML).toEqual(
+          `<${DEFAULT_TAG_NAME} data-fragment-id="fragment-0"><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div id="react-root"></div>`,
+        );
+        root.destroy();
+      }
+    });
+
     it('render with error boundary', async () => {
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
         <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}>

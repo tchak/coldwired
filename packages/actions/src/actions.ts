@@ -1,25 +1,25 @@
 import invariant from 'tiny-invariant';
 
 import {
-  dispatch,
-  isFormInputElement,
-  focusElement,
-  nextAnimationFrame,
-  wait,
   AbortError,
-  groupBy,
-  partition,
+  dispatch,
+  focusElement,
   focusNextElement,
-  parseHTMLFragment,
+  groupBy,
   isFormElement,
+  isFormInputElement,
+  nextAnimationFrame,
+  parseHTMLFragment,
+  partition,
+  wait,
 } from '@coldwired/utils';
 
-import { ClassListObserver, ClassListObserverDelegate } from './class-list-observer';
-import { AttributeObserver, AttributeObserverDelegate } from './attribute-observer';
+import { AttributeObserver, type AttributeObserverDelegate } from './attribute-observer';
+import { ClassListObserver, type ClassListObserverDelegate } from './class-list-observer';
 import { Metadata } from './metadata';
 import { morph } from './morph';
-import { Schema, defaultSchema } from './schema';
 import type { Plugin } from './plugin';
+import { type Schema, defaultSchema } from './schema';
 
 const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show', 'reset'] as const;
 const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;

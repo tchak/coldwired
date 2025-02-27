@@ -8,8 +8,8 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      name: 'firefox',
       provider: 'playwright',
+      instances: [{ browser: 'firefox' }, { browser: 'chromium' }],
     },
   },
 });

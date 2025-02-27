@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type FunctionComponent,
 } from 'react';
-import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 
 type LayoutProps = { children: ReactNode };
 export type LayoutComponent = FunctionComponent<LayoutProps>;

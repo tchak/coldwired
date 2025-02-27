@@ -2,20 +2,20 @@ import morphdom from 'morphdom';
 import invariant from 'tiny-invariant';
 
 import {
-  isHTMLElement,
-  isFormInputElement,
-  isLinkElement,
-  isFormOptionElement,
-  isInputElement,
-  parseHTMLFragment,
-  isElementOrText,
-  isElement,
   focusNextElement,
+  isElement,
+  isElementOrText,
+  isFormInputElement,
+  isFormOptionElement,
+  isHTMLElement,
+  isInputElement,
+  isLinkElement,
+  parseHTMLFragment,
   type FocusNextOptions,
 } from '@coldwired/utils';
 
 import { Metadata } from './metadata';
-import { Plugin } from './plugin';
+import type { Plugin } from './plugin';
 
 type MorphOptions = FocusNextOptions & {
   childrenOnly?: boolean;

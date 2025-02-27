@@ -1,5 +1,17 @@
 # @coldwired/react
 
+## 0.16.0
+
+### Minor Changes
+
+- ec19d69: add fragment cache
+
+### Patch Changes
+
+- be58dce: update dependencies
+- Updated dependencies [be58dce]
+  - @coldwired/utils@0.16.0
+
 ## 0.15.1
 
 ### Patch Changes

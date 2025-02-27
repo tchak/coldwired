@@ -15,7 +15,7 @@
     }
   },
   "type": "module",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "keywords": [
     "turbo"
   ],
@@ -32,8 +32,8 @@
     "clean": "del dist coverage node_modules/.vite"
   },
   "dependencies": {
-    "@coldwired/actions": "^0.15.1",
-    "@coldwired/utils": "^0.13.0",
+    "@coldwired/actions": "^0.16.0",
+    "@coldwired/utils": "^0.16.0",
     "tiny-invariant": "^1.3.2"
   },
   "engines": {

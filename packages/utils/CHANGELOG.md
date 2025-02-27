@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.16.0
+
+### Patch Changes
+
+- be58dce: update dependencies
+
 ## 0.13.0
 
 ### Minor Changes

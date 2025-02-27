@@ -32,6 +32,7 @@ export interface RootOptions {
   schema?: Partial<Schema>;
   layoutComponentName?: string;
   errorBoundaryFallbackComponentName?: string;
+  cache?: boolean;
 }
 
 export interface Schema extends TreeBuilderSchema {
@@ -115,6 +116,11 @@ export function createRoot(
     }
     await preload(fragment, (names) => manifestLoader(names, loader, manifest), schema);
     const tree = hydrate(fragment, manifest, schema);
+
+    if (options.cache) {
+      saveFragmentCache(element, fragmentOrHTML);
+    }
+
     if (reset) {
       element.innerHTML = '';
     }
@@ -145,6 +151,9 @@ export function createRoot(
       await mounting;
       mounted.set(element, (fragmentOrHTML) => render(element, fragmentOrHTML, false));
       registerDestroyer(element);
+      if (options.cache) {
+        restoreFragmentCache(element);
+      }
       await render(element, element, true);
     }
   };
@@ -270,4 +279,49 @@ async function getErrorBoundaryFallbackComponent(
     return (await loader(name)) as ErrorBoundaryFallbackComponent;
   }
   return;
+}
+
+let fragmentCacheIdSequence = 0;
+const fragmentCacheIdAttributeName = 'data-fragment-id';
+const fragmentCache = new Map<string, string>();
+
+export function resetFragmentCache() {
+  fragmentCache.clear();
+}
+
+function saveFragmentCache(element: Element, fragment: DocumentFragmentLike | string) {
+  let fragmentCacheId = element.getAttribute(fragmentCacheIdAttributeName);
+  if (!fragmentCacheId) {
+    fragmentCacheId = `fragment-${fragmentCacheIdSequence++}`;
+    element.setAttribute(fragmentCacheIdAttributeName, fragmentCacheId);
+  }
+  fragmentCache.set(fragmentCacheId, stringifyFragment(fragment));
+}
+
+function restoreFragmentCache(element: Element) {
+  const fragmentCacheId = element.getAttribute(fragmentCacheIdAttributeName);
+  if (fragmentCacheId) {
+    const html = fragmentCache.get(fragmentCacheId);
+    if (html) {
+      element.innerHTML = html;
+    }
+  }
+}
+
+function stringifyFragment(fragmentOrHTML: DocumentFragmentLike | string): string {
+  if (typeof fragmentOrHTML == 'string') {
+    return fragmentOrHTML;
+  }
+  if (isElement(fragmentOrHTML)) {
+    return fragmentOrHTML.innerHTML;
+  }
+  const html: string[] = [];
+  for (const node of fragmentOrHTML.childNodes) {
+    if (isElement(node)) {
+      html.push(node.outerHTML);
+    } else if (node.nodeType == Node.TEXT_NODE && node.textContent) {
+      html.push(node.textContent);
+    }
+  }
+  return html.join(' ');
 }

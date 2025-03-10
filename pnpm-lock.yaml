@@ -69,7 +69,7 @@ importers:
   packages/actions:
     dependencies:
       '@coldwired/utils':
-        specifier: ^0.16.0
+        specifier: ^0.16.1
         version: link:../utils
       morphdom:
         specifier: ^2.7.4
@@ -82,7 +82,7 @@ importers:
   packages/react:
     dependencies:
       '@coldwired/utils':
-        specifier: ^0.16.0
+        specifier: ^0.16.1
         version: link:../utils
       react:
         specifier: ^19.0.0

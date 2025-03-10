@@ -1,5 +1,11 @@
 # @coldwired/utils
 
+## 0.16.1
+
+### Patch Changes
+
+- 5330f06: fix setSelectionRange errors
+
 ## 0.16.0
 
 ### Patch Changes

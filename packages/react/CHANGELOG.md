@@ -1,5 +1,13 @@
 # @coldwired/react
 
+## 0.16.1
+
+### Patch Changes
+
+- fc693a9: fix nested fragment render bug
+- Updated dependencies [5330f06]
+  - @coldwired/utils@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes

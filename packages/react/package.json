@@ -15,7 +15,7 @@
     }
   },
   "type": "module",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "scripts": {
     "build": "run-s clean build:*",
     "build:vite": "vite build",
@@ -29,7 +29,7 @@
     "clean": "del dist coverage node_modules/.vite"
   },
   "dependencies": {
-    "@coldwired/utils": "^0.16.0"
+    "@coldwired/utils": "^0.16.1"
   },
   "devDependencies": {
     "@coldwired/actions": "*",

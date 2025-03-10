@@ -186,7 +186,11 @@ export function focusElement(element: Element) {
   if ('focus' in element && typeof element.focus == 'function') {
     element.focus();
     if (isInputableElement(element)) {
-      element.setSelectionRange(element.value.length, element.value.length);
+      try {
+        element.setSelectionRange(element.value.length, element.value.length);
+      } catch {
+        // ignore errors, this is best effort
+      }
     }
   }
 }

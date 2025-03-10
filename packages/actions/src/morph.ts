@@ -91,6 +91,7 @@ function morphToDocumentFragment(
 
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const forceAttribute = options?.forceAttribute;
+  const added = new WeakSet<Element>();
 
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
@@ -162,9 +163,13 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
       return true;
     },
     onNodeAdded(node) {
-      if (isElement(node)) {
-        options?.plugins?.forEach((plugin) => plugin.onCreateElement?.(node));
+      if (isElement(node) && node.parentElement) {
+        if (!added.has(node.parentElement)) {
+          options?.plugins?.forEach((plugin) => plugin.onCreateElement?.(node));
+        }
+        added.add(node);
       }
+
       return node;
     },
   });

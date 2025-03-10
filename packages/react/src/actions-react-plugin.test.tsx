@@ -133,6 +133,20 @@ describe('@coldwired/react', () => {
 
     actions.update({
       targets: '#main',
+      fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test</${DEFAULT_TAG_NAME}><div><${DEFAULT_TAG_NAME} id="frag-3">Encore un</${DEFAULT_TAG_NAME}></div>`,
+    });
+    await actions.ready();
+    expect(root.getCache().size).toEqual(3);
+    await waitFor(() => {
+      expect(document.body.innerHTML).toEqual(
+        layout(
+          `<${DEFAULT_TAG_NAME} id="frag-1"><div><p>Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test</${DEFAULT_TAG_NAME}><div><${DEFAULT_TAG_NAME} id="frag-3">Encore un</${DEFAULT_TAG_NAME}></div>`,
+        ),
+      );
+    });
+
+    actions.update({
+      targets: '#main',
       fragment: `<${DEFAULT_TAG_NAME} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}><${DEFAULT_TAG_NAME} id="frag-2">Test 23</${DEFAULT_TAG_NAME}>`,
     });
     await actions.ready();

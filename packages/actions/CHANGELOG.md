@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.17.1
+
+### Patch Changes
+
+- 5aa7d97: fix refresh action
+
 ## 0.17.0
 
 ### Minor Changes

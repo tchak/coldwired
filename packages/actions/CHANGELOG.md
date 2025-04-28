@@ -1,5 +1,11 @@
 # @coldwired/actions
 
+## 0.17.0
+
+### Minor Changes
+
+- 6d1f35c: implement refresh action
+
 ## 0.16.1
 
 ### Patch Changes

@@ -253,6 +253,9 @@ export class Actions {
   private materializeActions(actions: Action[], element: Element): MaterializedAction[] {
     this._debugMaterializeActions(actions, element);
     return actions.map((action) => {
+      if (action.action == 'refresh') {
+        return { ...action, targets: [] };
+      }
       const targets = getTargetElements(element, action.targets);
       return { ...action, targets };
     });

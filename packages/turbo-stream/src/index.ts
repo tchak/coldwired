@@ -14,6 +14,11 @@ export function parseTurboStream(stream: Element): Action {
   invariant(stream.tagName == 'TURBO-STREAM', '[turbo-stream] element must be a <turbo-stream>');
 
   const action = parseActionName(stream);
+
+  if (action == 'refresh') {
+    return { action, targets: '' };
+  }
+
   const delay = parseDelay(stream);
   const pin = parsePin(stream);
   const targets = parseTargets(stream);

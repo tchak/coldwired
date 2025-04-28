@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Actions } from '@coldwired/actions';
 import { parseHTMLDocument } from '@coldwired/utils';
@@ -13,6 +13,22 @@ describe('@coldwired/turbo-stream', () => {
     actions = new Actions({ element: document.documentElement });
     document.body.innerHTML = '';
     //actions.disconnect();
+  });
+
+  it('should refresh', async () => {
+    let fetchCalled = false;
+    let path = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        fetchCalled = true;
+        path = url;
+        return Promise.reject({ name: 'AbortError' });
+      }),
+    );
+    await renderTurboStream(actions, '<turbo-stream action="refresh"></turbo-stream>');
+    expect(fetchCalled).toBeTruthy();
+    expect(path).toBe(`${window.location.pathname}${window.location.search}`);
   });
 
   it('should append', async () => {

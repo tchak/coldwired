@@ -9,6 +9,7 @@ import {
   isFormElement,
   isFormInputElement,
   nextAnimationFrame,
+  parseHTMLDocument,
   parseHTMLFragment,
   partition,
   wait,
@@ -21,7 +22,16 @@ import { morph } from './morph';
 import type { Plugin } from './plugin';
 import { type Schema, defaultSchema } from './schema';
 
-const voidActionNames = ['remove', 'focus', 'enable', 'disable', 'hide', 'show', 'reset'] as const;
+const voidActionNames = [
+  'remove',
+  'focus',
+  'enable',
+  'disable',
+  'hide',
+  'show',
+  'reset',
+  'refresh',
+] as const;
 const fragmentActionNames = ['after', 'before', 'append', 'prepend', 'replace', 'update'] as const;
 const actionNames = [...voidActionNames, ...fragmentActionNames];
 
@@ -71,6 +81,7 @@ export class Actions {
   #metadata = new Metadata();
   #controller = new AbortController();
   #plugins: Plugin[] = [];
+  #refreshRequestController?: AbortController;
 
   #pending = new Set<Promise<void>>();
   #pinned = new Map<string, PinnedAction[]>();
@@ -209,6 +220,10 @@ export class Actions {
 
   reset(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
     this.applyActions([{ action: 'reset', ...params }]);
+  }
+
+  refresh(params: Omit<VoidAction, 'action'> | Omit<MaterializedVoidAction, 'action'>) {
+    this.applyActions([{ action: 'refresh', ...params }]);
   }
 
   morph(
@@ -455,6 +470,50 @@ export class Actions {
         console.warn('reset action is not supported on non-form elements', element);
       }
     }
+  }
+
+  private _refresh() {
+    const currentPath = () => `${window.location.pathname}${window.location.search}`;
+
+    this.#refreshRequestController?.abort();
+    const controller = new AbortController();
+    this.#refreshRequestController = controller;
+
+    const path = currentPath();
+    fetch(path, {
+      method: 'get',
+      signal: controller.signal,
+      headers: { accept: 'text/html,application/xhtml+xml' },
+      credentials: 'same-origin',
+      redirect: 'follow',
+    })
+      .then(
+        (response) => {
+          // only apply the result if we are still on the same page
+          if (currentPath() == path) {
+            if (response.redirected) {
+              window.location.href = response.url;
+            } else {
+              response.text().then((html) => {
+                const newDocument = parseHTMLDocument(html);
+                if (response.ok) {
+                  this._morph(document.body, newDocument.body);
+                } else {
+                  document.body.innerHTML = newDocument.body.innerHTML;
+                }
+              });
+            }
+          }
+        },
+        (error) => {
+          if (error.name != 'AbortError') {
+            console.error(`Failed to refresh the page: ${path}`, error);
+          }
+        },
+      )
+      .finally(() => {
+        this.#refreshRequestController = undefined;
+      });
   }
 
   private handleEvent(event: Event) {

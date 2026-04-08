@@ -1,6 +1,6 @@
 {
   "name": "coldwired",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "DOM manipulation actions based on morphdom",
   "homepage": "https://github.com/tchak/coldwired#readme",
   "bugs": {

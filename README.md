@@ -1,7 +1,9 @@
-# @coldwired/actions [![npm package][npm-badge]][npm]
+# coldwired [![npm package][npm-badge]][npm] [![CI][ci-badge]][ci]
 
 [npm-badge]: https://img.shields.io/npm/v/coldwired.svg
-[npm]: https://www.npmjs.com/package/coldwired
+[npm]: https://npmx.dev/package/coldwired
+[ci-badge]: https://github.com/tchak/coldwired/actions/workflows/ci.yml/badge.svg
+[ci]: https://github.com/tchak/coldwired/actions/workflows/ci.yml
 
 ## Why?
 
@@ -51,8 +53,7 @@ type Action = {
 Before you start working with actions, you need to create and register an instance of `Actions`.
 After that, actions can be applied through the `Actions` instance or dispatched as events. We also
 provide an implementation of [turbo-stream](https://turbo.hotwired.dev/handbook/streams) on top of
-`Actions` through the [coldwired/turbo-stream](https://www.npmjs.com/package/coldwired)
-package.
+`Actions`.
 
 ```ts
 import { Actions } from 'coldwired/actions';
@@ -148,21 +149,4 @@ time, for example.
 ```ts
 // Hide targets after 2 seconds delay
 actions.hide({ targets: '.item', delay: 2000 });
-```
-
-### Pinned actions
-
-An action can be pinned — this is mostly useful in combination with full-page morph.
-
-```ts
-// In some client code append a new warning
-actions.append({ targets: '.warnings', fragment: '<p>Warning !</p>', pin: true });
-
-// Later, refresh the whole page. It will wipe out the warning added earlier.
-// By running `applyPinnedActions`, you can restore previous changes
-actions.morph(document, newDocument);
-actions.applyPinnedActions();
-
-// When you navigate to a new page, you might want to reset any pinned actions
-actions.reset();
 ```

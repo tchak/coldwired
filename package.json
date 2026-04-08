@@ -1,6 +1,6 @@
 {
   "name": "coldwired",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "DOM manipulation actions based on morphdom",
   "homepage": "https://github.com/tchak/coldwired#readme",
   "bugs": {
@@ -37,7 +37,8 @@
     "html-entities": "^2.6.0",
     "morphdom": "^2.7.8",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-error-boundary": "^6.1.1"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.2",
@@ -52,7 +53,6 @@
     "playwright": "^1.59.1",
     "publint": "^0.3.18",
     "react-aria-components": "^1.16.0",
-    "react-error-boundary": "^6.1.1",
     "tiny-invariant": "^1.3.3",
     "typescript": "^6.0.2",
     "vite-plus": "^0.1.14",
@@ -66,7 +66,6 @@
   "inlinedDependencies": {
     "just-debounce-it": "3.2.0",
     "just-throttle": "4.2.0",
-    "react-error-boundary": "6.1.1",
     "tiny-invariant": "1.3.3"
   }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vite-plus/test';
-import { getByText, fireEvent, waitFor } from '@testing-library/dom';
+import { page } from 'vite-plus/test/browser';
+import { waitFor } from '@testing-library/dom';
 import { useState } from 'react';
 import { Actions } from './actions';
 import { encode as htmlEncode } from 'html-entities';
@@ -100,7 +101,7 @@ describe('coldwired/react', () => {
       );
     });
 
-    fireEvent.click(getByText(document.body, 'Increment'));
+    await page.getByText('Increment').click();
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
@@ -108,7 +109,7 @@ describe('coldwired/react', () => {
         ),
       );
     });
-    fireEvent.click(getByText(document.body, 'Increment'));
+    await page.getByText('Increment').click();
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
@@ -215,7 +216,7 @@ describe('coldwired/react', () => {
       expect(root.getCache().size).toEqual(1);
     });
 
-    fireEvent.click(getByText(document.body, 'Increment'));
+    await page.getByText('Increment').click();
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(

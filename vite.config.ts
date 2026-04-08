@@ -31,6 +31,7 @@ export default defineConfig({
     singleQuote: true,
   },
   test: {
+    coverage: { provider: 'istanbul' },
     browser: {
       provider: playwright(),
       enabled: true,

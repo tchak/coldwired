@@ -50,7 +50,7 @@ function Box({ children }: { children: ReactNode }) {
   return <div>{children}</div>;
 }
 
-describe('@coldwired/react', () => {
+describe('coldwired/react', () => {
   describe('createReactTree', () => {
     it('render simple tree', () => {
       const tree = createReactTree(

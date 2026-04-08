@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test';
+import { page } from 'vite-plus/test/browser';
 import { useState } from 'react';
 import {
   ComboBox,
@@ -10,7 +11,6 @@ import {
   TextField,
   Button,
 } from 'react-aria-components';
-import { getByText, getByRole, fireEvent, waitFor } from '@testing-library/dom';
 
 import { createRoot, defaultSchema, type Manifest } from './react';
 
@@ -148,15 +148,13 @@ describe('coldwired/react', () => {
         ),
       );
 
-      fireEvent.click(getByText(document.body, 'Open'));
-      fireEvent.input(getByRole(document.body, 'combobox'), { target: { value: 'One' } });
+      await page.getByText('Open').click();
+      await page.getByRole('combobox').fill('One');
 
       expect(document.body.querySelector('.react-aria-Popover')).toBeTruthy();
 
       root.destroy();
-      waitFor(() => {
-        expect(root.getCache().size).toEqual(0);
-      });
+      expect(root.getCache().size).toEqual(0);
       document.body.innerHTML = '';
 
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}>
@@ -186,8 +184,8 @@ describe('coldwired/react', () => {
       expect(document.body.innerHTML).toMatch('aria-haspopup="listbox"');
       expect(document.body.innerHTML).toMatch('aria-autocomplete="list"');
 
-      fireEvent.click(getByText(document.body, 'Open'));
-      fireEvent.input(getByRole(document.body, 'combobox'), { target: { value: 'One' } });
+      await page.getByText('Open').click();
+      await page.getByRole('combobox').fill('One');
 
       expect(document.body.querySelector('.react-aria-Popover')).toBeTruthy();
 

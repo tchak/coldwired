@@ -1,5 +1,5 @@
-import { fireEvent, getByLabelText } from '@testing-library/dom';
 import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { page } from 'vite-plus/test/browser';
 
 import { isFocused, parseHTMLDocument, parseHTMLFragment } from './utils';
 
@@ -465,9 +465,9 @@ describe('coldwired/actions', () => {
     );
     const [input1, input2, input3, input4] = document.querySelectorAll('input');
 
-    fireEvent.change(input1, { target: { value: 'test 1' } });
-    fireEvent.change(input3, { target: { value: 'test 3' } });
-    fireEvent.change(input4, { target: { value: 'test 4' } });
+    await page.elementLocator(input1).fill('test 1');
+    await page.elementLocator(input3).fill('test 3');
+    await page.elementLocator(input4).fill('test 4');
 
     expect(input1.value).toEqual('test 1');
     expect(input2.value).toEqual('yolo');
@@ -483,33 +483,35 @@ describe('coldwired/actions', () => {
     expect(input4.value).toEqual('test 4');
   });
 
-  it('should preserve value', () => {
+  it('should preserve value', async () => {
     actions.morph(
       document,
       parseHTMLDocument(
         '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />',
       ),
     );
-    const input = getByLabelText<HTMLInputElement>(document.body, 'Test');
-    fireEvent.change(input, { target: { value: 'Hello World' } });
-    input.setSelectionRange(5, 7);
-    expect(input.value).toEqual('Hello World');
+    const input = page.getByLabelText('Test');
+    await input.fill('Hello World');
+    const element = input.element() as HTMLInputElement;
+
+    element.setSelectionRange(5, 7);
+    expect(element.value).toEqual('Hello World');
     actions.morph(
       document,
       parseHTMLDocument(
         '<label for="test">Test</label><input id="test" name="test" type="text" value="test" />',
       ),
     );
-    expect(input.value).toEqual('Hello World');
-    expect(input.selectionStart).toEqual(5);
-    expect(input.selectionEnd).toEqual(7);
+    expect(element.value).toEqual('Hello World');
+    expect(element.selectionStart).toEqual(5);
+    expect(element.selectionEnd).toEqual(7);
     actions.morph(
       document,
       parseHTMLDocument(
         '<label for="test">Test</label><input data-turbo-force="server" id="test" name="test" type="text" value="test" />',
       ),
     );
-    expect(input.value).toEqual('test');
+    expect(element.value).toEqual('test');
   });
 
   it('should preserve aria attributes', async () => {

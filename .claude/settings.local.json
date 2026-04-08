@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(jj status:*)",
-      "Bash(jj bookmark:*)",
-      "Bash(jj log:*)"
-    ]
-  }
-}

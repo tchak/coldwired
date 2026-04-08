@@ -65,14 +65,14 @@ Tests live alongside sources in `src/` and run inside real browsers via `vite-pl
 
 This project uses jj as its version control interface. Do not use `git add`, `git commit`, `git status`, `git diff`, `git log`, or any other git commands. Always use the jj equivalents:
 
-| Instead of | Use |
-|------------|-----|
-| `git status` | `jj status` |
-| `git diff` | `jj diff` |
+| Instead of              | Use                  |
+| ----------------------- | -------------------- |
+| `git status`            | `jj status`          |
+| `git diff`              | `jj diff`            |
 | `git add && git commit` | `jj commit -m "..."` |
-| `git log` | `jj log` |
-| `git push` | `jj git push` |
-| `git branch` | `jj bookmark` |
+| `git log`               | `jj log`             |
+| `git push`              | `jj git push`        |
+| `git branch`            | `jj bookmark`        |
 
 ```bash
 jj status

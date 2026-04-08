@@ -3,7 +3,20 @@ import { page } from 'vite-plus/test/browser';
 
 import { isFocused, parseHTMLDocument, parseHTMLFragment } from './utils';
 
-import { Actions, hide, remove, show } from './actions';
+import {
+  Actions,
+  after,
+  append,
+  before,
+  disable,
+  enable,
+  hide,
+  prepend,
+  remove,
+  replace,
+  show,
+  update,
+} from './actions';
 
 describe('coldwired/actions', () => {
   let actions: Actions;
@@ -630,5 +643,138 @@ describe('coldwired/actions', () => {
     remove('#button');
     await actions.ready();
     expect(document.querySelector('#button')).toBeNull();
+  });
+
+  it('disable / enable global helpers accept selector, element, array and null targets', async () => {
+    actions.morph(document, parseHTMLDocument('<button id="button">Click me</button>'));
+    const button = document.querySelector<HTMLButtonElement>('#button')!;
+
+    disable('#button');
+    await actions.ready();
+    expect(button.disabled).toBeTruthy();
+
+    enable(button);
+    await actions.ready();
+    expect(button.disabled).toBeFalsy();
+
+    disable([button]);
+    await actions.ready();
+    expect(button.disabled).toBeTruthy();
+
+    // Null targets must be a no-op (covers getTargets() null branch).
+    enable(null);
+    await actions.ready();
+    expect(button.disabled).toBeTruthy();
+
+    enable('#button');
+    await actions.ready();
+    expect(button.disabled).toBeFalsy();
+  });
+
+  it('append / prepend / after / before / update / replace global helpers', async () => {
+    actions.morph(
+      document,
+      parseHTMLDocument('<div id="root"><span id="child">middle</span></div>'),
+    );
+    const root = document.querySelector<HTMLDivElement>('#root')!;
+
+    append('#root', '<i class="appended">a</i>');
+    await actions.ready();
+    expect(root.querySelector('.appended')?.textContent).toEqual('a');
+
+    prepend(root, '<i class="prepended">p</i>');
+    await actions.ready();
+    expect(root.firstElementChild?.classList.contains('prepended')).toBeTruthy();
+
+    after('#child', '<i class="after">af</i>');
+    await actions.ready();
+    expect(document.querySelector('.after')).toBeTruthy();
+
+    before('#child', '<i class="before">bf</i>');
+    await actions.ready();
+    expect(document.querySelector('.before')).toBeTruthy();
+
+    update('#root', '<span>updated</span>');
+    await actions.ready();
+    expect(root.innerHTML).toEqual('<span>updated</span>');
+
+    replace('#root', '<div id="root">replaced</div>');
+    await actions.ready();
+    expect(document.querySelector('#root')?.textContent).toEqual('replaced');
+  });
+
+  it('should preserve touched checkbox state across morph', async () => {
+    actions.morph(document, parseHTMLDocument('<input id="cb" type="checkbox" name="cb" />'));
+    const checkbox = document.querySelector<HTMLInputElement>('#cb')!;
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(checkbox.checked).toBeTruthy();
+
+    actions.morph(document, parseHTMLDocument('<input id="cb" type="checkbox" name="cb" />'));
+    expect(checkbox.checked).toBeTruthy();
+
+    actions.morph(
+      document,
+      parseHTMLDocument('<input id="cb" data-turbo-force="server" type="checkbox" name="cb" />'),
+    );
+    expect(checkbox.checked).toBeFalsy();
+  });
+
+  it('should preserve touched radio state across morph', async () => {
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<input id="r1" type="radio" name="r" value="a" /><input id="r2" type="radio" name="r" value="b" />',
+      ),
+    );
+    const r2 = document.querySelector<HTMLInputElement>('#r2')!;
+    r2.checked = true;
+    r2.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(r2.checked).toBeTruthy();
+
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<input id="r1" type="radio" name="r" value="a" /><input id="r2" type="radio" name="r" value="b" />',
+      ),
+    );
+    expect(r2.checked).toBeTruthy();
+  });
+
+  it('should preserve touched select option across morph', async () => {
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<select id="s" name="s"><option value="a">A</option><option value="b">B</option></select>',
+      ),
+    );
+    const select = document.querySelector<HTMLSelectElement>('#s')!;
+    select.value = 'b';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(select.value).toEqual('b');
+
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<select id="s" name="s"><option value="a">A</option><option value="b">B</option></select>',
+      ),
+    );
+    expect(select.value).toEqual('b');
+  });
+
+  it('should short-circuit morphHead when head is identical', () => {
+    const html =
+      '<html><head><title>Same</title><meta name="x" content="y"></head><body><p id="p">Hello</p></body></html>';
+    actions.morph(document, parseHTMLDocument(html));
+    expect(document.querySelector('#p')?.textContent).toEqual('Hello');
+
+    actions.morph(
+      document,
+      parseHTMLDocument(
+        '<html><head><title>Same</title><meta name="x" content="y"></head><body><p id="p">World</p></body></html>',
+      ),
+    );
+    expect(document.querySelector('#p')?.textContent).toEqual('World');
+    expect(document.title).toEqual('Same');
   });
 });

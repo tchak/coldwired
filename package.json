@@ -30,6 +30,7 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test",
+    "coverage": "vp test --coverage",
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },

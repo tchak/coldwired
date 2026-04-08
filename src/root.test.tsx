@@ -12,7 +12,8 @@ import {
   Button,
 } from 'react-aria-components';
 
-import { createRoot, defaultSchema, type Manifest } from './react';
+import { createRoot, defaultSchema, resetFragmentCache, type Manifest } from './react';
+import { parseHTMLFragment } from './utils';
 
 const NAME_ATTRIBUTE = defaultSchema.nameAttribute;
 const REACT_COMPONENT_TAG = defaultSchema.componentTagName;
@@ -188,6 +189,33 @@ describe('coldwired/react', () => {
       await page.getByRole('combobox').fill('One');
 
       expect(document.body.querySelector('.react-aria-Popover')).toBeTruthy();
+
+      root.destroy();
+    });
+
+    it('caches DocumentFragment renders and resets on resetFragmentCache', async () => {
+      document.body.replaceChildren();
+      const fragmentEl = document.createElement(DEFAULT_TAG_NAME);
+      fragmentEl.id = 'frag';
+      document.body.append(fragmentEl);
+
+      const root = createRoot({
+        loader: (name) => Promise.resolve(manifest[name]),
+        cache: true,
+      });
+      await root.render(document.body).done;
+
+      const fragment = parseHTMLFragment(
+        '<div class="cached">hello</div><!-- a comment --> tail',
+        document,
+      );
+      await root.render(fragmentEl, fragment).done;
+
+      expect(fragmentEl.getAttribute('data-fragment-id')).toBeTruthy();
+      expect(fragmentEl.querySelector('.cached')?.textContent).toEqual('hello');
+
+      // Should not throw and should clear the module-level cache.
+      resetFragmentCache();
 
       root.destroy();
     });

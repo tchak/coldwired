@@ -50,6 +50,16 @@ function Box({ children }: { children: ReactNode }) {
   return <div>{children}</div>;
 }
 
+function Items({ items, count, flag }: { items: string[][]; count: number; flag: boolean }) {
+  return (
+    <ul data-count={count} data-flag={String(flag)}>
+      {items.map((row, i) => (
+        <li key={i}>{row.join(',')}</li>
+      ))}
+    </ul>
+  );
+}
+
 describe('coldwired/react', () => {
   describe('createReactTree', () => {
     it('render simple tree', () => {
@@ -79,6 +89,44 @@ describe('coldwired/react', () => {
       expect(html).toBe(
         '<div class="container"><h1>Title</h1>Hello World<input maxLength="2" value="test"/></div>',
       );
+    });
+
+    it('parses style attribute strings into objects', () => {
+      const tree = createReactTree(
+        {
+          tagName: 'div',
+          attributes: { style: 'color: red; background-color: blue' },
+          children: ['x'],
+        },
+        {},
+      );
+      const html = renderToStaticMarkup(tree);
+      expect(html).toBe('<div style="color:red;background-color:blue">x</div>');
+    });
+
+    it('throws on malformed style attribute', () => {
+      expect(() =>
+        createReactTree({ tagName: 'div', attributes: { style: 'color' }, children: [] }, {}),
+      ).toThrow(/Invalid style attribute/);
+    });
+
+    it('passes nested array and primitive props through transformPropValue', () => {
+      const tree = createReactTree(
+        {
+          name: 'Items',
+          props: {
+            items: [
+              ['a', 'b'],
+              ['c', 'd'],
+            ],
+            count: 2,
+            flag: true,
+          },
+        },
+        { Items },
+      );
+      const html = renderToStaticMarkup(tree);
+      expect(html).toBe('<ul data-count="2" data-flag="true"><li>a,b</li><li>c,d</li></ul>');
     });
 
     it('render component', () => {
@@ -218,6 +266,15 @@ describe('coldwired/react', () => {
         async (names) => Object.fromEntries(names.map((name) => [name, components[name]])),
       );
       expect(manifest).toStrictEqual(components);
+    });
+
+    it('throws when a component element is missing the name attribute', () => {
+      expect(() =>
+        preload(
+          parseHTMLFragment(`<${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}>`, document),
+          async () => ({}),
+        ),
+      ).toThrow(/Missing "name" attribute/);
     });
   });
 });

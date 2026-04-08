@@ -21,6 +21,7 @@ This project uses **Vite+** via the global `vp` CLI. See `AGENTS.md` for full de
 - `vp test -t "<name>"` — filter by test name.
 - `vp run build` — build the library (wraps `vp pack`). Produces multi-entry ESM output in `dist/` plus d.ts via tsgo, with `attw` and `publint` checks enabled.
 - `vp run dev` — `vp pack --watch` for library dev.
+- `vp run coverage` — `vp test --coverage` using `istanbul`.
 
 Before finishing a change, run `vp check` and `vp test`.
 

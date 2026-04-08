@@ -288,6 +288,48 @@ describe('coldwired/utils', () => {
       });
     });
 
+    it('should match range input element', () => {
+      expect.assertions(1);
+      matchInputElement(createInputElement('range'), {
+        range: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+        changeable: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+      });
+    });
+
+    it('should match color input element', () => {
+      expect.assertions(1);
+      matchInputElement(createInputElement('color'), {
+        color: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+        changeable: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+      });
+    });
+
+    it('should fall back to changeable for range when no range matcher', () => {
+      expect.assertions(1);
+      matchInputElement(createInputElement('range'), {
+        changeable: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+      });
+    });
+
+    it('should fall back to changeable for color when no color matcher', () => {
+      expect.assertions(1);
+      matchInputElement(createInputElement('color'), {
+        changeable: (target) => {
+          expect(target).toBeInstanceOf(HTMLInputElement);
+        },
+      });
+    });
+
     it('should match select changeable element', () => {
       expect.assertions(1);
       matchInputElement(document.createElement('select'), {

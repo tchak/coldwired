@@ -44,7 +44,6 @@ type Action = {
   targets: Element[] | string;
   fragment?: DocumentFragment | string;
   delay?: number;
-  pin?: boolean;
 };
 ```
 

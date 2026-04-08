@@ -20,7 +20,6 @@ export function parseTurboStream(stream: Element): Action {
   }
 
   const delay = parseDelay(stream);
-  const pin = parsePin(stream);
   const targets = parseTargets(stream);
   const fragment = parseTemplate(stream);
 
@@ -32,9 +31,9 @@ export function parseTurboStream(stream: Element): Action {
     case 'append':
     case 'prepend':
       invariant(fragment, '[turbo-stream] template is required');
-      return { action, delay, pin, targets, fragment };
+      return { action, delay, targets, fragment };
     default:
-      return { action, delay, pin, targets };
+      return { action, delay, targets };
   }
 }
 
@@ -42,16 +41,6 @@ function parseActionName(stream: Element): Action['action'] {
   const actionName = stream.getAttribute('action');
   invariant(isValidActionName(actionName), `[actions] action "${actionName}" is not supported`);
   return actionName;
-}
-
-function parsePin(stream: Element): Action['pin'] {
-  const pin = stream.getAttribute('pin');
-  if (pin == '' || pin == 'true') {
-    return true;
-  } else if (pin == 'last') {
-    return 'last';
-  }
-  return;
 }
 
 function parseDelay(stream: Element): Action['delay'] {

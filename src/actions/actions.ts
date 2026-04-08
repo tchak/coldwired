@@ -42,13 +42,11 @@ export type ActionName = VoidActionName | FragmentActionName;
 type VoidAction = {
   action: VoidActionName;
   delay?: number;
-  pin?: boolean | 'last';
   targets: string;
 };
 type FragmentAction = {
   action: FragmentActionName;
   delay?: number;
-  pin?: boolean | 'last';
   targets: string;
   fragment: DocumentFragment | string;
 };
@@ -59,10 +57,6 @@ type MaterializedFragmentAction = Pick<FragmentAction, 'action' | 'fragment'> & 
 
 export type Action = VoidAction | FragmentAction;
 export type MaterializedAction = MaterializedVoidAction | MaterializedFragmentAction;
-
-type PinnedAction =
-  | Pick<VoidAction, 'action' | 'targets'>
-  | Pick<FragmentAction, 'action' | 'targets' | 'fragment'>;
 
 export type ActionsOptions = {
   element?: Element;
@@ -84,7 +78,6 @@ export class Actions {
   #refreshRequestController?: AbortController;
 
   #pending = new Set<Promise<void>>();
-  #pinned = new Map<string, PinnedAction[]>();
 
   #debug: boolean;
 
@@ -137,7 +130,6 @@ export class Actions {
     this.#controller.abort();
     this.#controller = new AbortController();
     this.#pending.clear();
-    this.#pinned.clear();
     this.#metadata.clear();
   }
 
@@ -163,11 +155,6 @@ export class Actions {
     for (const [delay, actions] of delayedActions) {
       this.scheduleActions(actions, delay);
     }
-  }
-
-  applyPinnedActions(element: Element) {
-    const actions = [...this.#pinned].flatMap(([, actions]) => actions);
-    this._applyActionsInContext(this.materializeActions(actions, element));
   }
 
   after(params: Omit<FragmentAction, 'action'> | Omit<MaterializedFragmentAction, 'action'>) {
@@ -273,10 +260,6 @@ export class Actions {
       }
       if (this.#controller.signal?.aborted) return;
     }
-    for (const action of actions) {
-      validateAction(action);
-      this.pinAction(action);
-    }
     let materializedActions = this.materializeActions(actions, this.#element);
     const activeElement = this.#element.ownerDocument.activeElement;
     if (delay && activeElement) {
@@ -347,22 +330,6 @@ export class Actions {
         console.dir(action);
       }
       console.groupEnd();
-    }
-  }
-
-  private pinAction({ delay, pin, ...params }: Action): void {
-    if (pin && !delay) {
-      const key = `${params.action}--${params.targets}`;
-      if (pin == 'last') {
-        this.#pinned.set(key, [params]);
-      } else {
-        let streams = this.#pinned.get(key);
-        if (!streams) {
-          streams = [];
-          this.#pinned.set(key, streams);
-        }
-        streams.push(params);
-      }
     }
   }
 
@@ -656,10 +623,6 @@ function getTargets(targets?: Element | Element[] | string | null): Element[] {
     return [...targets];
   }
   return targets ? [targets] : [];
-}
-
-function validateAction(action: Action) {
-  invariant(!(action.delay && action.pin), '[actions] a delayed action cannot be pinned');
 }
 
 class DispatchEventElement extends HTMLElement {

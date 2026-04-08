@@ -88,6 +88,24 @@ describe('coldwired/turbo-stream', () => {
     expect(from.outerHTML).toBe('<div id="test1">World</div>');
   });
 
+  it('should replace with comments', async () => {
+    actions.morph(document, parseHTMLDocument('<div id="test1"><h1>Bonjour</h1></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    await renderTurboStream(
+      actions,
+      `<turbo-stream action="replace" target="test1"><template>
+
+      <!-- BEGIN app/components/editable_champ/editable_champ_component/editable_champ_component.html.haml -->
+
+      <div id="test1">World</div>
+      <!-- END app/components/editable_champ/editable_champ_component/editable_champ_component.html.haml -->
+
+      </template></turbo-stream>`,
+    );
+    expect(from.outerHTML).toBe('<div id="test1">World</div>');
+  });
+
   it('should update', async () => {
     actions.morph(document, parseHTMLDocument('<div id="test1"><h1>Bonjour</h1></div>'));
     const from = document.body.firstElementChild as HTMLDivElement;

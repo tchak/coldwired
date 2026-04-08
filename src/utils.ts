@@ -215,8 +215,20 @@ export function parseHTMLFragment(html: string, ownerDocument: Document): Docume
   const template = ownerDocument.createElement('template');
   template.innerHTML = html;
   const fragment = template.content;
-  fragment.normalize();
+  normalizeHTMLFragment(fragment);
   return fragment;
+}
+
+export function normalizeHTMLFragment(fragment: DocumentFragment) {
+  fragment.normalize();
+  fragment.childNodes.forEach((childNode) => {
+    if (
+      childNode.nodeType == Node.COMMENT_NODE ||
+      (childNode.nodeType == Node.TEXT_NODE && childNode.textContent?.trim() === '')
+    ) {
+      childNode.remove();
+    }
+  });
 }
 
 export function domReady() {

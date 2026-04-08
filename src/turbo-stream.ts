@@ -1,7 +1,7 @@
 import invariant from 'tiny-invariant';
 
 import { type Action, Actions, isValidActionName } from './actions';
-import { parseHTMLFragment } from './utils';
+import { normalizeHTMLFragment, parseHTMLFragment } from './utils';
 
 export async function renderTurboStream(actions: Actions, stream: string) {
   actions.applyActions(
@@ -82,7 +82,7 @@ function parseTemplate(stream: Element): DocumentFragment | undefined {
     templateElement instanceof HTMLTemplateElement,
     '[turbo-stream] first child element must be a <template> element',
   );
-  const templateContent = templateElement.content;
-  templateContent.normalize();
-  return templateContent;
+  const fragment = templateElement.content;
+  normalizeHTMLFragment(fragment);
+  return fragment;
 }

@@ -134,6 +134,20 @@ describe('coldwired/actions', () => {
     expect(document.body.firstElementChild?.firstChild?.textContent).toEqual('Hello');
   });
 
+  it('should morph with comments', () => {
+    actions.morph(document, parseHTMLDocument('<div class="bar"></div>'));
+    const from = document.body.firstElementChild as HTMLDivElement;
+
+    actions.morph(
+      from,
+      `<!-- BEGIN app/components/editable_champ/editable_champ_component/editable_champ_component.html.haml -->
+
+      <div class="foo">World</div>
+      <!-- BEGIN app/components/editable_champ/editable_champ_component/editable_champ_component.html.haml -->`,
+    );
+    expect(from.outerHTML).toEqual('<div class="foo">World</div>');
+  });
+
   it('should morph turbo-frame element', () => {
     actions.morph(
       document,

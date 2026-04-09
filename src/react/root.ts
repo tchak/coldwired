@@ -133,17 +133,22 @@ export function createRoot(
   };
 
   const registerDestroyer = (element: Element) => {
+    const parent = element.parentNode;
+    if (!parent) return;
     const observer = new MutationObserver((mutations) => {
-      const removedNodes = mutations.flatMap((mutation) => Array.from(mutation.removedNodes));
-      const node = removedNodes.find((node) => node == element);
-      if (node && !node.isConnected) {
-        mounted.delete(element);
-        cache.delete(element);
-        observer.disconnect();
-        notify();
+      for (const mutation of mutations) {
+        for (const node of mutation.removedNodes) {
+          if (node === element && !element.isConnected) {
+            mounted.delete(element);
+            cache.delete(element);
+            observer.disconnect();
+            notify();
+            return;
+          }
+        }
       }
     });
-    observer.observe(element.parentNode!, { childList: true });
+    observer.observe(parent, { childList: true });
   };
 
   const create = async (element: Element) => {

@@ -45,16 +45,28 @@ export interface Schema {
   propsAttribute: string;
 }
 
+let lastSchemaInput: Partial<Schema> | undefined | null = null;
+let lastSchemaMerged: Schema = defaultSchema;
+
+function resolveSchema(schema?: Partial<Schema>): Schema {
+  if (!schema) {
+    return defaultSchema;
+  }
+  if (schema === lastSchemaInput) {
+    return lastSchemaMerged;
+  }
+  lastSchemaInput = schema;
+  lastSchemaMerged = Object.assign({}, defaultSchema, schema);
+  return lastSchemaMerged;
+}
+
 export function hydrate(
   documentOrFragment: Document | DocumentFragmentLike,
   manifest: Manifest,
   schema?: Partial<Schema>,
 ): JSX.Element {
   const childNodes = getChildNodes(documentOrFragment);
-  const { children: tree } = hydrateChildNodes(
-    childNodes,
-    Object.assign({}, defaultSchema, schema),
-  );
+  const { children: tree } = hydrateChildNodes(childNodes, resolveSchema(schema));
   return createReactTree(tree, manifest);
 }
 
@@ -167,7 +179,7 @@ function createElementOrComponent(
       Object.entries(child.attributes).map(([key, value]) => {
         const attrName = transformAttributeName(key);
         const attrValue = transformAttributeValue(key, value);
-        if (attrName.match(/^on[A-Z]/) && typeof attrValue != 'function') {
+        if (attrName.match(EVENT_HANDLER_PATTERN) && typeof attrValue != 'function') {
           throw new Error(`Event handler must be a function: ${key}`);
         }
         return [attrName, attrValue];
@@ -187,7 +199,7 @@ function createElementOrComponent(
         return [propName, createElementOrComponent(value, manifest)];
       }
       const propValue = transformPropValue(value);
-      if (propName.match(/^on[A-Z]/) && typeof propValue != 'function') {
+      if (propName.match(EVENT_HANDLER_PATTERN) && typeof propValue != 'function') {
         throw new Error(`Event handler must be a function: ${key}`);
       }
       return [propName, propValue];
@@ -308,6 +320,8 @@ const defaultAttributeMap: Record<string, string> = {
 };
 
 const attributeMap = { ...reactAttributeMap, ...defaultAttributeMap };
+
+const EVENT_HANDLER_PATTERN = /^on[A-Z]/;
 
 const booleanAttribute = [
   'allowfullscreen',

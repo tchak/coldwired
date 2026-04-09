@@ -93,6 +93,30 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
   const forceAttribute = options?.forceAttribute;
   const added = new WeakSet<Element>();
 
+  // Pre-compute force-attribute scopes once instead of calling closest() per node
+  // inside onBeforeElUpdated. In the common case (no forced regions) each
+  // querySelectorAll is a near-empty walk, and lookups become O(1) WeakSet checks.
+  let isServerForced: (element: Element) => boolean = returnFalse;
+  let isBrowserForced: (element: Element) => boolean = returnFalse;
+  if (forceAttribute) {
+    const serverSelector = `[${forceAttribute}="server"]`;
+    const browserSelector = `[${forceAttribute}="browser"]`;
+
+    // If an ancestor of the morph root is already forced, the whole subtree is.
+    const serverRoots = toElement.closest(serverSelector)
+      ? [toElement]
+      : Array.from(toElement.querySelectorAll(serverSelector));
+    const browserRoots = fromElement.closest(browserSelector)
+      ? [fromElement]
+      : Array.from(fromElement.querySelectorAll(browserSelector));
+
+    const serverSet = collectForcedScope(serverRoots);
+    const browserSet = collectForcedScope(browserRoots);
+
+    isServerForced = (element) => serverSet.has(element);
+    isBrowserForced = (element) => browserSet.has(element);
+  }
+
   morphdom(fromElement, toElement, {
     childrenOnly: options?.childrenOnly,
     onBeforeElUpdated(fromElement, toElement) {
@@ -103,7 +127,7 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         return false;
       }
 
-      const force = forceAttribute ? !!toElement.closest(`[${forceAttribute}="server"]`) : false;
+      const force = isServerForced(toElement);
       const metadata = options?.metadata?.get(fromElement);
 
       if (force && metadata) {
@@ -116,11 +140,8 @@ function morphToElement(fromElement: Element, toElement: Element, options?: Morp
         return false;
       }
 
-      if (!force && forceAttribute) {
-        const permanent = !!fromElement.closest(`[${forceAttribute}="browser"]`);
-        if (permanent) {
-          return false;
-        }
+      if (!force && isBrowserForced(fromElement)) {
+        return false;
       }
 
       if (!force && metadata) {
@@ -191,6 +212,21 @@ function morphDocument(fromDocument: Document, toDocument: Document, options?: M
     morphHead(fromDocument.head, fromDocument.adoptNode(toDocument.head));
   }
   morphToElement(fromDocument.body, fromDocument.adoptNode(toDocument.body), options);
+}
+
+function returnFalse(): boolean {
+  return false;
+}
+
+function collectForcedScope(roots: Element[]): WeakSet<Element> {
+  const set = new WeakSet<Element>();
+  for (const root of roots) {
+    set.add(root);
+    for (const descendant of root.querySelectorAll('*')) {
+      set.add(descendant);
+    }
+  }
+  return set;
 }
 
 function morphHead(fromHeadElement: HTMLHeadElement, toHeadElement: HTMLHeadElement) {

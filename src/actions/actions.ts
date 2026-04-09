@@ -556,7 +556,13 @@ function duplicateChildren(targets: Element[], fragment: DocumentFragment) {
 }
 
 function difference<T>(a: Set<T>, b: Set<T>) {
-  return new Set([...a].filter((x) => !b.has(x)));
+  const result = new Set<T>();
+  for (const value of a) {
+    if (!b.has(value)) {
+      result.add(value);
+    }
+  }
+  return result;
 }
 
 export function isValidActionName(actionName: unknown): actionName is ActionName {

@@ -210,7 +210,7 @@ describe('coldwired/react', () => {
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
-          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My Count: 2</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
+          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
         ),
       );
       expect(root.getCache().size).toEqual(1);
@@ -220,7 +220,7 @@ describe('coldwired/react', () => {
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
-          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My Count: 3</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
+          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My Count: 1</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
         ),
       );
     });
@@ -233,7 +233,7 @@ describe('coldwired/react', () => {
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
-          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 3</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
+          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 1</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></section>`,
         ),
       );
       expect(root.getCache().size).toEqual(1);
@@ -247,7 +247,7 @@ describe('coldwired/react', () => {
     await waitFor(() => {
       expect(document.body.innerHTML).toEqual(
         layout(
-          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 3</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div>toto <${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></div></section>`,
+          `<section><${DEFAULT_TAG_NAME} id="frag-1"><div><p>My New Count: 1</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div>toto <${DEFAULT_TAG_NAME}><div><p>One more Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}></div></section>`,
         ),
       );
       expect(root.getCache().size).toEqual(2);

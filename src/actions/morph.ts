@@ -1,4 +1,4 @@
-import morphdom from 'morphdom';
+import * as morphlex from 'morphlex';
 import invariant from 'tiny-invariant';
 
 import {
@@ -7,9 +7,7 @@ import {
   isElementOrText,
   isFormInputElement,
   isFormOptionElement,
-  isHTMLElement,
   isInputElement,
-  isLinkElement,
   parseHTMLFragment,
   type FocusNextOptions,
 } from '../utils';
@@ -62,7 +60,7 @@ function morphToDocumentFragment(
       plugin.onBeforeUpdateElement?.(fromElement, toDocumentFragment),
     );
     if (!pluginRendered) {
-      const wrapper = toDocumentFragment.ownerDocument.createElement('div');
+      const wrapper = fromElement.cloneNode(false) as Element;
       wrapper.append(toDocumentFragment);
       morphToElement(fromElement, wrapper, options);
     }
@@ -90,128 +88,27 @@ function morphToDocumentFragment(
 }
 
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
-  const forceAttribute = options?.forceAttribute;
-  const added = new WeakSet<Element>();
+  const [morphlexOptions, cleanup] = createMorphOptions(fromElement, toElement, options);
 
-  // Pre-compute force-attribute scopes once instead of calling closest() per node
-  // inside onBeforeElUpdated. In the common case (no forced regions) each
-  // querySelectorAll is a near-empty walk, and lookups become O(1) WeakSet checks.
-  let isServerForced: (element: Element) => boolean = returnFalse;
-  let isBrowserForced: (element: Element) => boolean = returnFalse;
-  if (forceAttribute) {
-    const serverSelector = `[${forceAttribute}="server"]`;
-    const browserSelector = `[${forceAttribute}="browser"]`;
-
-    // If an ancestor of the morph root is already forced, the whole subtree is.
-    const serverRoots = toElement.closest(serverSelector)
-      ? [toElement]
-      : Array.from(toElement.querySelectorAll(serverSelector));
-    const browserRoots = fromElement.closest(browserSelector)
-      ? [fromElement]
-      : Array.from(fromElement.querySelectorAll(browserSelector));
-
-    const serverSet = collectForcedScope(serverRoots);
-    const browserSet = collectForcedScope(browserRoots);
-
-    isServerForced = (element) => serverSet.has(element);
-    isBrowserForced = (element) => browserSet.has(element);
+  if (options?.childrenOnly) {
+    morphlex.morphInner(fromElement, toElement, morphlexOptions);
+  } else {
+    morphlex.morph(fromElement, toElement, morphlexOptions);
   }
 
-  morphdom(fromElement, toElement, {
-    childrenOnly: options?.childrenOnly,
-    onBeforeElUpdated(fromElement, toElement) {
-      const pluginRendered = options?.plugins?.some((plugin) =>
-        plugin.onBeforeUpdateElement?.(fromElement, toElement),
-      );
-      if (pluginRendered) {
-        return false;
-      }
-
-      const force = isServerForced(toElement);
-      const metadata = options?.metadata?.get(fromElement);
-
-      if (force && metadata) {
-        if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
-          metadata.touched = false;
-        }
-      }
-
-      if (fromElement.isEqualNode(toElement)) {
-        return false;
-      }
-
-      if (!force && isBrowserForced(fromElement)) {
-        return false;
-      }
-
-      if (!force && metadata) {
-        toElement.classList.add(...metadata.addedClassNames);
-        toElement.classList.remove(...metadata.removedClassNames);
-
-        for (const [name, value] of Object.entries(metadata.attributes)) {
-          if (value == null) {
-            toElement.removeAttribute(name);
-          } else if (name == 'style') {
-            if (isHTMLElement(toElement)) {
-              toElement.style.cssText = value;
-            }
-          } else {
-            toElement.setAttribute(name, value);
-          }
-        }
-
-        if (metadata.touched) {
-          if (
-            isInputElement(fromElement) &&
-            (fromElement.type == 'checkbox' || fromElement.type == 'radio')
-          ) {
-            Object.assign(toElement, { checked: fromElement.checked });
-          } else if (isFormOptionElement(fromElement)) {
-            Object.assign(toElement, { selected: fromElement.selected });
-          } else if (isFormInputElement(fromElement)) {
-            Object.assign(toElement, { value: fromElement.value });
-          }
-        }
-      }
-
-      return true;
-    },
-    onBeforeNodeDiscarded(node) {
-      if (isElement(node)) {
-        options?.plugins?.forEach((plugin) => plugin.onBeforeDestroyElement?.(node));
-        focusNextElement(node, options);
-      }
-      return true;
-    },
-    onNodeAdded(node) {
-      if (isElement(node) && node.parentElement) {
-        if (!added.has(node.parentElement)) {
-          options?.plugins?.forEach((plugin) => plugin.onCreateElement?.(node));
-        }
-        added.add(node);
-      }
-
-      return node;
-    },
-  });
-
-  if (forceAttribute) {
-    const forcedElements =
-      fromElement.getAttribute(forceAttribute) == 'server' ? [fromElement] : [];
-    for (const element of [
-      ...forcedElements,
-      ...fromElement.querySelectorAll(`[${forceAttribute}="server"]`),
-    ]) {
-      element.removeAttribute(forceAttribute);
-    }
-  }
+  cleanup();
 }
 
 function morphDocument(fromDocument: Document, toDocument: Document, options?: MorphOptions): void {
-  if (toDocument.head) {
-    morphHead(fromDocument.head, fromDocument.adoptNode(toDocument.head));
-  }
-  morphToElement(fromDocument.body, fromDocument.adoptNode(toDocument.body), options);
+  const [morphlexOptions, cleanup] = createMorphOptions(
+    fromDocument.body,
+    toDocument.body,
+    options,
+  );
+
+  morphlex.morphDocument(fromDocument, toDocument, morphlexOptions);
+
+  cleanup();
 }
 
 function returnFalse(): boolean {
@@ -229,20 +126,152 @@ function collectForcedScope(roots: Element[]): WeakSet<Element> {
   return set;
 }
 
-function morphHead(fromHeadElement: HTMLHeadElement, toHeadElement: HTMLHeadElement) {
-  morphdom(fromHeadElement, toHeadElement, {
-    childrenOnly: true,
-    onBeforeElUpdated(fromElement, toElement) {
-      if (fromElement.isEqualNode(toElement)) {
-        return false;
+function createMorphOptions(
+  fromElement: Element,
+  toElement: Element,
+  options?: MorphOptions,
+): [morphlex.Options, cleanup: () => void] {
+  const forceAttribute = options?.forceAttribute;
+  const added = new WeakSet<Element>();
+
+  // Pre-compute force-attribute scopes once instead of calling closest() per node
+  // inside onBeforeElUpdated. In the common case (no forced regions) each
+  // querySelectorAll is a near-empty walk, and lookups become O(1) WeakSet checks.
+  let isServerForced: (element: Element) => boolean = returnFalse;
+  let isBrowserForced: (element: Element) => boolean = returnFalse;
+  let cleanup = () => {};
+  if (forceAttribute) {
+    const serverSelector = `[${forceAttribute}="server"]`;
+    const browserSelector = `[${forceAttribute}="browser"]`;
+
+    // If an ancestor of the morph root is already forced, the whole subtree is.
+    const serverRoots = toElement.closest(serverSelector)
+      ? [toElement]
+      : Array.from(toElement.querySelectorAll(serverSelector));
+    const browserRoots = fromElement.closest(browserSelector)
+      ? [fromElement]
+      : Array.from(fromElement.querySelectorAll(browserSelector));
+
+    const serverSet = collectForcedScope(serverRoots);
+    const browserSet = collectForcedScope(browserRoots);
+
+    isServerForced = (element) => serverSet.has(element);
+    isBrowserForced = (element) => browserSet.has(element);
+
+    cleanup = () => {
+      const forcedElements =
+        fromElement.getAttribute(forceAttribute) == 'server' ? [fromElement] : [];
+      for (const element of [
+        ...forcedElements,
+        ...fromElement.querySelectorAll(`[${forceAttribute}="server"]`),
+      ]) {
+        element.removeAttribute(forceAttribute);
       }
-      return true;
+    };
+  }
+
+  const serverForced = new Set<Element>();
+
+  return [
+    {
+      preserveChanges: true,
+      beforeAttributeUpdated(element, attributeName) {
+        const force = serverForced.has(element);
+        const metadata = options?.metadata?.get(element);
+
+        if (!force && isBrowserForced(element)) {
+          return false;
+        }
+
+        if (force) {
+          if (
+            attributeName == 'value' ||
+            attributeName == 'selected' ||
+            attributeName == 'checked'
+          ) {
+            return true;
+          }
+        }
+
+        if (!force && metadata) {
+          const oldValue = metadata.attributes[attributeName];
+
+          if (oldValue === null || typeof oldValue == 'string') {
+            return false;
+          }
+        }
+
+        return true;
+      },
+      beforeNodeVisited(fromNode, toNode) {
+        if (isElement(fromNode) && isElement(toNode)) {
+          const fromElement = fromNode;
+          const toElement = toNode;
+          const pluginRendered = options?.plugins?.some((plugin) =>
+            plugin.onBeforeUpdateElement?.(fromElement, toElement),
+          );
+          if (pluginRendered) {
+            return false;
+          }
+
+          const force = isServerForced(toElement);
+          const metadata = options?.metadata?.get(fromElement);
+
+          if (force) {
+            serverForced.add(fromElement);
+
+            // morphlex's preserveChanges blocks it from writing .value/.checked/.selected
+            // properties unconditionally. For server-forced elements we want the server's
+            // values to win, so sync the property on `from` to match `to` here, before
+            // morphlex's #visitAttributes runs.
+            if (isInputElement(fromElement) && isInputElement(toElement)) {
+              if (fromElement.type == 'checkbox' || fromElement.type == 'radio') {
+                fromElement.checked = toElement.checked;
+              } else {
+                fromElement.value = toElement.value;
+              }
+            } else if (isFormOptionElement(fromElement) && isFormOptionElement(toElement)) {
+              fromElement.selected = toElement.selected;
+            } else if (isFormInputElement(fromElement) && isFormInputElement(toElement)) {
+              fromElement.value = toElement.value;
+            }
+
+            if (metadata) {
+              if (isFormInputElement(fromElement) || isFormOptionElement(fromElement)) {
+                metadata.touched = false;
+              }
+            }
+          }
+
+          if (!force && isBrowserForced(fromElement)) {
+            return false;
+          }
+
+          if (!force && metadata) {
+            toElement.classList.add(...metadata.addedClassNames);
+            toElement.classList.remove(...metadata.removedClassNames);
+          }
+        }
+
+        return true;
+      },
+      beforeNodeAdded(parent, node) {
+        if (isElement(node) && isElement(parent)) {
+          if (!added.has(parent)) {
+            options?.plugins?.forEach((plugin) => plugin.onCreateElement?.(node));
+          }
+          added.add(node);
+        }
+        return true;
+      },
+      beforeNodeRemoved(node) {
+        if (isElement(node)) {
+          options?.plugins?.forEach((plugin) => plugin.onBeforeDestroyElement?.(node));
+          focusNextElement(node, options);
+        }
+        return true;
+      },
     },
-    onBeforeNodeDiscarded(node) {
-      if (isLinkElement(node)) {
-        return false;
-      }
-      return true;
-    },
-  });
+    cleanup,
+  ];
 }

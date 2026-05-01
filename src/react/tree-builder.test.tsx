@@ -107,7 +107,7 @@ describe('coldwired/react', () => {
     it('throws on malformed style attribute', () => {
       expect(() =>
         createReactTree({ tagName: 'div', attributes: { style: 'color' }, children: [] }, {}),
-      ).toThrow(/Invalid style attribute/);
+      ).toThrow('Invalid style attribute');
     });
 
     it('passes nested array and primitive props through transformPropValue', () => {
@@ -274,7 +274,7 @@ describe('coldwired/react', () => {
           parseHTMLFragment(`<${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}>`, document),
           async () => ({}),
         ),
-      ).toThrow(/Missing "name" attribute/);
+      ).toThrow('Missing "name" attribute');
     });
   });
 });

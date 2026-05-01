@@ -662,12 +662,11 @@ if (!customElements.get('dispatch-event')) {
   customElements.define('dispatch-event', DispatchEventElement);
 }
 
+const CDATA_OPEN = /^<!\[CDATA\[/;
+const CDATA_CLOSE = /\]\]>$/;
+
 function parseEventDetail(content: string) {
-  const maybeJSON = content
-    .trim()
-    .replace(/^<!\[CDATA\[/, '')
-    .replace(/\]\]>$/, '')
-    .trim();
+  const maybeJSON = content.trim().replace(CDATA_OPEN, '').replace(CDATA_CLOSE, '').trim();
   if (!maybeJSON) return null;
   try {
     return JSON.parse(maybeJSON);

@@ -1,5 +1,7 @@
 import { isElement } from '../utils';
 
+const WHITESPACE = /\s/;
+
 export type ClassListObserverDelegate = {
   classListChanged(element: Element, oldClassList: Set<string>): void;
 };
@@ -35,7 +37,7 @@ export class ClassListObserver {
   private onAttributeMutation(mutation: MutationRecord) {
     if (isElement(mutation.target)) {
       if (mutation.oldValue) {
-        const classList = new Set(mutation.oldValue.split(/\s/).filter(Boolean));
+        const classList = new Set(mutation.oldValue.split(WHITESPACE).filter(Boolean));
         this.#delegate.classListChanged(mutation.target, classList);
       } else {
         this.#delegate.classListChanged(mutation.target, new Set([]));

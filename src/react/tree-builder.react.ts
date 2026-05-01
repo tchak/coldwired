@@ -56,7 +56,7 @@ function resolveSchema(schema?: Partial<Schema>): Schema {
     return lastSchemaMerged;
   }
   lastSchemaInput = schema;
-  lastSchemaMerged = Object.assign({}, defaultSchema, schema);
+  lastSchemaMerged = { ...defaultSchema, ...schema };
   return lastSchemaMerged;
 }
 
@@ -148,7 +148,7 @@ function hydrateChildNodes(childNodes: NodeListOf<ChildNode>, schema: Schema): H
         } else {
           result.children.push({
             tagName,
-            attributes: Array.from(childNode.attributes).reduce(
+            attributes: [...childNode.attributes].reduce(
               (attrs, attr) => ({ ...attrs, [attr.name]: attr.value }),
               {},
             ),
@@ -179,7 +179,7 @@ function createElementOrComponent(
       Object.entries(child.attributes).map(([key, value]) => {
         const attrName = transformAttributeName(key);
         const attrValue = transformAttributeValue(key, value);
-        if (attrName.match(EVENT_HANDLER_PATTERN) && typeof attrValue != 'function') {
+        if (EVENT_HANDLER_PATTERN.test(attrName) && typeof attrValue != 'function') {
           throw new Error(`Event handler must be a function: ${key}`);
         }
         return [attrName, attrValue];
@@ -199,7 +199,7 @@ function createElementOrComponent(
         return [propName, createElementOrComponent(value, manifest)];
       }
       const propValue = transformPropValue(value);
-      if (propName.match(EVENT_HANDLER_PATTERN) && typeof propValue != 'function') {
+      if (EVENT_HANDLER_PATTERN.test(propName) && typeof propValue != 'function') {
         throw new Error(`Event handler must be a function: ${key}`);
       }
       return [propName, propValue];

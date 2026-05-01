@@ -76,7 +76,7 @@ function RootProvider({
 
   return (
     <>
-      {...Array.from(cache).map(([element, content]) =>
+      {...Array.from(cache, ([element, content]) =>
         createPortal(
           <ErrorBoundary
             fallbackRender={(props) => <ErrorBoundaryFallback element={element} {...props} />}

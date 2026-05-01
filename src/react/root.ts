@@ -86,8 +86,8 @@ export function createRoot(
   let cache = new Map<Element, ReactNode>();
   const mounted = new Map<Element, (fragment: DocumentFragmentLike | string) => Promise<void>>();
   const subscriptions = new Set<() => void>();
-  const manifest: Manifest = Object.assign({}, preloadedManifest);
-  const schema = Object.assign({}, defaultSchema, options.schema);
+  const manifest: Manifest = { ...preloadedManifest };
+  const schema = { ...defaultSchema, ...options.schema };
 
   const notify = () => {
     if (!isDestroyed) {
@@ -211,7 +211,7 @@ export function createRoot(
         if (element.tagName.toLowerCase() == schema.fragmentTagName) {
           return { count: 1, done: create(element) };
         } else {
-          const elements = Array.from(element.querySelectorAll(schema.fragmentTagName));
+          const elements = [...element.querySelectorAll(schema.fragmentTagName)];
           if (elements.length) {
             return {
               count: elements.length,

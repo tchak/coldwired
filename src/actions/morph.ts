@@ -143,7 +143,7 @@ function buildForceScope(
 // If an ancestor of the morph root already carries the marker, the entire
 // subtree is forced. Otherwise we collect every descendant carrying it.
 function rootsForForce(root: Element, selector: string): Element[] {
-  return root.closest(selector) ? [root] : Array.from(root.querySelectorAll(selector));
+  return root.closest(selector) ? [root] : [...root.querySelectorAll(selector)];
 }
 
 function collectScope(roots: Element[]): WeakSet<Element> {

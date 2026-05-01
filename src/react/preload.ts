@@ -12,10 +12,10 @@ export function preload(
   loader: (names: string[]) => Promise<Manifest>,
   schema?: Partial<Schema>,
 ): Promise<Manifest> {
-  const { componentTagName, nameAttribute } = Object.assign({}, defaultSchema, schema);
+  const { componentTagName, nameAttribute } = { ...defaultSchema, ...schema };
   const components = documentOrFragment.querySelectorAll(componentTagName);
   const componentNames = new Set(
-    Array.from(components).map((component) => {
+    Array.from(components, (component) => {
       const name = component.getAttribute(nameAttribute);
       if (!name) {
         throw new Error(`Missing "${nameAttribute}" attribute on <${componentTagName}>`);

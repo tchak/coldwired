@@ -5,7 +5,7 @@ import { normalizeHTMLFragment, parseHTMLFragment } from './utils';
 
 export async function renderTurboStream(actions: Actions, stream: string) {
   actions.applyActions(
-    [...parseHTMLFragment(stream, actions.element.ownerDocument).children].map(parseTurboStream),
+    Array.from(parseHTMLFragment(stream, actions.element.ownerDocument).children, parseTurboStream),
   );
   await actions.ready();
 }

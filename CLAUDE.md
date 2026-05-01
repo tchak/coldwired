@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Toolchain
 
-This project uses **Vite+** via the global `vp` CLI. See `AGENTS.md` for full details — the key rules:
+This project uses **Vite+** via the global `vp` CLI (run `vp help` for the full command list). The key rules:
 
 - Use `vp` commands directly; do **not** invoke `pnpm`/`npm`/`yarn`/`bun` to run tools.
 - `vp test`, `vp check`, `vp lint`, `vp fmt` run the built-in Vitest / Oxlint / Oxfmt / tsgo — there is no `vp vitest` or `vp oxlint`.
@@ -42,11 +42,11 @@ Each entry has its own `*.test.ts(x)` file next to it in `src/`.
 
 ### Core concept: `Actions` (`src/actions/`)
 
-`Actions` (in `actions.ts`) is the runtime. On `observe()` it installs a `MutationObserver` plus two helper observers (`attribute-observer.ts`, `class-list-observer.ts`) to snapshot "interactive" DOM state into a `WeakMap` (see `metadata.ts`). When an action replaces/updates a subtree, `morph.ts` (built on `morphdom`) reuses existing nodes and the recorded metadata is re-applied — this is how user edits to class names, aria state, and input values survive a re-render. The `data-turbo-force` attribute opts a subtree out of this preservation.
+`Actions` (in `actions.ts`) is the runtime. On `observe()` it installs a `MutationObserver` plus two helper observers (`attribute-observer.ts`, `class-list-observer.ts`) to snapshot "interactive" DOM state into a `WeakMap` (see `metadata.ts`). When an action replaces/updates a subtree, `morph.ts` wraps [`morphlex`](https://github.com/morphlex/morphlex) to reuse existing nodes and re-apply the recorded metadata — this is how user edits to class names, aria state, and input values survive a re-render. morphlex matches elements by id and by `name=` / `href=` / `src=` (not by position), so two same-tag siblings with no distinguishing attributes are treated as interchangeable while a `name`-keyed input is preserved across position changes. To opt a subtree out of preservation entirely, mark it with `data-turbo-force="server"` (server's HTML wins) or `data-turbo-force="browser"` (existing DOM wins).
 
 An `Action` is a plain serializable object (`{ action, targets, fragment?, delay? }`) with action kinds `after | before | append | prepend | replace | update | remove | focus | enable | disable | hide | show`. They are applied either directly on an `Actions` instance or by dispatching a custom event that the instance listens for (see `dispatchAction` / the top-level functions re-exported from `src/actions.ts`).
 
-`schema.ts` defines the Zod schema for actions (used by the turbo-stream parser to validate incoming actions). `plugin.ts` is the extension point by which `react` and `turbo-stream` hook into the `Actions` instance.
+`schema.ts` defines the runtime schema (`forceAttribute`, `focusGroupAttribute`, `focusDirectionAttribute`, `hiddenClassName`) and its defaults — it is plain TypeScript with no runtime validation library. `plugin.ts` is the extension point by which `react` and `turbo-stream` hook into the `Actions` instance.
 
 ### React integration (`src/react/`)
 
@@ -54,7 +54,7 @@ The React plugin attaches to an `Actions` instance and lets morph targets contai
 
 ### Turbo-stream (`src/turbo-stream.ts`)
 
-A thin adapter: parses `<turbo-stream>` HTML, validates with the Zod schema from `actions/schema.ts`, and forwards to `Actions`. No network transport is included — it is just the DOM-side of turbo-stream.
+A thin adapter: parses `<turbo-stream>` HTML, validates the action name via `isValidActionName` (and `tiny-invariant` for required fields), and forwards an `Action` object to `Actions`. No network transport is included — it is just the DOM-side of turbo-stream. The library has no runtime schema dependency; `zod` only appears in one tree-builder test fixture.
 
 ### Tests
 
@@ -81,3 +81,16 @@ jj diff
 jj commit -m "<type>: <description>"
 jj log
 ```
+
+### Releases
+
+1. Bump `package.json#version`.
+2. Add the new section to `CHANGELOG.md`: move any "Unreleased" content under the new version with the release date, and update the compare-link footers at the bottom.
+3. `jj commit -m "chore: release vX.Y.Z"` and push `main` (`jj git push --bookmark main`).
+4. Publish to npm with `bun publish` (which runs `vp run build` via the prepublish hook).
+5. Create the GitHub Release + tag in one shot — jj doesn't write tags itself, so this is the standard escape hatch:
+
+   ```bash
+   gh release create vX.Y.Z --target $(git rev-parse main) --title "vX.Y.Z" \
+     --notes-file <(awk -v v="X.Y.Z" '$0 ~ "^## \\[" v "\\]" {c=1; next} c && /^## \[/ {exit} c && /^\[.*\]:/ {exit} c' CHANGELOG.md)
+   ```

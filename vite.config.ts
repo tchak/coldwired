@@ -1,7 +1,16 @@
+import babel from '@rolldown/plugin-babel';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 import { playwright } from 'vite-plus/test/browser-playwright';
 
 export default defineConfig({
+  plugins: [
+    babel({
+      include: /\.[jt]sx?$/,
+      presets: [reactCompilerPreset()],
+    }),
+    react(),
+  ],
   pack: {
     dts: {
       tsgo: true,
@@ -18,6 +27,7 @@ export default defineConfig({
     deps: { onlyBundle: false },
   },
   lint: {
+    plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'react', 'import', 'promise', 'vitest'],
     jsPlugins: ['@e18e/eslint-plugin'],
     options: {
       typeAware: true,

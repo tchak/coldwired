@@ -71,7 +71,7 @@ function RootProvider({
   onMounted: (this: void) => void;
   ErrorBoundaryFallback: ErrorBoundaryFallbackComponent;
 }) {
-  useEffect(onMounted, []);
+  useEffect(onMounted, [onMounted]);
   const cache = useSyncExternalStore(subscribe, getSnapshot);
 
   return (

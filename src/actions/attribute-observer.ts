@@ -6,6 +6,8 @@ const attributes = [
   'hidden',
   'tab-index',
   'style',
+  'open',
+  'data-fr-opened',
   'aria-activedescendant',
   'aria-atomic',
   'aria-autocomplete',

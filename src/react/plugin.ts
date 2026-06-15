@@ -3,6 +3,10 @@ import { isManagedContainerElement, type Root } from './root';
 
 export function createReactPlugin(root: Root): Plugin {
   const pending: Set<Promise<void>> = new Set();
+  const track = (done: Promise<void>) => {
+    pending.add(done);
+    done.then(() => pending.delete(done));
+  };
   return {
     init(element) {
       let onReady: () => void;
@@ -34,21 +38,34 @@ export function createReactPlugin(root: Root): Plugin {
       if (batch.count == 0) {
         return false;
       }
-      pending.add(batch.done);
-      batch.done.then(() => pending.delete(batch.done));
+      track(batch.done);
       return true;
+    },
+    onAfterCreateElement(element) {
+      // A node was just inserted by the morph. If it re-introduces a fragment
+      // we rescued earlier in this morph, adopt the live node in its place.
+      const batch = root.adopt(element);
+      if (batch) {
+        track(batch.done);
+      }
     },
     onBeforeUpdateElement(element, toElement) {
       const batch = root.render(element, toElement);
       if (batch.count == 0) {
         return false;
       }
-      pending.add(batch.done);
-      batch.done.then(() => pending.delete(batch.done));
+      track(batch.done);
       return true;
     },
     onBeforeDestroyElement(element) {
-      return root.remove(element);
+      // Rescue mounted fragments inside the subtree being removed so they can be
+      // reused if the server re-adds them (e.g. when an unkeyed ancestor is
+      // restructured). Un-adopted ones are cleaned up in `afterMorph`.
+      root.stash(element);
+      return true;
+    },
+    afterMorph() {
+      root.finalizeMorph();
     },
     shouldPreserveElement(element) {
       // Keep client-only containers (the React root, portal targets) and any

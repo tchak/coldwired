@@ -86,19 +86,26 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const morphlexOptions = createMorphlexOptions(fromElement, toElement, options);
 
-  if (options?.childrenOnly) {
-    morphlex.morphInner(fromElement, toElement, morphlexOptions);
-  } else {
-    morphlex.morph(fromElement, toElement, morphlexOptions);
+  try {
+    if (options?.childrenOnly) {
+      morphlex.morphInner(fromElement, toElement, morphlexOptions);
+    } else {
+      morphlex.morph(fromElement, toElement, morphlexOptions);
+    }
+  } finally {
+    cleanupForceMarkers(fromElement, options?.forceAttribute);
+    options?.plugins?.forEach((plugin) => plugin.afterMorph?.());
   }
-
-  cleanupForceMarkers(fromElement, options?.forceAttribute);
 }
 
 function morphDocument(fromDocument: Document, toDocument: Document, options?: MorphOptions): void {
   const morphlexOptions = createMorphlexOptions(fromDocument.body, toDocument.body, options);
-  morphlex.morphDocument(fromDocument, toDocument, morphlexOptions);
-  cleanupForceMarkers(fromDocument.body, options?.forceAttribute);
+  try {
+    morphlex.morphDocument(fromDocument, toDocument, morphlexOptions);
+  } finally {
+    cleanupForceMarkers(fromDocument.body, options?.forceAttribute);
+    options?.plugins?.forEach((plugin) => plugin.afterMorph?.());
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +286,12 @@ function createMorphlexOptions(
         addedRoots.add(node);
       }
       return true;
+    },
+
+    afterNodeAdded(node) {
+      if (isElement(node)) {
+        plugins?.forEach((plugin) => plugin.onAfterCreateElement?.(node));
+      }
     },
 
     beforeNodeRemoved(node) {

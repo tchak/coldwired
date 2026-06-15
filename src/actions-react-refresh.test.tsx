@@ -265,6 +265,79 @@ describe('coldwired/react full-document morph', () => {
     });
   });
 
+  it('reconciles a fragment in place (same node) when unkeyed ancestors are restructured', async () => {
+    // The fragment is nested under unkeyed wrappers (<form> + <div>s). A refresh
+    // whose server HTML restructures those wrappers (here: drops a wrapping
+    // <div>) used to make morphlex tear down and re-create the fragment, losing
+    // the live react-aria node (and any DOM state on it). The fragment must be
+    // reconciled in place instead.
+    const frag = (label: string, items: string[]) =>
+      `<${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">${label}</${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Open</${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">` +
+      items
+        .map(
+          (i) =>
+            `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">${i}</${REACT_COMPONENT_TAG}>`,
+        )
+        .join('') +
+      `</${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}>`;
+
+    document.body.innerHTML = `<div id="main"><form><div class="a"><div class="b">${frag('Fruit', [
+      'Apple',
+      'Apricot',
+      'Banana',
+    ])}</div></div></form></div>`;
+    root.destroy();
+    actions.disconnect();
+    root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+    actions = new Actions({
+      element: document.documentElement,
+      plugins: [createReactPlugin(root)],
+    });
+    actions.observe();
+    await actions.ready();
+
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 input[role="combobox"]')).toBeTruthy();
+    });
+    const input = document.querySelector<HTMLInputElement>('#frag-1 input[role="combobox"]')!;
+    // Mark the live node so we can prove it survives rather than being recreated.
+    (input as unknown as { _mark?: string })._mark = 'kept';
+
+    // Server restructures the unkeyed wrappers (drops the inner <div>) and sends
+    // new props for the fragment.
+    const newDocument = parseHTMLDocument(
+      `<div id="main"><form><div class="a">${frag('Vegetable', [
+        'Carrot',
+        'Cabbage',
+        'Pea',
+      ])}</div></form></div>`,
+    );
+    actions.morph(document.body, newDocument.body);
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 label')!.textContent).toEqual('Vegetable');
+    });
+
+    const inputAfter = document.querySelector<HTMLInputElement>('#frag-1 input[role="combobox"]')!;
+    expect(inputAfter).toBe(input);
+    expect((inputAfter as unknown as { _mark?: string })._mark).toEqual('kept');
+    expect(root.getCache().size).toEqual(1);
+
+    // ...and it still responds to input events.
+    await page.getByRole('combobox').fill('Ca');
+    await waitFor(() => {
+      const options = Array.from(
+        document.querySelectorAll('.react-aria-Popover [role="option"]'),
+        (el) => el.textContent,
+      );
+      expect(options).toEqual(['Carrot', 'Cabbage']);
+    });
+  });
+
   it('keeps a react-aria ComboBox interactive when its overlay is open during a morph', async () => {
     document.body.innerHTML = `<div id="main">${COMBOBOX_FRAGMENT}</div>`;
     root.destroy();

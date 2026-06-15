@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-06-15
+
+### Fixed
+
+- A full-document morph (e.g. `turbo_stream.refresh`) no longer removes
+  React-rendered DOM that lives outside the server document — most notably
+  react-aria overlays (popovers, listboxes) which portal directly into
+  `<body>`. Previously, morphing while such an overlay was open (e.g. a
+  ComboBox selection that auto-submits a form) removed the overlay's
+  React-managed nodes mid-interaction, corrupting react-aria's state and
+  leaving the trigger input non-reactive (keystrokes dropped, listbox never
+  reopens). The morph now preserves any node React owns (detected via its
+  fiber) via `Plugin.shouldPreserveElement`. Regression introduced in 0.19.0.
+
 ## [0.19.1] - 2026-06-15
 
 ### Added
@@ -86,7 +100,8 @@ packages into a single multi-entry `coldwired` package with
 `coldwired/actions`, `coldwired/react`, `coldwired/turbo-stream`, and
 `coldwired/utils` subpath exports.
 
-[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.1...HEAD
+[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.2...HEAD
+[0.19.2]: https://github.com/tchak/coldwired/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/tchak/coldwired/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/tchak/coldwired/compare/v0.18.4...v0.19.0
 [0.18.4]: https://github.com/tchak/coldwired/compare/v0.18.3...v0.18.4

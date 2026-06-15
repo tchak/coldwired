@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The attribute observer now tracks the `open` and `data-fr-opened`
+  attributes, so the open/closed state of elements such as `<details>`,
+  `<dialog>`, and DSFR components is preserved across morphs.
+
 ### Fixed
 
 - A full-document morph (e.g. `turbo_stream.refresh`) no longer removes

@@ -51,7 +51,27 @@ export function createReactPlugin(root: Root): Plugin {
       return root.remove(element);
     },
     shouldPreserveElement(element) {
-      return isManagedContainerElement(element);
+      // Keep client-only containers (the React root, portal targets) and any
+      // node React itself rendered outside the server document — most notably
+      // react-aria overlays (popovers, listboxes) which portal straight into
+      // `<body>`. A whole-document morph would otherwise treat such a node as
+      // an unmatched child and remove it mid-interaction, tearing down the
+      // overlay and leaving its trigger (e.g. a ComboBox input) non-reactive.
+      // coldwired fragments are portal *containers*, not React-rendered nodes,
+      // so they carry no fiber and remain removable when the server drops them.
+      return isManagedContainerElement(element) || isReactRenderedNode(element);
     },
   };
+}
+
+// React tags every DOM node it renders with an own `__reactFiber$<random>`
+// property. We use it to recognise React-owned nodes that have escaped the
+// server-rendered tree (portaled overlays) so the morph leaves them in place.
+function isReactRenderedNode(element: Element): boolean {
+  for (const key of Object.keys(element)) {
+    if (key.startsWith('__reactFiber$')) {
+      return true;
+    }
+  }
+  return false;
 }

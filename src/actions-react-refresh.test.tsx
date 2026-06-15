@@ -52,16 +52,23 @@ const manifest: Manifest = {
   Button,
 };
 
-const COMBOBOX_FRAGMENT = `<${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">
-  <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">Fruit</${REACT_COMPONENT_TAG}>
+function comboboxFragment(label = 'Fruit', items = ['Apple', 'Apricot', 'Banana']) {
+  return `<${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">
+  <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">${label}</${REACT_COMPONENT_TAG}>
   <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>
   <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Open</${REACT_COMPONENT_TAG}>
   <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">
-    <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Apple</${REACT_COMPONENT_TAG}>
-    <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Apricot</${REACT_COMPONENT_TAG}>
-    <${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">Banana</${REACT_COMPONENT_TAG}>
+    ${items
+      .map(
+        (item) =>
+          `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">${item}</${REACT_COMPONENT_TAG}>`,
+      )
+      .join('\n    ')}
   </${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}>
 </${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}>`;
+}
+
+const COMBOBOX_FRAGMENT = comboboxFragment();
 
 describe('coldwired/react full-document morph', () => {
   let actions: Actions;
@@ -209,6 +216,85 @@ describe('coldwired/react full-document morph', () => {
     await waitFor(() => {
       expect(document.querySelector('#frag-1 input[role="combobox"]')).toBeTruthy();
     });
+    await page.getByRole('combobox').fill('Ban');
+    await waitFor(() => {
+      const options = Array.from(
+        document.querySelectorAll('.react-aria-Popover [role="option"]'),
+        (el) => el.textContent,
+      );
+      expect(options).toEqual(['Banana']);
+    });
+  });
+
+  it('keeps a react-aria ComboBox interactive after a morph that re-renders it with updated props', async () => {
+    document.body.innerHTML = `<div id="main">${comboboxFragment('Fruit', ['Apple', 'Apricot', 'Banana'])}</div>`;
+    root.destroy();
+    actions.disconnect();
+    root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+    actions = new Actions({
+      element: document.documentElement,
+      plugins: [createReactPlugin(root)],
+    });
+    actions.observe();
+    await actions.ready();
+
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 input[role="combobox"]')).toBeTruthy();
+    });
+
+    // Whole-body morph whose new HTML re-renders the fragment with UPDATED props
+    // (different label + items) -> exercises the in-place onBeforeUpdateElement
+    // root.render(element, toElement) path with a real prop diff.
+    const newDocument = parseHTMLDocument(
+      `<div id="main">${comboboxFragment('Vegetable', ['Carrot', 'Cabbage', 'Pea'])}</div>`,
+    );
+    actions.morph(document.body, newDocument.body);
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 label')!.textContent).toEqual('Vegetable');
+    });
+
+    // After the in-place re-render the ComboBox must still react to typing.
+    await page.getByRole('combobox').fill('Ca');
+    await waitFor(() => {
+      const options = Array.from(
+        document.querySelectorAll('.react-aria-Popover [role="option"]'),
+        (el) => el.textContent,
+      );
+      expect(options).toEqual(['Carrot', 'Cabbage']);
+    });
+  });
+
+  it('keeps a react-aria ComboBox interactive when its overlay is open during a morph', async () => {
+    document.body.innerHTML = `<div id="main">${COMBOBOX_FRAGMENT}</div>`;
+    root.destroy();
+    actions.disconnect();
+    root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+    actions = new Actions({
+      element: document.documentElement,
+      plugins: [createReactPlugin(root)],
+    });
+    actions.observe();
+    await actions.ready();
+
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 input[role="combobox"]')).toBeTruthy();
+    });
+
+    // Open the listbox: react-aria portals the popover straight into <body>.
+    await page.getByRole('combobox').fill('Ap');
+    await waitFor(() => {
+      expect(document.querySelector('.react-aria-Popover')).toBeTruthy();
+    });
+
+    // Morph WHILE the overlay is open (mirrors a combobox selection that
+    // auto-submits a form -> turbo refresh before the popover has closed). The
+    // morph must not remove the open overlay's react-managed DOM.
+    const newDocument = parseHTMLDocument(`<div id="main">${COMBOBOX_FRAGMENT}</div>`);
+    actions.morph(document.body, newDocument.body);
+    await actions.ready();
+
+    // The ComboBox must still react to typing after the morph.
     await page.getByRole('combobox').fill('Ban');
     await waitFor(() => {
       const options = Array.from(

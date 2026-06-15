@@ -3,7 +3,7 @@ import { isElement, parseHTMLFragment } from '../utils';
 
 import { defaultSchema as defaultTreeBuilderSchema, preload } from './preload';
 import type { ErrorBoundaryFallbackComponent, LayoutComponent } from './root.react';
-import { createAndRenderReactRoot, hydrate } from './root.react';
+import { createAndRenderReactRoot, flushSync, hydrate } from './root.react';
 import type {
   DocumentFragmentLike,
   Manifest,
@@ -132,7 +132,16 @@ export function createRoot(
         }
       });
       cache = new Map(cache);
-      subscriptions.forEach((callback) => callback());
+      // Commit synchronously. coldwired drives these updates from outside React
+      // (morph lifecycle, microtasks, mutation observers), where the default
+      // concurrent root would only *schedule* the re-render and leave it pending
+      // until some later macrotask. Forcing the flush keeps the React tree
+      // settled at the end of a morph, so a subsequently-typed react-aria
+      // controlled value commits on its own tick instead of needing repeated
+      // external event-loop turns to drain the scheduler.
+      flushSync(() => {
+        subscriptions.forEach((callback) => callback());
+      });
     }
   };
 

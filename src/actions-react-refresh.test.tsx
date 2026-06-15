@@ -95,6 +95,35 @@ describe('coldwired/react full-document morph', () => {
     root?.destroy();
   });
 
+  it('commits a fragment re-render synchronously after a morph (no extra event-loop turns)', async () => {
+    document.body.innerHTML = `<div id="main"><${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Hello"></${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}></div>`;
+    root.destroy();
+    actions.disconnect();
+    root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+    actions = new Actions({
+      element: document.documentElement,
+      plugins: [createReactPlugin(root)],
+    });
+    actions.observe();
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.querySelector('#frag-1 p')!.textContent).toEqual('hello world');
+    });
+
+    // Re-render the fragment with new props via a full-document morph. After
+    // `ready()` the React commit must already be flushed — no waitFor, no extra
+    // ticks. A concurrent root would only schedule it, leaving the DOM stale
+    // until later macrotasks drain the scheduler.
+    const props = encodeProps({ who: 'universe' });
+    const newDocument = parseHTMLDocument(
+      `<div id="main"><${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Hello" ${PROPS_ATTRIBUTE}="${props}"></${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}></div>`,
+    );
+    actions.morph(document.body, newDocument.body);
+    await actions.ready();
+
+    expect(document.querySelector('#frag-1 p')!.textContent).toEqual('hello universe');
+  });
+
   it('keeps a fragment-hosted controlled input interactive after a full-document morph that omits the react root container', async () => {
     await waitFor(() => {
       expect(document.querySelector('#frag-1 input')).toBeTruthy();

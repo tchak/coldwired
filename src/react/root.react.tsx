@@ -1,5 +1,7 @@
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { createRoot as createReactRoot } from 'react-dom/client';
+
+export { flushSync };
 import {
   useSyncExternalStore,
   useEffect,

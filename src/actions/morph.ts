@@ -237,12 +237,21 @@ function createMorphlexOptions(
     beforeNodeVisited(fromNode, toNode) {
       if (!isElement(fromNode) || !isElement(toNode)) return true;
 
+      const serverForced = force.isServerForced(toNode);
+
+      // Browser-forced: the existing DOM wins for this subtree. Skip *before*
+      // giving plugins a chance to re-render — re-rendering a browser-forced
+      // fragment from the server template would clobber the very state the
+      // marker is meant to protect. Server-force still takes precedence over
+      // browser-force, so only short-circuit when the server hasn't claimed it.
+      if (!serverForced && force.isBrowserForced(fromNode)) return false;
+
       const pluginRendered = plugins?.some((plugin) =>
         plugin.onBeforeUpdateElement?.(fromNode, toNode),
       );
       if (pluginRendered) return false;
 
-      if (force.isServerForced(toNode)) {
+      if (serverForced) {
         serverForcedFrom.add(fromNode);
         syncServerForcedFormState(fromNode, toNode);
         const fromMeta = metadata?.get(fromNode);
@@ -251,8 +260,6 @@ function createMorphlexOptions(
         }
         return true;
       }
-
-      if (force.isBrowserForced(fromNode)) return false;
 
       // Re-apply user-added/removed classes to the new template so the
       // class-attribute pass sees the merged result and leaves it alone.
@@ -276,6 +283,12 @@ function createMorphlexOptions(
 
     beforeNodeRemoved(node) {
       if (isElement(node)) {
+        // Client-only containers (the React root, portal targets, …) are not
+        // part of the server HTML; keep them rather than tearing down the
+        // subtree they host.
+        if (plugins?.some((plugin) => plugin.shouldPreserveElement?.(node))) {
+          return false;
+        }
         plugins?.forEach((plugin) => plugin.onBeforeDestroyElement?.(node));
         focusNextElement(node, options);
       }

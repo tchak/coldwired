@@ -1,5 +1,5 @@
 import type { Plugin } from '../actions';
-import type { Root } from './root';
+import { isManagedContainerElement, type Root } from './root';
 
 export function createReactPlugin(root: Root): Plugin {
   const pending: Set<Promise<void>> = new Set();
@@ -49,6 +49,9 @@ export function createReactPlugin(root: Root): Plugin {
     },
     onBeforeDestroyElement(element) {
       return root.remove(element);
+    },
+    shouldPreserveElement(element) {
+      return isManagedContainerElement(element);
     },
   };
 }

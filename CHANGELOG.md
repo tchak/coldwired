@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A full-document morph (e.g. `turbo_stream.refresh`) no longer removes
+  client-only containers created by the React integration's
+  `findOrCreateContainerElement` (the React root, react-aria portal targets,
+  …). Because these elements are absent from the server-rendered HTML,
+  `morphlex` previously treated them as unmatched and removed them, unmounting
+  the entire React tree and leaving react-aria controlled inputs dead after the
+  first refresh. The morph now preserves them via a new optional plugin hook,
+  `Plugin.shouldPreserveElement`. Regression introduced in 0.19.0.
+- `data-turbo-force="browser"` now takes precedence over the React plugin's
+  in-place re-render: a browser-forced fragment is left untouched instead of
+  being re-rendered from the server template (while `data-turbo-force="server"`
+  still wins over `browser`).
+
 ## [0.19.0] - 2026-05-01
 
 ### Changed

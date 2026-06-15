@@ -47,6 +47,19 @@ export const defaultSchema: Schema = {
 };
 
 const containerElementMap = new Map<string, Element>();
+
+// Containers created/adopted by `findOrCreateContainerElement` are client-only
+// `<body>` children (the React root, react-aria's portal target, …). They are
+// not part of the server-rendered HTML, so a whole-document morph would treat
+// them as unmatched and remove them — unmounting the React tree. We track them
+// here so the morph can be told to keep them in place. See the react `Plugin`'s
+// `shouldPreserveElement` and `morph.ts`'s `beforeNodeRemoved`.
+const managedContainers = new WeakSet<Element>();
+
+export function isManagedContainerElement(element: Element): boolean {
+  return managedContainers.has(element);
+}
+
 export function findOrCreateContainerElement(id: string) {
   let container = containerElementMap.get(id) ?? null;
   // container found in cache
@@ -58,6 +71,7 @@ export function findOrCreateContainerElement(id: string) {
   container = document.querySelector(`body > #${id}`);
   if (container?.isConnected) {
     containerElementMap.set(id, container);
+    managedContainers.add(container);
     return container;
   }
 
@@ -66,6 +80,7 @@ export function findOrCreateContainerElement(id: string) {
   container.id = id;
   document.body.appendChild(container);
   containerElementMap.set(id, container);
+  managedContainers.add(container);
   return container;
 }
 

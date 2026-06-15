@@ -338,6 +338,73 @@ describe('coldwired/react full-document morph', () => {
     });
   });
 
+  it('reconciles a fragment in place when the stable id is on a container, not the fragment', async () => {
+    // The react-fragment itself is unkeyed; the stable id lives on a wrapping
+    // container <div>. The fragment must be correlated by that container id so
+    // it survives a restructuring morph (here the server also *adds* a wrapper).
+    const combo = (label: string, items: string[]) =>
+      `<div id="combo"><${FRAGMENT_TAG}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ComboBox">` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Label">${label}</${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Input"></${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Button">Open</${REACT_COMPONENT_TAG}>` +
+      `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Popover"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBox">` +
+      items
+        .map(
+          (i) =>
+            `<${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="ListBoxItem">${i}</${REACT_COMPONENT_TAG}>`,
+        )
+        .join('') +
+      `</${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}></${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}></div>`;
+
+    document.body.innerHTML = `<div id="main"><form><div class="x">${combo('Fruit', [
+      'Apple',
+      'Apricot',
+      'Banana',
+    ])}</div></form></div>`;
+    root.destroy();
+    actions.disconnect();
+    root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+    actions = new Actions({
+      element: document.documentElement,
+      plugins: [createReactPlugin(root)],
+    });
+    actions.observe();
+    await actions.ready();
+
+    await waitFor(() => {
+      expect(document.querySelector('#combo input[role="combobox"]')).toBeTruthy();
+    });
+    const input = document.querySelector<HTMLInputElement>('#combo input[role="combobox"]')!;
+    (input as unknown as { _mark?: string })._mark = 'kept';
+
+    // Server wraps the container in a new (unkeyed) <div> and changes props.
+    const newDocument = parseHTMLDocument(
+      `<div id="main"><form><div class="x"><div class="wrap">${combo('Vegetable', [
+        'Carrot',
+        'Cabbage',
+        'Pea',
+      ])}</div></div></form></div>`,
+    );
+    actions.morph(document.body, newDocument.body);
+    await actions.ready();
+    await waitFor(() => {
+      expect(document.querySelector('#combo label')!.textContent).toEqual('Vegetable');
+    });
+
+    const inputAfter = document.querySelector<HTMLInputElement>('#combo input[role="combobox"]')!;
+    expect(inputAfter).toBe(input);
+    expect((inputAfter as unknown as { _mark?: string })._mark).toEqual('kept');
+
+    await page.getByRole('combobox').fill('Ca');
+    await waitFor(() => {
+      const options = Array.from(
+        document.querySelectorAll('.react-aria-Popover [role="option"]'),
+        (el) => el.textContent,
+      );
+      expect(options).toEqual(['Carrot', 'Cabbage']);
+    });
+  });
+
   it('keeps a react-aria ComboBox interactive when its overlay is open during a morph', async () => {
     document.body.innerHTML = `<div id="main">${COMBOBOX_FRAGMENT}</div>`;
     root.destroy();

@@ -21,6 +21,7 @@ export interface RenderBatch {
 export interface Root {
   render(element: Element, fragment?: DocumentFragmentLike | string): RenderBatch;
   remove(element: Element): boolean;
+  beginMorph(): void;
   stash(node: Element): void;
   adopt(node: Element): RenderBatch | null;
   finalizeMorph(): void;
@@ -104,10 +105,20 @@ export function createRoot(
   let cache = new Map<Element, ReactNode>();
   const mounted = new Map<Element, (fragment: DocumentFragmentLike | string) => Promise<void>>();
   // Live fragments rescued from a subtree being removed during a morph, keyed
-  // by id. They stay mounted so an equivalent fragment re-added elsewhere in
-  // the same morph can adopt the live node — preserving its React/react-aria
-  // state instead of being torn down and re-created (see `stash` / `adopt`).
+  // by a stable anchor (the fragment's own id, else its nearest id-bearing
+  // ancestor — e.g. a wrapping container `<div id>`). They stay mounted so an
+  // equivalent fragment re-added elsewhere in the same morph can adopt the live
+  // node — preserving its React/react-aria state instead of being torn down and
+  // re-created (see `stash` / `adopt`).
   const stashed = new Map<string, Element>();
+  // Anchor keys shared by more than one fragment in a single morph. The mapping
+  // is then ambiguous, so we don't risk adopting the wrong node — those
+  // fragments fall back to being re-created.
+  const ambiguous = new Set<string>();
+  // Anchor key per mounted fragment, captured *before* a morph runs — morphlex
+  // mutates the live tree as it works (it can strip a container's id while
+  // matching), so the key must be read from the pristine DOM up front.
+  const anchorKeys = new Map<Element, string>();
   const subscriptions = new Set<() => void>();
   const manifest: Manifest = { ...preloadedManifest };
   const schema = { ...defaultSchema, ...options.schema };
@@ -178,7 +189,8 @@ export function createRoot(
     // If an equivalent live fragment is stashed (rescued from a subtree removed
     // earlier in this morph), don't mount a fresh tree — `adopt` will swap the
     // live node into this position instead.
-    if (element.id && stashed.has(element.id)) {
+    const key = fragmentKey(element);
+    if (key && !ambiguous.has(key) && stashed.has(key)) {
       return;
     }
     if (!isDestroyed && !mounted.has(element)) {
@@ -260,16 +272,35 @@ export function createRoot(
       }
       return false;
     },
+    beginMorph() {
+      // Snapshot each mounted fragment's anchor key from the pristine tree,
+      // before morphlex starts mutating ids while matching.
+      anchorKeys.clear();
+      for (const element of mounted.keys()) {
+        const key = fragmentKey(element);
+        if (key) {
+          anchorKeys.set(element, key);
+        }
+      }
+    },
     stash(node) {
       // A subtree is about to be removed by a morph. Rescue any mounted
       // fragments inside it (including `node` itself) so they can be adopted if
       // the server re-adds an equivalent fragment elsewhere in the same morph.
-      // Without an id we cannot correlate the re-add, so leave such fragments to
-      // be cleaned up normally.
+      // Correlate by a stable anchor key (captured in `beginMorph`); without one
+      // (or when two fragments share a key) we can't safely match, so leave them
+      // to be re-created.
       for (const element of mounted.keys()) {
         if (element === node || node.contains(element)) {
-          if (element.id) {
-            stashed.set(element.id, element);
+          const key = anchorKeys.get(element);
+          if (!key || ambiguous.has(key)) {
+            continue;
+          }
+          if (stashed.has(key)) {
+            ambiguous.add(key);
+            stashed.delete(key);
+          } else {
+            stashed.set(key, element);
           }
         }
       }
@@ -281,13 +312,17 @@ export function createRoot(
           : [...node.querySelectorAll(schema.fragmentTagName)];
       const dones: Promise<void>[] = [];
       for (const serverFragment of fragments) {
-        const id = serverFragment.id;
-        const live = id ? stashed.get(id) : undefined;
-        if (live) {
-          stashed.delete(id);
+        const key = fragmentKey(serverFragment);
+        const live = key && !ambiguous.has(key) ? stashed.get(key) : undefined;
+        if (live && live !== serverFragment) {
+          stashed.delete(key!);
           // Put the preserved live node where the server placed its fragment,
           // then reconcile it in place with the server's new content (props).
           serverFragment.replaceWith(live);
+          if (mounted.has(serverFragment)) {
+            mounted.delete(serverFragment);
+            cache.delete(serverFragment);
+          }
           registerDestroyer(live);
           const update = mounted.get(live);
           if (update) {
@@ -302,12 +337,15 @@ export function createRoot(
     },
     finalizeMorph() {
       // Any stashed fragment that was not adopted was genuinely removed.
+      const orphaned = stashed.size > 0;
       for (const element of stashed.values()) {
         mounted.delete(element);
         cache.delete(element);
       }
-      if (stashed.size > 0) {
-        stashed.clear();
+      stashed.clear();
+      ambiguous.clear();
+      anchorKeys.clear();
+      if (orphaned) {
         notify();
       }
     },
@@ -331,6 +369,16 @@ export function createRoot(
       return cache;
     },
   };
+}
+
+// A stable key used to correlate a live fragment with the server fragment that
+// replaces it across a morph: the fragment's own id, else the id of its nearest
+// id-bearing ancestor (e.g. a wrapping `<div id>` container).
+function fragmentKey(element: Element): string | undefined {
+  if (element.id) {
+    return element.id;
+  }
+  return element.closest('[id]')?.id || undefined;
 }
 
 async function manifestLoader(names: string[], loader: Loader, manifest: Manifest) {

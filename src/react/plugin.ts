@@ -33,6 +33,9 @@ export function createReactPlugin(root: Root): Plugin {
         throw new Error('Cannot apply actions inside fragment');
       }
     },
+    beforeMorph() {
+      root.beginMorph();
+    },
     onCreateElement(element) {
       const batch = root.render(element);
       if (batch.count == 0) {

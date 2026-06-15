@@ -2,6 +2,9 @@ export interface Plugin {
   ready(): Promise<void>;
   init(element: Element): void;
   validate?(element: Element | Document): void;
+  // Called once before a morph begins, so plugins can snapshot state from the
+  // pristine tree before morphlex starts mutating it.
+  beforeMorph?(from: Element): void;
   onCreateElement?(element: Element): boolean;
   // Called after a node has been inserted into the DOM by a morph (a real
   // attachment, unlike `onCreateElement` which fires before insertion). Lets a

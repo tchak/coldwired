@@ -29,20 +29,28 @@ export function morph(
 ) {
   options?.plugins?.forEach((plugin) => plugin.validate?.(from));
 
-  if (from instanceof Document) {
-    invariant(to instanceof Document, 'Cannot morph document to element');
-    morphDocument(from, to, options);
-    return;
-  }
+  // Snapshot pre-morph state (and finalize after), symmetrically around the
+  // whole operation so plugins see the pristine tree before morphlex mutates it.
+  const fromElement = from instanceof Document ? from.body : from;
+  options?.plugins?.forEach((plugin) => plugin.beforeMorph?.(fromElement));
+  try {
+    if (from instanceof Document) {
+      invariant(to instanceof Document, 'Cannot morph document to element');
+      morphDocument(from, to, options);
+      return;
+    }
 
-  invariant(!(to instanceof Document), 'Cannot morph element to document');
+    invariant(!(to instanceof Document), 'Cannot morph element to document');
 
-  if (to instanceof DocumentFragment) {
-    morphToDocumentFragment(from, to, options);
-  } else if (typeof to == 'string') {
-    morphToDocumentFragment(from, parseHTMLFragment(to, from.ownerDocument), options);
-  } else {
-    morphToElement(from, to, options);
+    if (to instanceof DocumentFragment) {
+      morphToDocumentFragment(from, to, options);
+    } else if (typeof to == 'string') {
+      morphToDocumentFragment(from, parseHTMLFragment(to, from.ownerDocument), options);
+    } else {
+      morphToElement(from, to, options);
+    }
+  } finally {
+    options?.plugins?.forEach((plugin) => plugin.afterMorph?.());
   }
 }
 
@@ -86,26 +94,19 @@ function morphToDocumentFragment(
 function morphToElement(fromElement: Element, toElement: Element, options?: MorphOptions): void {
   const morphlexOptions = createMorphlexOptions(fromElement, toElement, options);
 
-  try {
-    if (options?.childrenOnly) {
-      morphlex.morphInner(fromElement, toElement, morphlexOptions);
-    } else {
-      morphlex.morph(fromElement, toElement, morphlexOptions);
-    }
-  } finally {
-    cleanupForceMarkers(fromElement, options?.forceAttribute);
-    options?.plugins?.forEach((plugin) => plugin.afterMorph?.());
+  if (options?.childrenOnly) {
+    morphlex.morphInner(fromElement, toElement, morphlexOptions);
+  } else {
+    morphlex.morph(fromElement, toElement, morphlexOptions);
   }
+
+  cleanupForceMarkers(fromElement, options?.forceAttribute);
 }
 
 function morphDocument(fromDocument: Document, toDocument: Document, options?: MorphOptions): void {
   const morphlexOptions = createMorphlexOptions(fromDocument.body, toDocument.body, options);
-  try {
-    morphlex.morphDocument(fromDocument, toDocument, morphlexOptions);
-  } finally {
-    cleanupForceMarkers(fromDocument.body, options?.forceAttribute);
-    options?.plugins?.forEach((plugin) => plugin.afterMorph?.());
-  }
+  morphlex.morphDocument(fromDocument, toDocument, morphlexOptions);
+  cleanupForceMarkers(fromDocument.body, options?.forceAttribute);
 }
 
 // ---------------------------------------------------------------------------

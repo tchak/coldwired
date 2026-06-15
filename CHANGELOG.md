@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.5] - 2026-06-15
+
+### Fixed
+
+- React updates driven by a morph (fragment re-render, stash/adopt, post-morph
+  cleanup) now commit synchronously via `flushSync`. coldwired triggers these
+  from outside React (the morph lifecycle, microtasks, mutation observers); a
+  concurrent root would otherwise leave the commit _scheduled but pending_ when
+  it lands during react-aria's own concurrent work, so a value typed into a
+  react-aria control right after a `_morph(document.body, …)` would only commit
+  after repeated external event-loop turns drained the scheduler. Forcing the
+  flush keeps the React tree settled at the end of every morph.
+
 ## [0.19.4] - 2026-06-15
 
 ### Fixed
@@ -14,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fragment in-place reconciliation (0.19.3) now also works when the stable id
   lives on a container element wrapping the `<react-fragment>` rather than on
   the fragment itself. The rescue/adopt correlation now keys off a stable
-  *anchor* — the fragment's own id, else its nearest id-bearing ancestor —
+  _anchor_ — the fragment's own id, else its nearest id-bearing ancestor —
   captured from the pristine tree before morphlex runs (morphlex can strip a
   container's id while matching, so the key must be read up front). This covers
   the common react-aria layout where an unkeyed `<react-fragment>` sits inside
@@ -129,7 +142,8 @@ packages into a single multi-entry `coldwired` package with
 `coldwired/actions`, `coldwired/react`, `coldwired/turbo-stream`, and
 `coldwired/utils` subpath exports.
 
-[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.4...HEAD
+[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.5...HEAD
+[0.19.5]: https://github.com/tchak/coldwired/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/tchak/coldwired/compare/v0.19.3...v0.19.4
 [0.19.3]: https://github.com/tchak/coldwired/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/tchak/coldwired/compare/v0.19.1...v0.19.2

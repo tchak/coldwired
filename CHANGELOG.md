@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.3] - 2026-06-15
+
+### Fixed
+
+- React fragment subtrees are now reconciled in place across a morph even when
+  their unkeyed ancestors (e.g. a wrapping `<form>` or `<div>`) are
+  restructured by the server. Previously such a morph could tear down and
+  re-create the fragment, producing a brand-new DOM node — dropping any state
+  bound to the old node (a react-aria controlled input would lose its event
+  bindings and drop keystrokes in the window after re-creation). The morph now
+  rescues mounted fragments from a removed subtree and re-adopts them (matched
+  by id) wherever the server re-introduces them, preserving the live node and
+  its React/react-aria state. Regression introduced in 0.19.0 (morphdom, which
+  relocated keyed nodes anywhere in the tree, was replaced by morphlex, which
+  only matches within siblings).
+
 ## [0.19.2] - 2026-06-15
 
 ### Fixed
@@ -100,7 +116,8 @@ packages into a single multi-entry `coldwired` package with
 `coldwired/actions`, `coldwired/react`, `coldwired/turbo-stream`, and
 `coldwired/utils` subpath exports.
 
-[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.2...HEAD
+[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.3...HEAD
+[0.19.3]: https://github.com/tchak/coldwired/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/tchak/coldwired/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/tchak/coldwired/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/tchak/coldwired/compare/v0.18.4...v0.19.0

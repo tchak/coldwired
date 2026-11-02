@@ -95,7 +95,7 @@ describe('coldwired/react full-document morph', () => {
     root?.destroy();
   });
 
-  it('commits a fragment re-render synchronously after a morph (no extra event-loop turns)', async () => {
+  it('commits a fragment re-render by the time ready() resolves after a morph', async () => {
     document.body.innerHTML = `<div id="main"><${FRAGMENT_TAG} id="frag-1"><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Hello"></${REACT_COMPONENT_TAG}></${FRAGMENT_TAG}></div>`;
     root.destroy();
     actions.disconnect();

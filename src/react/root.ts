@@ -3,7 +3,7 @@ import { isElement, parseHTMLFragment } from '../utils';
 
 import { defaultSchema as defaultTreeBuilderSchema, preload } from './preload';
 import type { ErrorBoundaryFallbackComponent, LayoutComponent } from './root.react';
-import { createAndRenderReactRoot, hydrate } from './root.react';
+import { createAndRenderReactRoot, flushSync, hydrate } from './root.react';
 import type {
   DocumentFragmentLike,
   Manifest,
@@ -89,7 +89,7 @@ export function createRoot(
   const manifest: Manifest = { ...preloadedManifest };
   const schema = { ...defaultSchema, ...options.schema };
 
-  const notify = () => {
+  const flush = () => {
     if (!isDestroyed) {
       cache.forEach((_, element) => {
         if (!element.isConnected) {
@@ -98,8 +98,28 @@ export function createRoot(
         }
       });
       cache = new Map(cache);
-      subscriptions.forEach((callback) => callback());
+      // Commit inside this task, so the renders awaiting the flush resolve
+      // with their fragments already in the DOM.
+      flushSync(() => {
+        subscriptions.forEach((callback) => callback());
+      });
     }
+  };
+
+  // A commit re-renders the portal of every mounted fragment, so one commit per
+  // fragment is quadratic. Actions are applied in separate animation-frame
+  // callbacks, each followed by its own microtask checkpoint: coalescing in a
+  // microtask merges nothing, only a later task sees all the fragments.
+  let scheduledFlush: Promise<void> | undefined;
+  const notify = () => {
+    scheduledFlush ??= new Promise<void>((resolve) => {
+      setTimeout(() => {
+        scheduledFlush = undefined;
+        flush();
+        resolve();
+      });
+    });
+    return scheduledFlush;
   };
 
   const render = async (
@@ -125,7 +145,7 @@ export function createRoot(
       element.innerHTML = '';
     }
     cache.set(element, tree);
-    notify();
+    await notify();
     element.classList.remove(schema.loadingClassName);
     if (element.classList.length == 0) {
       element.removeAttribute('class');

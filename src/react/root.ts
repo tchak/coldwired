@@ -123,7 +123,7 @@ export function createRoot(
   const manifest: Manifest = { ...preloadedManifest };
   const schema = { ...defaultSchema, ...options.schema };
 
-  const notify = () => {
+  const flush = () => {
     if (!isDestroyed) {
       cache.forEach((_, element) => {
         if (!element.isConnected) {
@@ -132,17 +132,33 @@ export function createRoot(
         }
       });
       cache = new Map(cache);
-      // Commit synchronously. coldwired drives these updates from outside React
-      // (morph lifecycle, microtasks, mutation observers), where the default
-      // concurrent root would only *schedule* the re-render and leave it pending
-      // until some later macrotask. Forcing the flush keeps the React tree
-      // settled at the end of a morph, so a subsequently-typed react-aria
-      // controlled value commits on its own tick instead of needing repeated
-      // external event-loop turns to drain the scheduler.
+      // Commit synchronously. This runs from coldwired's own timer, outside
+      // React, where the default concurrent root would only *schedule* the
+      // re-render and leave it pending until some later macrotask. Forcing the
+      // flush settles the React tree before the renders awaiting it resolve, so
+      // a subsequently-typed react-aria controlled value commits on its own tick
+      // instead of needing repeated external event-loop turns to drain the
+      // scheduler.
       flushSync(() => {
         subscriptions.forEach((callback) => callback());
       });
     }
+  };
+
+  // A commit re-renders the portal of every mounted fragment, so one commit per
+  // fragment is quadratic. Actions are applied in separate animation-frame
+  // callbacks, each followed by its own microtask checkpoint: coalescing in a
+  // microtask merges nothing, only a later task sees all the fragments.
+  let scheduledFlush: Promise<void> | undefined;
+  const notify = () => {
+    scheduledFlush ??= new Promise<void>((resolve) => {
+      setTimeout(() => {
+        scheduledFlush = undefined;
+        flush();
+        resolve();
+      });
+    });
+    return scheduledFlush;
   };
 
   const render = async (
@@ -168,7 +184,7 @@ export function createRoot(
       element.innerHTML = '';
     }
     cache.set(element, tree);
-    notify();
+    await notify();
     element.classList.remove(schema.loadingClassName);
     if (element.classList.length == 0) {
       element.removeAttribute('class');

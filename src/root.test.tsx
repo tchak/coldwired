@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vite-plus/test';
 import { page } from 'vite-plus/test/browser';
-import { useState } from 'react';
+import { Profiler, useState, type ReactNode } from 'react';
 import {
   ComboBox,
   ListBox,
@@ -74,6 +74,40 @@ describe('coldwired/react', () => {
       expect(document.body.innerHTML).toEqual(
         `<${DEFAULT_TAG_NAME}><div><p>Count: 0</p><button>Increment</button></div></${DEFAULT_TAG_NAME}><div id="root"></div>`,
       );
+      root.destroy();
+    });
+
+    it('render fragments from separate animation-frame callbacks in one commit', async () => {
+      let commits = 0;
+      const CountingLayout = ({ children }: { children: ReactNode }) => (
+        <Profiler id="root" onRender={() => commits++}>
+          {children}
+        </Profiler>
+      );
+      const fragment = `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`;
+      document.body.innerHTML = fragment.repeat(31);
+      const [first, ...others] = document.querySelectorAll(DEFAULT_TAG_NAME);
+      const manifestWithLayout: Manifest = { ...manifest, CountingLayout };
+      const root = createRoot({
+        loader: (name) => Promise.resolve(manifestWithLayout[name]),
+        layoutComponentName: 'CountingLayout',
+      });
+      await root.render(first).done;
+      commits = 0;
+
+      await Promise.all(
+        others.map(
+          (element) =>
+            new Promise<void>((resolve) => {
+              requestAnimationFrame(() => {
+                void root.render(element).done.then(resolve);
+              });
+            }),
+        ),
+      );
+
+      expect(document.querySelectorAll('button').length).toEqual(31);
+      expect(commits).toEqual(1);
       root.destroy();
     });
 

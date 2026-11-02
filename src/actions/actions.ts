@@ -96,8 +96,10 @@ export class Actions {
   }
 
   async ready() {
-    const pendingPlugins = this.#plugins.map((plugin) => plugin.ready());
-    await Promise.all([...this.#pending, ...pendingPlugins]);
+    // Applying an action starts plugin work (a React fragment render), so ask the
+    // plugins only once the scheduled actions have run.
+    await Promise.all(this.#pending);
+    await Promise.all(this.#plugins.map((plugin) => plugin.ready()));
   }
 
   get element() {

@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The compiled code imports `react/compiler-runtime`, which React 19 provides
   (the peer range is unchanged at `^19.2.5`).
 
+### Fixed
+
+- `Actions#ready()` now asks plugins for their pending work only once the
+  scheduled actions have been applied, so it waits for the React renders those
+  actions start. It previously read the plugins' pending set first, and only
+  appeared to wait because each render committed in a microtask that ran before
+  `ready()` resumed.
+
 ## [0.20.0] - 2026-11-25
 
 ### Changed

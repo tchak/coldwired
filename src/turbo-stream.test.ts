@@ -163,13 +163,15 @@ describe('coldwired/turbo-stream', () => {
 
     expect.assertions(2);
 
+    // The delay is long and the bound generous so a busy browser can't fail the
+    // test: an uncancelled delay would take the full second and remove #test1.
     const start = performance.now();
     const done = renderTurboStream(
       actions,
-      '<turbo-stream action="remove" target="test1" delay="20"></turbo-stream>',
+      '<turbo-stream action="remove" target="test1" delay="1000"></turbo-stream>',
     ).then(() => {
       const end = performance.now();
-      expect(end - start).toBeLessThan(20);
+      expect(end - start).toBeLessThan(500);
       expect(document.body.innerHTML).toBe('<div id="test1"></div><div id="test2"></div>');
     });
     actions.clear();

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reverted the morph engine from `morphlex` back to
+  [`morphdom`](https://github.com/patrick-steele-idem/morphdom), restoring the
+  0.18.x morph semantics. The morphlex migration (0.19.0) and the React
+  follow-up fixes built on top of it (0.19.1–0.19.5: client-only container
+  preservation, react-aria overlay preservation, in-place fragment
+  reconciliation and anchor correlation, synchronous `flushSync` commits, the
+  `Plugin.shouldPreserveElement` hook) are removed. Unrelated changes since
+  0.18.4 are kept: the dependency bumps, the e18e lint rules, the React
+  Compiler build setup, and observation of the `open` / `data-fr-opened`
+  attributes.
+
 ## [0.19.5] - 2026-06-15
 
 ### Fixed

@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "html-entities": "^2.6.0",
-    "morphlex": "^1.4.0",
+    "morphdom": "^2.7.8",
     "react-error-boundary": "^6.1.1"
   },
   "devDependencies": {

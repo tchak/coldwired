@@ -343,11 +343,8 @@ describe('coldwired/actions', () => {
       {
         action: 'update',
         targets: [document.body],
-        // Use data-turbo-force="server" so the morph clears middleName's previously
-        // applied `hidden` attribute/class (set by the earlier `hide` action and
-        // otherwise preserved via metadata).
         fragment: parseHTMLFragment(
-          `<div data-turbo-force="server" data-turbo-focus-direction="prev">
+          `<div data-turbo-focus-direction="prev">
             <input name="firstName" />
             <input name="lastName" />
             <input name="middleName" />
@@ -380,7 +377,7 @@ describe('coldwired/actions', () => {
     {
       const middleNameInput = document.querySelector(
         'input[name="middleName"]',
-      ) as HTMLInputElement;
+      ) as HTMLButtonElement;
       expect(isFocused(middleNameInput)).toBeTruthy();
     }
 

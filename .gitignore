@@ -7,3 +7,4 @@ __screenshots__
 .zed
 .claude
 coverage
+.vitest/

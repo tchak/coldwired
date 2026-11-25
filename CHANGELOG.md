@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The published `coldwired/react` build is now compiled with React Compiler
+  (the Rust port, via `oxc-transform-react`), so its components and hooks
+  ship auto-memoized. Previously the compiler only ran in the test suite.
+  The compiled code imports `react/compiler-runtime`, which React 19 provides
+  (the peer range is unchanged at `^19.2.5`).
+
 ## [0.20.0] - 2026-11-25
 
 ### Changed

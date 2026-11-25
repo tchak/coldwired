@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-25
+
 ### Changed
 
 - Reverted the morph engine from `morphlex` back to
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.18.4 are kept: the dependency bumps, the e18e lint rules, the React
   Compiler build setup, and observation of the `open` / `data-fr-opened`
   attributes.
+- Bumped `react-error-boundary` to `^6.1.6`.
 
 ## [0.19.5] - 2026-06-15
 
@@ -155,7 +158,8 @@ packages into a single multi-entry `coldwired` package with
 `coldwired/actions`, `coldwired/react`, `coldwired/turbo-stream`, and
 `coldwired/utils` subpath exports.
 
-[Unreleased]: https://github.com/tchak/coldwired/compare/v0.19.5...HEAD
+[Unreleased]: https://github.com/tchak/coldwired/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/tchak/coldwired/compare/v0.19.5...v0.20.0
 [0.19.5]: https://github.com/tchak/coldwired/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/tchak/coldwired/compare/v0.19.3...v0.19.4
 [0.19.3]: https://github.com/tchak/coldwired/compare/v0.19.2...v0.19.3

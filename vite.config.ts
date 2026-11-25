@@ -1,16 +1,9 @@
-import babel from '@rolldown/plugin-babel';
-import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 import { playwright } from 'vite-plus/test/browser-playwright';
 
 export default defineConfig({
-  plugins: [
-    babel({
-      include: /\.[jt]sx?$/,
-      presets: [reactCompilerPreset()],
-    }),
-    react(),
-  ],
+  plugins: [react({ compiler: true })],
   pack: {
     dts: {
       generator: 'tsgo',

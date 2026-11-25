@@ -88,9 +88,16 @@ export function createRoot(
   const subscriptions = new Set<() => void>();
   const manifest: Manifest = { ...preloadedManifest };
   const schema = { ...defaultSchema, ...options.schema };
+  // Fragments whose server-rendered content React is about to replace. They are
+  // cleared in the commit's own task, so the browser never paints them empty.
+  const pendingResets = new Set<Element>();
 
   const flush = () => {
     if (!isDestroyed) {
+      for (const element of pendingResets) {
+        element.innerHTML = '';
+      }
+      pendingResets.clear();
       cache.forEach((_, element) => {
         if (!element.isConnected) {
           cache.delete(element);
@@ -142,7 +149,7 @@ export function createRoot(
     }
 
     if (reset) {
-      element.innerHTML = '';
+      pendingResets.add(element);
     }
     cache.set(element, tree);
     await notify();
@@ -260,6 +267,7 @@ export function createRoot(
     destroy() {
       isDestroyed = true;
       cache.clear();
+      pendingResets.clear();
       notify();
       subscriptions.clear();
       unmount?.();

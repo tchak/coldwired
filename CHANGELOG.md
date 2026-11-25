@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-25
+
 ### Changed
 
 - The published `coldwired/react` build is now compiled with React Compiler
@@ -31,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over 500 commits and blocked the main thread for ~1.5 s. The commit now runs
   in a later task: a fragment render resolves once it has run, while a removed
   fragment is unmounted by that same commit without `ready()` awaiting it.
+  A newly created fragment keeps its server-rendered content until that commit
+  replaces it, so it is never painted empty in between.
 
 ## [0.20.0] - 2026-11-25
 
@@ -183,7 +187,8 @@ packages into a single multi-entry `coldwired` package with
 `coldwired/actions`, `coldwired/react`, `coldwired/turbo-stream`, and
 `coldwired/utils` subpath exports.
 
-[Unreleased]: https://github.com/tchak/coldwired/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/tchak/coldwired/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/tchak/coldwired/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/tchak/coldwired/compare/v0.19.5...v0.20.0
 [0.19.5]: https://github.com/tchak/coldwired/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/tchak/coldwired/compare/v0.19.3...v0.19.4

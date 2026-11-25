@@ -111,6 +111,26 @@ describe('coldwired/react', () => {
       root.destroy();
     });
 
+    it('never leaves a fragment empty between tasks while it renders', async () => {
+      document.body.innerHTML = `<${DEFAULT_TAG_NAME}><p>Server</p><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`;
+      const element = document.querySelector(DEFAULT_TAG_NAME)!;
+      // MutationObserver callbacks run between tasks, where the browser may paint.
+      const snapshots: number[] = [];
+      const observer = new MutationObserver(() => snapshots.push(element.childNodes.length));
+      observer.observe(element, { childList: true });
+      const root = createRoot({ loader: (name) => Promise.resolve(manifest[name]) });
+
+      await root.render(element).done;
+      observer.disconnect();
+
+      expect(element.innerHTML).toEqual(
+        '<p>Server</p><div><p>Count: 0</p><button>Increment</button></div>',
+      );
+      expect(snapshots.length).toBeGreaterThan(0);
+      expect(snapshots).not.toContain(0);
+      root.destroy();
+    });
+
     it('render fragment with component and cache', async () => {
       document.body.innerHTML = `<${DEFAULT_TAG_NAME}><${REACT_COMPONENT_TAG} ${NAME_ATTRIBUTE}="Counter"></${REACT_COMPONENT_TAG}></${DEFAULT_TAG_NAME}>`;
       const root = createRoot({

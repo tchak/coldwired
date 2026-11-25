@@ -43,6 +43,7 @@ export default defineConfig({
     plugins: [reactCompiler()],
     dts: {
       generator: 'tsgo',
+      tsgo: { path: 'node_modules/.bin/tsrs' },
     },
     exports: true,
     entry: {
